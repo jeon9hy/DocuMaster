@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/*
+ * 색은 여기서만 정한다. 로고의 하양·파랑·하늘색에 맞춰 Tailwind의 blue 계열을 덮어써서,
+ * 컴포넌트는 평범한 `bg-blue-600`·`text-blue-700`을 쓰고 색 조정은 이 파일에서 한다.
+ */
+@theme {
+  --color-canvas: #f4f8ff;
+  --color-line: #e3e9f3;
+  --color-navy: #0b2454;
+
+  --color-blue-50: #eef5ff;
+  --color-blue-100: #dcebff;
+  --color-blue-200: #bcd9ff;
+  --color-blue-300: #8cc2ff;
+  --color-blue-400: #5aa8ff;
+  --color-blue-500: #2f8bff;
+  --color-blue-600: #0a6cff;
+  --color-blue-700: #0056dd;
+  --color-blue-800: #0a43ad;
+  --color-blue-900: #0b2454;
+
+  --color-gray-900: #0f1d3a;
+
+  --font-sans: Pretendard, Inter, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-wordmark: var(--font-nunito), Pretendard, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-gray-900);
+  font-family: var(--font-sans);
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 280" font-family="system-ui, sans-serif">
+  <rect width="480" height="280" fill="#FFFFFF"/>
+  <text x="24" y="34" font-size="15" font-weight="600" fill="#0B1B3A">주거비 추이 (예시 · 목업 데이터)</text>
+  <text x="24" y="54" font-size="11" fill="#6B7280">실제 통계가 아닙니다. 화면 확인용 그림입니다.</text>
+  <g stroke="#E5E7EB">
+    <line x1="48" y1="90" x2="456" y2="90"/><line x1="48" y1="140" x2="456" y2="140"/>
+    <line x1="48" y1="190" x2="456" y2="190"/><line x1="48" y1="240" x2="456" y2="240"/>
+  </g>
+  <polyline points="60,210 140,196 220,184 300,160 380,138 448,120" fill="none" stroke="#0A66FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="60,224 140,218 220,214 300,204 380,196 448,186" fill="none" stroke="#6CBCFB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g font-size="11" fill="#6B7280" text-anchor="middle">
+    <text x="60" y="260">1년차</text><text x="140" y="260">2년차</text><text x="220" y="260">3년차</text>
+    <text x="300" y="260">4년차</text><text x="380" y="260">5년차</text><text x="448" y="260">6년차</text>
+  </g>
+</svg>

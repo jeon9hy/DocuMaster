@@ -46,7 +46,7 @@ PPT   → 요르 06B = 발표팩 07 (resume) → [deck-review] → [cross-check]
 
 ## 4. 파일
 `자료/`(사용자 참고자료) · `작업/<ID>/`(작업 중 전부) · `최종/<ID>/`(게이트 통과본, 목록은 `최종/_manifest.md`).
-루트에는 `CLAUDE.md`·`README.md` 외의 파일을 만들지 않는다.
+루트에는 `CLAUDE.md`·`README.md` 외의 파일을 만들지 않는다. 웹앱 작업은 `webapp/` 폴더를 열고 새 세션으로 한다(이 파일은 `webapp/.claude/settings.json`으로 제외된다).
 `작업/<ID>/` = `상태.md`(재개 진입점) · `기록.md`(판정 이력) · `sources/ references/ output/` · `workspace/00~07`
 (**05 = 사실의 원천, 06 = 구조의 원천**. 파일명은 각 절차서에 있다). 번호는 계약이다 — 이름을 바꾸지 않고 수정본은 `_v02`, 파일명은 ASCII(E-008).
 
