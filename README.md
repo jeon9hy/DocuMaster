@@ -13,7 +13,7 @@ You ask for a report or a deck in plain language. DocuMaster plans the research,
 | Mode | When | Output | Quality target |
 | --- | --- | --- | --- |
 | **DOCUMENT** | Reports, analyses, proposals, submissions | `최종/<ID>/<ID>.pdf` | **Final, ready to submit.** No quality step is skipped |
-| **PRESENTATION** | Decks, talks, slides | `최종/<ID>/` slide PDF + presentation pack | **A strong first draft.** Final design is done separately |
+| **PRESENTATION** | Decks, talks, slides | `최종/<ID>/` slide PDF + presentation pack | **A strong first draft.** Final design is done separately. Deck type (story · briefing · academic) has its own rule file, and only that one is loaded per job |
 
 ---
 
@@ -65,6 +65,21 @@ flowchart TD
 - **A conclusion is never stronger than its evidence.** Turning a before/after comparison into a cause, or a recommendation into a proven result, is an error even when every number is right.
 - **`[Unverified]` is a normal output.** A search snippet is not a verified source. Nobody fakes a URL, a paper, a statistic or a NotebookLM run.
 
+### Deck types — story, briefing, academic
+
+A deck is routed by **why it is presented, not what it is about**: a type the user named > the setting (class, conference, executive report, training) > the purpose > what the audience must do > the subject. A seminar analysing a character's narrative is *academic*; an executive report built on five papers is a *briefing*.
+
+| Type | When | Flow | Screen | Sources |
+| --- | --- | --- | --- | --- |
+| **Story** | Characters, works, culture, fan talks | Cover → question → development → climax → one-line conclusion that echoes the cover | Scene illustrations; text sits in the empty space of the picture | Only on statistics, quotes and contested claims |
+| **Briefing** | Policy, business, training, status talks | *Decision report* (conclusion and ask first → situation → causes → options → next steps) or *explain and act* (why it matters → situation → context → conclusion) → sources and limits | Claim titles, one pattern per slide, interpretation next to every chart, no decorative art | Every slide that uses evidence |
+| **Academic** | Research talks, classes, seminars | *Research* (question → method → results → discussion) or *review / theory* (question → concepts → key studies → debate → synthesis) → conclusion → references | Same evidence grammar; results may repeat one layout so they stay comparable | (Author, year) on every evidence slide + a references slide |
+
+- Each type has its own rule file (`공통/발표_스토리.md` · `발표_브리핑.md` · `발표_학술.md`). **Only the selected one is loaded**, so rules for another type never reach the model. The shared spec keeps only rules that hold for every type.
+- The type is written into the headers of `00`, `06` and `07`. A missing type or a type that changes between steps is a gate failure — nothing falls back to a default type.
+- Looks come from the topic: colour, background and one visual device are chosen per deck. A reference deck sets the quality bar, not the template.
+- An explicit request from the user (a Q&A slide, a two-item table) beats the design defaults. It never overrides facts, sources, CAUTION or LOCKED.
+
 ### Verdicts
 
 | Verdict | First line of `05` | What happens next |
@@ -87,9 +102,12 @@ This script runs before Loid reads a gated file. It catches:
 - a REMOVE item's evidence ID showing up again
 - a CAUTION sentence that is not copied verbatim
 - a LOCKED violation: chapters or sections, or slide count and order, that differ from `06`
-- Character Model drift between slides
-- source captions on slides that should not have one
+- Character Model drift between slides, and (story) the art-style sentence not repeated on every illustrated slide
+- a deck type that is missing, or differs between `00`, `06` and `07` (each compared within the same plan revision)
+- the type's NotebookLM instruction line not copied verbatim, lines over the type's length limit, and (briefing, academic) body slides without a claim title
+- a source where `06` says none, no source where `06` requires one, and numbers on screen without a source
 - a title repeated as on-screen copy
+- (CHECK) flow steps of the chosen type that no slide seems to cover
 
 It exits with `FAIL` (send back to the owner) or `CHECK` (a human closes it and logs why). It does **not** catch a REMOVE claim reworded to look new, or claim-strength inflation. Those are still read by a person.
 
@@ -100,7 +118,7 @@ It exits with `FAIL` (send back to the owner) or `CHECK` (a human closes it and 
 ```
 CLAUDE.md                 Constitution & wiring (loaded every turn — kept under 10 KB)
 .claude/
-├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec
+├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec (common) · one rule file per deck type
 ├─ 요르/ 유리/ 아냐/ 로이드/   Role + procedure files, one folder per agent
 ├─ skills/                doc-finish · cross-check · deck-review · notebooklm-handoff
 ├─ tools/                 gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
@@ -123,13 +141,14 @@ Open this folder in Claude Code and describe what you need:
 ```
 2026년 국내 전기차 충전 인프라 정책 보고서를 써줘. A4 10쪽, 정책 담당자용.
 치이카와 세계관 소개 발표자료 만들어줘. 11장.
+스마트건설 논문 5편을 비교하는 대학원 세미나 발표자료 만들어줘.
 ```
 
-(The two examples ask for a 10-page A4 policy report on Korea's EV charging infrastructure for policy staff, and an 11-slide deck introducing the world of Chiikawa.)
+(The examples ask for a 10-page A4 policy report on Korea's EV charging infrastructure for policy staff, an 11-slide deck introducing the world of Chiikawa (story), and a graduate-seminar deck comparing five smart-construction papers (academic, review).)
 
 Loid picks the mode and runs the pipeline. It stops to ask only when:
 
-- the mode is ambiguous,
+- the mode or deck type is ambiguous,
 - the evidence forces a change of direction, or
 - verification is blocked.
 
@@ -164,11 +183,14 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 | 2026-09-19 | Team reshuffle (E-039): Codex became the sole fact supplier and Claude sonnet the independent verifier; `06` now starts a fresh session instead of resuming research |
 | 2026-09-19 | Compression (E-040): size budgets, per-mode specs, the `doc-finish` skill, and a render gate that shows one contact sheet first and zooms in only on suspect pages |
 | 2026-09-19 | `gate_check.py` (E-041) automates the fact-leak and LOCKED checks. `apply_patch.py` now also extracts `04` (fixes a missing-env-var bug). The repository moved to git |
+| 2026-09-19 | NotebookLM rendering fixes from real outputs (E-042, E-045, E-046): text placed in the empty space of the scene, no split panels, line-length limits, mandatory source lines, a "what was counted" line on every number slide. NotebookLM keeps what is repeated on every slide and drifts on what is said once, so the art style and error-prone features are now repeated per slide |
+| 2026-09-19 | Deck types (E-043, E-047–E-050): separate rule files for story, briefing and academic, loaded one at a time; purpose-based routing; type-drift and missing-source gates; NotebookLM runs stop instead of falling back to a story-style prompt, and the slide format is read from the type file |
 
 ### Not yet verified
 
 - The full DOCUMENT path (`06B` → Anya → `doc-finish`) has not run on a real job, and page breaks past 10 pages are untested.
-- Whether NotebookLM follows the new pack format (one line per item, "no title" slides).
+- Briefing decks have not run yet. Academic decks have run once: layout and sources held, but title size and position drifted between slides (E-049).
+- Whether NotebookLM's `presenter_slides` format beats `detailed_deck` for story decks — every type uses `detailed_deck` until tested.
 - How often Yor and Yuri make the *same* mistake, and whether ten questions are enough.
 
 ---
