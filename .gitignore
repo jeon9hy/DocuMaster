@@ -7,26 +7,11 @@ tmp/
 # 사용자 참고자료(저작권·개인 자료)
 자료/
 
-# 작업 폴더: 재현 가능한 산출 문서(workspace/*.md)만 올린다
+# 옛 원문(개인 계정·경로 포함, 규칙상 읽지 않음)
+.claude/archive/
+
+# 작업 폴더: 산출 문서(workspace/*.md)만 올린다. 로그·세션 ID·중간 산출물은 로컬에만
 작업/*/*
 !작업/*/workspace/
 작업/*/workspace/*
 !작업/*/workspace/*.md
-!작업/오케스트레이션_리뷰_20260918/output/
-
-# 옛 원문(개인 계정·경로 포함, 규칙상 읽지 않음)
-.claude/archive/
-
-# 포트폴리오에는 작업별 최신본만 — 중간 버전·결함 초안·내부 메모·옛 테스트는 로컬에만
-작업/_연기테스트_20260917/
-작업/오케스트레이션_리뷰_20260918/
-작업/*/workspace/02_research_pack.md
-작업/렘_20260918/workspace/07_notebooklm_presentation_pack.md
-작업/치이카와세계관_20260918/workspace/06_detailed_plan.md
-작업/치이카와세계관_20260918/workspace/06_visual_direction.md
-작업/치이카와세계관_20260918/workspace/06_visual_direction_v02_draft1_결함.md
-작업/치이카와세계관_20260918/workspace/07_notebooklm_presentation_pack.md
-작업/치이카와세계관_20260918/workspace/07_notebooklm_presentation_pack_v02.md
-작업/치이카와세계관_20260918/workspace/08_*.md
-작업/치이카와세계관_20260918/workspace/09_*.md
-작업/치이카와세계관_20260918/workspace/10_*.md
