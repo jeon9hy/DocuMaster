@@ -51,18 +51,7 @@ DEFAULT_ARTIFACTS = ["slides"]  # 사용자 결정(2026-09-18): 기본은 슬라
 # "No such option" 으로 죽는다 (E-016).
 PROGRESS_FLAG_OK = {"infographic", "slides"}
 
-# 제작 지시 — 발표팩에 `# 제작 지시` 절이 없을 때 쓰는 비상용 기본값.
-# 원본은 `요르/비주얼_발표.md` §4다. 문구를 고칠 일이 있으면 거기를 고치고 여기는 요약만 맞춘다.
-FALLBACK_INSTRUCTION = """첨부한 Presentation Pack을 기준으로 만들어 주세요. 문서형 PPT로 옮기지 마세요.
-- 슬라이드마다 「화면」의 주인공을 화면의 절반 이상으로 크게 그리세요. 넓은 여백에 작은 글자나 작은 인물만 두지 마세요.
-- 덱 전체를 Art Direction의 색·서체 한 가족·화풍 하나로 통일하고, 본문 장 제목은 같은 크기·같은 위치에 두세요.
-- 「제목」「화면 문구」의 항목 하나가 한 줄입니다. 그 위치에서만 줄을 바꾸세요. 「제목」이 "없음"이면 제목을 만들지 마세요.
-- 「출처」가 "없음"인 장에는 출처를 쓰지 마세요. 출처는 왼쪽 아래 작은 한 줄로, 「한정」은 관련 숫자 옆 한 줄로 두세요.
-- 첫 장은 발표의 얼굴로, 마지막 장은 첫 장의 모티프를 받아 결론 한 문장으로 닫으세요.
-- 텍스트를 카드·박스에 나눠 담지 마세요. 관계·순서·수치는 도식·연표·큰 숫자로 보여 주세요.
-- 캐릭터는 묘사대로 모든 장에서 같은 모습으로 그리세요. 로고·"공식" 표기·실존 인물 사진풍 얼굴은 만들지 마세요.
-- 「발표자 메모」「근거」「최종 편집」은 화면에 표시하지 마세요.
-- 자료에 없는 사실·수치를 추가하거나 계산하지 말고, 슬라이드 순서와 메시지를 바꾸지 마세요."""
+# 제작 지시는 발표팩의 `# 제작 지시` 절만 쓴다. 없으면 멈춘다 — 기본값으로 채우면 한 유형의 지시가 다른 유형에 섞인다(E-050).
 
 GROUNDING = "Use only uploaded sources. Do not invent statistics, quotes, names, or examples not in the sources."
 
@@ -197,7 +186,7 @@ def guard_source(path: Path) -> None:
 
 
 def pack_instruction(pack_text: str) -> str:
-    """팩의 `# 제작 지시` 절을 꺼낸다. 없으면 기본 지시."""
+    """팩의 `# 제작 지시` 절을 꺼낸다. 못 읽으면 멈춘다(기본 지시로 대신하지 않는다)."""
     m = re.search(r"^#\s*제작 지시.*?$(.*?)(?=^#\s|\Z)", pack_text, re.S | re.M)
     if m:
         body = m.group(1).strip()
@@ -206,7 +195,19 @@ def pack_instruction(pack_text: str) -> str:
         body = re.sub(r"^```\w*\s*$", "", body, flags=re.M).strip()
         if len(body) > 40:
             return body
-    return FALLBACK_INSTRUCTION
+    raise SystemExit("발표팩의 `# 제작 지시`를 읽지 못했다 — 06B에 되돌린다. 기본 지시로 대신하지 않는다(E-050).")
+
+
+def pack_slide_format(pack_text: str) -> str:
+    """팩의 덱 유형 → 유형 파일 §6의 `--slide-format` 값. 유형 파일이 단일 원천이다."""
+    m = re.search(r"^- 덱 유형[^:\n]*:\s*(스토리|학술|브리핑)", pack_text, re.M)
+    if not m:
+        raise SystemExit("발표팩 헤더에 `- 덱 유형:`이 없다 — 유형을 추정하지 않는다(E-048).")
+    f = ROOT / ".claude" / "공통" / f"발표_{m[1]}.md"
+    v = re.search(r"--slide-format`:\s*(detailed_deck|presenter_slides)", f.read_text(encoding="utf-8")) if f.exists() else None
+    if not v:
+        raise SystemExit(f"{f.name} §6에서 `--slide-format` 값을 찾지 못했다.")
+    return v[1]
 
 
 def pack_slide_count(pack_text: str) -> int | None:
@@ -733,6 +734,8 @@ def cmd_run(opts: argparse.Namespace) -> int:
     guard_source(pack)
     pack_text = pack.read_text(encoding="utf-8", errors="replace")
     instruction = pack_instruction(pack_text)
+    if not opts.slide_format:  # 명시하지 않으면 덱 유형 파일의 값
+        opts.slide_format = pack_slide_format(pack_text)
 
     extra_files = [Path(f) if Path(f).is_absolute() else ROOT / f for f in (opts.source or [])]
     for f in extra_files:
@@ -914,8 +917,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--notebook-title")
     r.add_argument("--report-format", default="Briefing Doc",
                    choices=["Briefing Doc", "Study Guide", "Blog Post", "Create Your Own"])
-    r.add_argument("--slide-format", default="detailed_deck",
-                   choices=["detailed_deck", "presenter_slides"])
+    r.add_argument("--slide-format", default=None, choices=["detailed_deck", "presenter_slides"],
+                   help="생략하면 팩의 덱 유형 파일(§6) 값")
     r.add_argument("--slide-length", default="default", choices=["short", "default"])
     r.add_argument("--orientation", default="landscape",
                    choices=["landscape", "portrait", "square"])
