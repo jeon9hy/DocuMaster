@@ -122,10 +122,10 @@ Open this folder in Claude Code and describe what you need:
 
 ```
 2026년 국내 전기차 충전 인프라 정책 보고서를 써줘. A4 10쪽, 정책 담당자용.
-리제로 렘 소개 발표자료 만들어줘. 12장.
+치이카와 세계관 소개 발표자료 만들어줘. 11장.
 ```
 
-(The two examples ask for a 10-page A4 policy report on Korea's EV charging infrastructure for policy staff, and a 12-slide deck introducing the character Rem from *Re:Zero*.)
+(The two examples ask for a 10-page A4 policy report on Korea's EV charging infrastructure for policy staff, and an 11-slide deck introducing the world of Chiikawa.)
 
 Loid picks the mode and runs the pipeline. It stops to ask only when:
 
@@ -154,24 +154,13 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 
 [Slides (PDF)](최종/치이카와세계관_20260918/치이카와세계관_20260918_슬라이드.pdf) · [Verdict (05)](작업/치이카와세계관_20260918/workspace/05_verified_research_pack.md) · [Presentation pack](작업/치이카와세계관_20260918/workspace/07_notebooklm_presentation_pack_v03.md)
 
-#### 렘 — *Why You Can't Help Loving Rem (Re:Zero)* · PRESENTATION · 2026-09-18
-
-The deck argues that Rem's appeal comes from her arc from self-denial to self-acceptance.
-
-- **Process:** 7 research questions → verdict *conditional* (APPROVED 4 · CORRECTED 4 · REMOVE 4 · CAUTION 6). REMOVE caught a horn description misattributed to her sister and closed it, so no guessed appearance details reached the slides.
-- **Fallback:** NotebookLM hit its daily generation quota (`RESOURCE_EXHAUSTED`), so on the user's instruction the 12 slides were built with pptxgenjs and QA'd through PowerPoint → PDF → PNG.
-
-![Rem deck preview](최종/_preview/렘_20260918.jpg)
-
-[Slides (PDF)](최종/렘_20260918/렘_20260918_슬라이드.pdf) · [Verdict (05)](작업/렘_20260918/workspace/05_verified_research_pack.md) · [Presentation pack](작업/렘_20260918/workspace/07_notebooklm_presentation_pack_v02.md)
-
 ### Orchestration history
 
 | Date | Milestone |
 | --- | --- |
 | 2026-09-17 | Pipeline smoke test — first end-to-end NotebookLM run: upload → generate → download → mechanical checks |
 | 2026-09-18 | Architecture review and refactoring. Split planning (06) from writing (07) and added the LOCKED/FLEX boundary |
-| 2026-09-18 | Two production runs (Chiikawa, Rem). Added the claim-strength check (E-021), separated content from visuals (E-026), and made the Character Model repeat verbatim on every slide (E-031, E-036) |
+| 2026-09-18 | Production run (Chiikawa). Added the claim-strength check (E-021), separated content from visuals (E-026), and made the Character Model repeat verbatim on every slide (E-031, E-036) |
 | 2026-09-19 | Team reshuffle (E-039): Codex became the sole fact supplier and Claude sonnet the independent verifier; `06` now starts a fresh session instead of resuming research |
 | 2026-09-19 | Compression (E-040): size budgets, per-mode specs, the `doc-finish` skill, and a render gate that shows one contact sheet first and zooms in only on suspect pages |
 | 2026-09-19 | `gate_check.py` (E-041) automates the fact-leak and LOCKED checks. `apply_patch.py` now also extracts `04` (fixes a missing-env-var bug). The repository moved to git |
