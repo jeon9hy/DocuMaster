@@ -26,6 +26,39 @@
   --font-wordmark: var(--font-nunito), Pretendard, system-ui, sans-serif;
 }
 
+/* 사이드바처럼 오래 떠 있는 스크롤 영역: 얇고 옅게 */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d4dceb transparent;
+}
+
+/* 휴식 중 에이전트 프로필의 Zzz — 가볍게 떠오르기만 한다 */
+@keyframes zzz-float {
+  0%, 100% { transform: translateY(0); opacity: 0.9; }
+  50% { transform: translateY(-3px); opacity: 0.6; }
+}
+@utility animate-zzz {
+  animation: zzz-float 2.4s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* 누를 수 있는 것은 손가락 커서(Tailwind v4 기본은 화살표). 비활성은 not-allowed(Button이 따로 준다) */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  a[href],
+  select:not(:disabled),
+  summary,
+  label:has(> input[type="file"]),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-gray-900);

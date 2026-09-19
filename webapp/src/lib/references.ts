@@ -13,7 +13,7 @@ const KIND_BY_EXTENSION: Record<string, ReferenceKind> = {
   txt: "text",
 };
 
-function kindFromFileName(fileName: string): ReferenceKind {
+export function kindFromFileName(fileName: string): ReferenceKind {
   const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
   return KIND_BY_EXTENSION[extension] ?? "file";
 }
@@ -31,12 +31,12 @@ export function buildReference(input: NewReferenceInput, id: string): Omit<Refer
   const base = { id, applyPolicy: input.applyPolicy };
   switch (input.source) {
     case "file": {
-      const kind = kindFromFileName(input.fileName);
+      const kind = kindFromFileName(input.file.name);
       return {
         ...base,
         kind,
-        name: input.fileName,
-        detail: `${REFERENCE_KIND_LABEL[kind]} · ${formatBytes(input.sizeBytes)}`,
+        name: input.file.name,
+        detail: `${REFERENCE_KIND_LABEL[kind]} · ${formatBytes(input.file.size)}`,
       };
     }
     case "url":

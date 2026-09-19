@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { GLOBAL_NAV, PROJECT_MODE_LABEL, PROJECT_NAV, type ViewId } from "@/constants/navigation";
-import { useAppActions, useAppState } from "@/state/WorkspaceProvider";
+import { useAppActions, useAppState, useIsOwner } from "@/state/WorkspaceProvider";
 import { AddReferenceButton } from "../reference/AddReferenceButton";
 import { ReferenceList } from "../reference/ReferenceList";
 import { Badge } from "../ui/Badge";
@@ -14,7 +14,8 @@ import { NavList } from "./NavList";
 /** 탐색 + 현재 프로젝트(메뉴·레퍼런스·워크플로우) */
 export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { workspace, view, openStageId } = useAppState();
-  const { setView } = useAppActions();
+  const { setView, removeReference } = useAppActions();
+  const isOwner = useIsOwner();
 
   const navigate = (next: ViewId) => {
     setView(next);
@@ -46,6 +47,7 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <div>
             <SectionLabel
               action={
+                isOwner && !workspace.project.readOnly && (
                 <AddReferenceButton>
                   {(open) => (
                     <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-6 px-1.5 text-blue-600">
@@ -53,11 +55,19 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     </Button>
                   )}
                 </AddReferenceButton>
+                )
               }
             >
               레퍼런스 ({workspace.references.length})
             </SectionLabel>
-            <ReferenceList references={workspace.references} />
+            {/* 레퍼런스가 많아져도 워크플로우가 밀려나지 않게 이 칸만 안에서 스크롤한다 */}
+            <div className="scrollbar-thin max-h-56 overflow-y-auto">
+              <ReferenceList
+                references={workspace.references}
+                limit={3}
+                onRemove={isOwner && !workspace.project.readOnly ? removeReference : undefined}
+              />
+            </div>
           </div>
 
           <div>

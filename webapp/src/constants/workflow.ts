@@ -49,7 +49,7 @@ export const WORKFLOW_STAGES: readonly StageDefinition[] = [
   {
     id: "writing",
     label: "작성",
-    description: "세부 기획(06)을 잠그고 문서는 아냐가, 발표는 요르·본드가 만듭니다.",
+    description: "세부 구성을 확정한 뒤 문서는 아냐가, 발표는 요르·본드가 만듭니다.",
     ownerIds: ["yor", "anya", "bond"],
     readsFrom: ["planning", "validation"],
     usesReferences: false,

@@ -31,9 +31,7 @@ function toInput(
 ): NewReferenceInput | null {
   switch (source) {
     case "file":
-      return fields.file
-        ? { source, applyPolicy, fileName: fields.file.name, sizeBytes: fields.file.size }
-        : null;
+      return fields.file ? { source, applyPolicy, file: fields.file } : null;
     case "url":
       return fields.url.trim() ? { source, applyPolicy, url: fields.url.trim(), title: fields.title.trim() } : null;
     case "text":
@@ -64,8 +62,8 @@ function AddReferenceForm({ onDone }: { onDone: () => void }) {
     try {
       await addReference(input);
       onDone();
-    } catch {
-      setError("레퍼런스를 추가하지 못했습니다. 다시 시도해 주세요.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "레퍼런스를 추가하지 못했습니다. 다시 시도해 주세요.");
     }
   };
 

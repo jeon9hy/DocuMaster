@@ -59,6 +59,7 @@ export const MOBILE_TABS: readonly { id: MobileTab; label: string }[] = [
 ];
 
 export const PROJECT_MODE_LABEL = {
+  auto: "자동 판정",
   document: "문서",
   presentation: "발표",
 } as const;

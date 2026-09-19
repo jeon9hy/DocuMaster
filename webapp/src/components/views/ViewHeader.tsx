@@ -19,11 +19,14 @@ export function ViewHeader({ title, description, action }: ViewHeaderProps) {
   );
 }
 
-/** 대화 외 화면의 스크롤 영역 */
+/**
+ * 대화 외 화면의 스크롤 영역. @container라서 안쪽 격자는 화면 폭이 아니라 **가운데 영역의 실제 폭**으로 열 수를 정한다
+ * (양옆 패널이 열려 있어도 칸이 좁아져 글자가 줄바꿈되지 않게). 격자에는 `@3xl:`처럼 @ 접두사를 쓴다.
+ */
 export function ViewContainer({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-[1080px] px-4 py-6 md:px-8">{children}</div>
+    <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+      <div className="@container mx-auto max-w-[1080px] px-4 py-6 md:px-8">{children}</div>
     </div>
   );
 }

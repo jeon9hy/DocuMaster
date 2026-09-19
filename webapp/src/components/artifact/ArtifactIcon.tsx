@@ -1,4 +1,4 @@
-import { FileImage, FileText, type LucideIcon } from "lucide-react";
+import { File, FileImage, FileText, Presentation, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { ArtifactFileType } from "@/types";
 
@@ -6,6 +6,8 @@ const ICONS: Record<ArtifactFileType, { icon: LucideIcon; className: string }> =
   markdown: { icon: FileText, className: "bg-blue-50 text-blue-600" },
   pdf: { icon: FileText, className: "bg-red-50 text-red-600" },
   image: { icon: FileImage, className: "bg-emerald-50 text-emerald-600" },
+  pptx: { icon: Presentation, className: "bg-orange-50 text-orange-600" },
+  file: { icon: File, className: "bg-gray-100 text-gray-600" },
 };
 
 export function ArtifactIcon({ fileType, className }: { fileType: ArtifactFileType; className?: string }) {

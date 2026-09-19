@@ -3,16 +3,21 @@ import { WORKFLOW_STAGES } from "@/constants/workflow";
 import { createId } from "@/lib/ids";
 import type {
   ArtifactContent,
+  ProjectMode,
   ProjectWorkspace,
   WorkflowEventPayload,
   WorkflowStageId,
 } from "@/types";
 
-/** 앞 이벤트 뒤 몇 ms 후에 내보낼지. content가 있으면 그 순간 미리보기 본문도 저장한다. */
+/**
+ * 앞 이벤트 뒤 몇 ms 후에 내보낼지. content가 있으면 그 순간 미리보기 본문도 저장한다.
+ * pause면 이 이벤트를 내보낸 뒤 사용자 응답이 올 때까지 나머지를 멈춘다.
+ */
 export interface PlannedEvent {
   delayMs: number;
   payload: WorkflowEventPayload;
   content?: { artifactId: string; value: ArtifactContent };
+  pause?: boolean;
 }
 
 const DELAY = {
@@ -45,6 +50,31 @@ function planStep(
       ];
     case "warning":
       return [{ delayMs: DELAY.medium, payload: { type: "workflow.warning", stageId, message: step.message } }];
+    case "verdict":
+      return [
+        {
+          delayMs: DELAY.short,
+          payload: { type: "validation.verdict", verdict: step.verdict, firstLine: step.firstLine },
+        },
+      ];
+    case "ask":
+      return [
+        {
+          delayMs: DELAY.medium,
+          pause: true,
+          payload: {
+            type: "user.input.required",
+            request: {
+              promptId: createId("prompt"),
+              title: step.title,
+              message: step.message,
+              choices: step.choices,
+              allowFreeText: true,
+              stageId,
+            },
+          },
+        },
+      ];
     case "done":
       return [{ delayMs: DELAY.short, payload: { type: "agent.completed", agentId: step.agentId } }];
     case "artifact": {
@@ -63,6 +93,7 @@ function planStep(
               stageId,
               agentId: step.agentId,
               summary: step.summary,
+              visibility: step.visibility,
             },
           };
       return [
@@ -79,7 +110,9 @@ function planStep(
 
 /** 끝나지 않은 첫 단계부터 마지막 단계까지의 목업 이벤트 목록 */
 export function buildRunPlan(workspace: ProjectWorkspace): PlannedEvent[] {
-  const scripts = STAGE_SCRIPTS[workspace.project.mode];
+  // 자동 판정: 목업은 요구분석 단계에서 문서 모드로 판정한다(실제로는 로이드가 요청을 읽고 정한다).
+  const mode: ProjectMode = workspace.project.mode === "auto" ? "document" : workspace.project.mode;
+  const scripts = STAGE_SCRIPTS[mode];
   const plan: PlannedEvent[] = [{ delayMs: 0, payload: { type: "workflow.started" } }];
 
   for (const stage of WORKFLOW_STAGES) {
@@ -87,6 +120,9 @@ export function buildRunPlan(workspace: ProjectWorkspace): PlannedEvent[] {
     if (status === "completed") continue;
     if (status !== "running") {
       plan.push({ delayMs: DELAY.medium, payload: { type: "workflow.stage.started", stageId: stage.id } });
+    }
+    if (stage.id === "requirements" && workspace.project.mode === "auto") {
+      plan.push({ delayMs: DELAY.medium, payload: { type: "project.mode.decided", mode } });
     }
     for (const step of scripts[stage.id]) {
       plan.push(...planStep(step, stage.id, workspace));

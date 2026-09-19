@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { FileText } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { ARTIFACT_STATUS } from "@/constants/status";
@@ -52,9 +52,12 @@ interface ArtifactListProps {
   artifacts: Artifact[];
   selectedId: string | null;
   onSelect: (artifactId: string) => void;
+  /** 내부 작업물(03·04·06·옛 버전 등)을 처음엔 숨기고 「내부 작업물 N개 보기」로 펼친다 */
+  collapseInternal?: boolean;
 }
 
-export function ArtifactList({ artifacts, selectedId, onSelect }: ArtifactListProps) {
+export function ArtifactList({ artifacts, selectedId, onSelect, collapseInternal = false }: ArtifactListProps) {
+  const [showInternal, setShowInternal] = useState(false);
   if (artifacts.length === 0) {
     return (
       <EmptyState
@@ -65,16 +68,32 @@ export function ArtifactList({ artifacts, selectedId, onSelect }: ArtifactListPr
       />
     );
   }
+  const internalCount = artifacts.filter((artifact) => artifact.visibility === "internal").length;
+  const visible =
+    collapseInternal && !showInternal
+      ? artifacts.filter((artifact) => artifact.visibility !== "internal")
+      : artifacts;
   return (
-    <ul className="space-y-0.5">
-      {artifacts.map((artifact) => (
-        <ArtifactListItem
-          key={artifact.id}
-          artifact={artifact}
-          selected={artifact.id === selectedId}
-          onSelect={onSelect}
-        />
-      ))}
-    </ul>
+    <div>
+      <ul className="space-y-0.5">
+        {visible.map((artifact) => (
+          <ArtifactListItem
+            key={artifact.id}
+            artifact={artifact}
+            selected={artifact.id === selectedId}
+            onSelect={onSelect}
+          />
+        ))}
+      </ul>
+      {collapseInternal && internalCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowInternal((value) => !value)}
+          className="mt-1 px-2 text-xs font-medium text-blue-600 hover:underline"
+        >
+          {showInternal ? "주요 작업물만 보기" : `내부 작업물 ${internalCount}개 보기`}
+        </button>
+      )}
+    </div>
   );
 }

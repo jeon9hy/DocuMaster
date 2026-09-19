@@ -1,4 +1,12 @@
-import type { AgentId, ArtifactContent, ArtifactFileType, ProjectMode, WorkflowStageId } from "@/types";
+import type {
+  AgentId,
+  ArtifactContent,
+  ArtifactFileType,
+  ArtifactVisibility,
+  ProjectMode,
+  ValidationVerdict,
+  WorkflowStageId,
+} from "@/types";
 
 /**
  * 목업 실행 대본. 「실행」을 누르면 services/mock/buildRunPlan.ts가 이 대본을
@@ -14,9 +22,13 @@ export type ScriptStep =
       fileType: ArtifactFileType;
       summary: string;
       content: ArtifactContent;
+      visibility?: ArtifactVisibility;
     }
   | { kind: "handoff"; from: AgentId; to: AgentId; artifactName?: string }
   | { kind: "warning"; message: string }
+  | { kind: "verdict"; verdict: ValidationVerdict; firstLine: string }
+  /** 여기서 실행을 멈추고 사용자 응답을 기다린다. 응답하면 다음 단계부터 이어진다. */
+  | { kind: "ask"; title: string; message: string; choices: string[] }
   | { kind: "done"; agentId: AgentId };
 
 type StageScripts = Record<WorkflowStageId, readonly ScriptStep[]>;
@@ -124,6 +136,7 @@ const COMMON: Omit<StageScripts, "writing" | "finalReview"> = {
       name: "03_validation_questions.md",
       fileType: "markdown",
       summary: "검증 질문 7개",
+      visibility: "internal",
       content: markdown(`
 # 03 검증 질문
 1. 주장 A의 기준 시점은?
@@ -161,6 +174,13 @@ const COMMON: Omit<StageScripts, "writing" | "finalReview"> = {
 `),
     },
     { kind: "done", agentId: "yuri" },
+    { kind: "verdict", verdict: "conditional", firstLine: "검증 통과 — 조건부" },
+    {
+      kind: "ask",
+      title: "조건부 판정 채택",
+      message: "REMOVE 1건 · CAUTION 2건을 반영하고 세부 기획으로 넘어갈까요?",
+      choices: ["반영하고 계속", "작업 중단"],
+    },
     {
       kind: "say",
       agentId: "loid",
@@ -177,6 +197,7 @@ const DETAILED_PLAN: readonly ScriptStep[] = [
     name: "06_detailed_plan.md",
     fileType: "markdown",
     summary: "장별 구조 · LOCKED",
+    visibility: "internal",
     content: markdown(`
 # 06 세부 기획 (LOCKED)
 ## 1장 현황 진단
@@ -197,6 +218,7 @@ const WRITING: Record<ProjectMode, readonly ScriptStep[]> = {
       name: "06B_visual_plan.md",
       fileType: "markdown",
       summary: "표·그림 배치 설계",
+      visibility: "internal",
       content: markdown(`
 # 06B 비주얼 설계
 - 1장: 추이 선 그래프 1개

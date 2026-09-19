@@ -1,9 +1,10 @@
-import { FileText } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { formatBytes } from "@/lib/format";
 import type { ArtifactContent } from "@/types";
 import { MarkdownLite } from "./MarkdownLite";
 
-/** 본문 종류(markdown·pdf·image)에 맞는 미리보기 */
+/** 본문 종류(markdown·pdf·image·file)에 맞는 미리보기 */
 export function ArtifactContentView({
   content,
   large = false,
@@ -23,7 +24,17 @@ export function ArtifactContentView({
       );
 
     case "pdf":
-      // 1차 프로토타입: 실제 PDF 대신 첫 쪽 모양의 썸네일
+      // 실제 파일이면 브라우저 기본 PDF 뷰어로 보여 준다(추가 라이브러리 없음).
+      if (content.src) {
+        return (
+          <iframe
+            src={content.src}
+            title={content.title}
+            className={cn("w-full rounded-lg border border-line bg-white", large ? "h-[75vh]" : "h-72")}
+          />
+        );
+      }
+      // 목업: 실제 PDF 대신 첫 쪽 모양의 썸네일
       return (
         <div
           className={cn(
@@ -39,6 +50,24 @@ export function ArtifactContentView({
             <FileText className="size-3" aria-hidden />
             PDF · {content.pageCount}쪽
           </p>
+        </div>
+      );
+
+    case "file":
+      return (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-center">
+          <p className="text-sm font-medium text-gray-800">{content.fileName}</p>
+          <p className="text-xs text-gray-500">
+            {formatBytes(content.sizeBytes)} · 브라우저에서 미리 볼 수 없는 형식입니다.
+          </p>
+          <a
+            href={content.downloadUrl}
+            download
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[13px] font-medium text-white hover:bg-blue-700"
+          >
+            <Download className="size-4" aria-hidden />
+            내려받기
+          </a>
         </div>
       );
   }

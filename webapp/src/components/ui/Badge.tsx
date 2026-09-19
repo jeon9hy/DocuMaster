@@ -8,6 +8,7 @@ const VARIANT_CLASS: Record<BadgeVariant, string> = {
   success: "bg-emerald-50 text-emerald-700",
   warning: "bg-amber-50 text-amber-700",
   danger: "bg-red-50 text-red-700",
+  rest: "bg-violet-50 text-violet-600",
 };
 
 const DOT_CLASS: Record<BadgeVariant, string> = {
@@ -16,6 +17,7 @@ const DOT_CLASS: Record<BadgeVariant, string> = {
   success: "bg-emerald-500",
   warning: "bg-amber-500",
   danger: "bg-red-500",
+  rest: "bg-violet-300",
 };
 
 interface BadgeProps {

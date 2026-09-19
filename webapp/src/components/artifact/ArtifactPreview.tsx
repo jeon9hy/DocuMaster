@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Clock, Maximize2, MousePointerClick } from "lucide-react";
+import { Clock, Download, Maximize2, MousePointerClick } from "lucide-react";
 import { useArtifactContent, type ContentResult } from "@/hooks/useArtifactContent";
 import { cn } from "@/lib/cn";
+import { workspaceService } from "@/services";
 import type { Artifact } from "@/types";
 import { IconButton } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -64,11 +65,24 @@ export function ArtifactPreview({ projectId, artifact, tall = false }: ArtifactP
       <EmptyState icon={MousePointerClick} title="작업물을 선택하세요" className="py-6" />
     );
   }
+  const downloadUrl =
+    artifact.status === "latest" ? workspaceService.getArtifactDownloadUrl(projectId, artifact.id) : null;
 
   return (
     <>
       <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        <p className="truncate text-xs text-gray-500">{artifact.summary}</p>
+        <p className="min-w-0 flex-1 truncate text-xs text-gray-500">{artifact.summary}</p>
+        {downloadUrl && (
+          <a
+            href={downloadUrl}
+            download
+            aria-label="원본 내려받기"
+            title="원본 내려받기"
+            className="flex size-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+          >
+            <Download className="size-4" aria-hidden />
+          </a>
+        )}
         {result.status === "success" && (
           <IconButton
             icon={Maximize2}

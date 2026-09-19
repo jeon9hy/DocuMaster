@@ -11,7 +11,8 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 | 타입 | `types/*.ts` — 이벤트는 `types/events.ts` |
 | 팀·모델·단계·상태·메뉴·로고 값 | `constants/agents · models · workflow · status · navigation · brand.ts` |
 | 목업 데이터·대본 | `data/mock/seedProjects.ts`(초기 이벤트) · `stageScripts.ts`(실행 대본·답변) |
-| 백엔드 창구 | `services/WorkspaceService.ts`(인터페이스) · `services/index.ts`(구현 교체 한 줄) · `services/mock/` |
+| 백엔드 창구 | `services/WorkspaceService.ts`(인터페이스) · `services/index.ts`(API URL 있으면 http, 없으면 mock) · `services/http/` · `services/mock/` |
+| 로컬 백엔드 | `server/app/` — 파일별 책임은 README 「백엔드」 표. 이벤트 타입은 `types/events.ts`와 `server/app/events.py`를 함께 고친다 |
 | 상태 반영 | `lib/applyWorkflowEvent.ts`(이벤트→상태) · `lib/eventToFeedItem.ts`(시스템 문구) |
 | 화면 상태·동작 | `state/appReducer.ts` · `state/WorkspaceProvider.tsx`(`useAppState`·`useAppActions`·`useWorkspace`) |
 | 계산 | `lib/progress · stageContext · models · mentions · references · format.ts` |
@@ -28,11 +29,10 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 - `Button`/`IconButton`에 `hidden md:…`를 직접 주지 않는다(`inline-flex`와 충돌) — 감싼 `span`에 준다.
 
 ## 확인
-`npx tsc --noEmit` → `npm run lint` → `npm run build`. 화면은 `npx next start -p 3123` 후 Edge 헤드리스 캡처
-(`msedge --headless=new --window-size=1440,1000 --virtual-time-budget=4000 --screenshot=<scratchpad>\x.png http://localhost:3123`).
-헤드리스는 폭 약 500px 미만을 못 줄이므로 좁은 화면은 600px로 본다. 끝나면 서버를 끈다.
+`npx tsc --noEmit` → `npm run lint` → `npm test` → `npm run build`(dev 서버가 꺼져 있을 때만 — `.next`를 같이 써서 켜진 화면이 깨진다) · 백엔드 `server/.venv/Scripts/python -m pytest`.
+실제 에이전트(`DOCUMASTER_ORCHESTRATOR=claude`)는 사용자 승인 없이 돌리지 않는다.
+화면은 `npx next start -p 3123` 후 Edge 헤드리스(DevTools 프로토콜로 몇 초 뒤) 캡처. 끝나면 서버를 끈다.
 
 ## 현재 상태 (세션 끝에 이 절만 고친다)
-- v1 프로토타입 완료(목업). 실제 API·저장·파일 내용 읽기 없음.
-- 대기: 원본 로고 PNG·캐릭터 이미지를 사용자가 `public/`에 넣으면 `brand.ts`·`agents.ts` 경로만 바꾼다.
-- 다음 후보: 사용자 화면 피드백 반영 → Local backend(Phase 3).
+- A(UX)·B(FastAPI+SQLite+SSE)·C(파일·기존 작업 읽기 전용) 완료, fake로 전체 경로 검증.
+- D: 어댑터 있음, E2E 스모크 승인 대기. Auth: 쓰기 API엔 `OWNER`, 화면은 `useIsOwner()`.

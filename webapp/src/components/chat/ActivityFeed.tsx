@@ -1,11 +1,12 @@
 "use client";
 
-import { memo, useMemo } from "react";
-import { MessagesSquare } from "lucide-react";
+import { memo, useMemo, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight, MessagesSquare } from "lucide-react";
 import { useStickToBottom } from "@/hooks/useStickToBottom";
-import { useAppActions } from "@/state/WorkspaceProvider";
-import type { Agent, AgentId, Artifact, FeedItem } from "@/types";
+import { useAppActions, useIsOwner } from "@/state/WorkspaceProvider";
+import type { Artifact, FeedItem } from "@/types";
 import { EmptyState } from "../ui/States";
+import { ActionCard } from "./ActionCard";
 import { AgentMessage } from "./AgentMessage";
 import { ArtifactCard } from "./ArtifactCard";
 import { SystemEvent } from "./SystemEvent";
@@ -14,9 +15,12 @@ import { UserMessage } from "./UserMessage";
 interface FeedRowProps {
   projectId: string;
   item: FeedItem;
-  agent?: Agent;
   artifact?: Artifact;
+  inputPending?: boolean;
+  /** Guest면 응답 버튼 대신 로그인 안내 */
+  canRespond: boolean;
   onSelectArtifact: (artifactId: string) => void;
+  onRespond: (promptId: string, answer: string) => Promise<void>;
 }
 
 /**
@@ -26,13 +30,15 @@ interface FeedRowProps {
 const FeedRow = memo(function FeedRow({
   projectId,
   item,
-  agent,
   artifact,
+  inputPending = false,
+  canRespond,
   onSelectArtifact,
+  onRespond,
 }: FeedRowProps) {
   switch (item.kind) {
     case "agent":
-      return <AgentMessage agentId={item.agentId} agent={agent} text={item.text} createdAt={item.createdAt} />;
+      return <AgentMessage agentId={item.agentId} text={item.text} createdAt={item.createdAt} />;
     case "user":
       return <UserMessage text={item.text} createdAt={item.createdAt} />;
     case "system":
@@ -49,27 +55,82 @@ const FeedRow = memo(function FeedRow({
       return artifact ? (
         <ArtifactCard projectId={projectId} artifact={artifact} onSelect={onSelectArtifact} />
       ) : null;
+    case "input":
+      return (
+        <ActionCard
+          request={item.request}
+          pending={inputPending}
+          canRespond={canRespond}
+          createdAt={item.createdAt}
+          onRespond={onRespond}
+        />
+      );
   }
 });
+
+/** 연속된 세부 활동(importance: "detail")은 한 묶음으로 접는다. */
+type FeedBlock = { kind: "item"; item: FeedItem } | { kind: "details"; key: string; items: FeedItem[] };
+
+function groupFeed(feed: FeedItem[]): FeedBlock[] {
+  const blocks: FeedBlock[] = [];
+  for (const item of feed) {
+    const last = blocks.at(-1);
+    if (item.importance !== "detail") blocks.push({ kind: "item", item });
+    else if (last?.kind === "details") last.items.push(item);
+    else blocks.push({ kind: "details", key: item.id, items: [item] });
+  }
+  return blocks;
+}
+
+function DetailGroup({ count, children }: { count: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const Icon = open ? ChevronDown : ChevronRight;
+  return (
+    <div className="ml-[52px]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100"
+      >
+        <Icon className="size-3.5" aria-hidden />
+        세부 활동 {count}건 {open ? "접기" : "보기"}
+      </button>
+      {open && <ol className="-ml-[52px] mt-2 flex flex-col gap-2">{children}</ol>}
+    </div>
+  );
+}
 
 interface ActivityFeedProps {
   projectId: string;
   feed: FeedItem[];
-  agents: Agent[];
   artifacts: Artifact[];
+  pendingPromptIds: string[];
 }
 
-export function ActivityFeed({ projectId, feed, agents, artifacts }: ActivityFeedProps) {
-  const { selectArtifact } = useAppActions();
+export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: ActivityFeedProps) {
+  const { selectArtifact, respondToInput } = useAppActions();
+  const isOwner = useIsOwner();
   const scrollRef = useStickToBottom<HTMLDivElement>(feed.length);
 
-  const agentById = useMemo(
-    () => new Map<AgentId, Agent>(agents.map((agent) => [agent.id, agent])),
-    [agents],
-  );
   const artifactById = useMemo(
     () => new Map(artifacts.map((artifact) => [artifact.id, artifact])),
     [artifacts],
+  );
+  const blocks = useMemo(() => groupFeed(feed), [feed]);
+
+  const renderRow = (item: FeedItem) => (
+    <li key={item.id}>
+      <FeedRow
+        projectId={projectId}
+        item={item}
+        artifact={item.kind === "artifact" ? artifactById.get(item.artifactId) : undefined}
+        inputPending={item.kind === "input" && pendingPromptIds.includes(item.request.promptId)}
+        onSelectArtifact={selectArtifact}
+        onRespond={respondToInput}
+        canRespond={isOwner}
+      />
+    </li>
   );
 
   return (
@@ -78,22 +139,20 @@ export function ActivityFeed({ projectId, feed, agents, artifacts }: ActivityFee
         <EmptyState
           icon={MessagesSquare}
           title="아직 대화가 없습니다"
-          description="아래 입력창에 작업을 지시하고 「실행」을 누르면 에이전트들이 단계별로 일을 시작합니다."
+          description="아래 입력창에 작업을 지시하고 「워크플로우 실행」을 누르면 에이전트들이 단계별로 일을 시작합니다."
           className="h-full"
         />
       ) : (
         <ol className="mx-auto flex max-w-[860px] flex-col gap-4 px-4 py-5 md:px-6">
-          {feed.map((item) => (
-            <li key={item.id}>
-              <FeedRow
-                projectId={projectId}
-                item={item}
-                agent={item.kind === "agent" ? agentById.get(item.agentId) : undefined}
-                artifact={item.kind === "artifact" ? artifactById.get(item.artifactId) : undefined}
-                onSelectArtifact={selectArtifact}
-              />
-            </li>
-          ))}
+          {blocks.map((block) =>
+            block.kind === "item" ? (
+              renderRow(block.item)
+            ) : (
+              <li key={block.key}>
+                <DetailGroup count={block.items.length}>{block.items.map(renderRow)}</DetailGroup>
+              </li>
+            ),
+          )}
         </ol>
       )}
     </div>

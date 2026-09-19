@@ -34,7 +34,7 @@ export function DashboardView() {
     <ViewContainer>
       <ViewHeader title="대시보드" description={workspace.project.name} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
         <StatCard label="전체 진행률" value={`${progress}%`}>
           <ProgressBar value={progress} label="전체 진행률" className="mt-3" />
         </StatCard>

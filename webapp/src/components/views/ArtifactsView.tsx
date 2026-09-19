@@ -16,7 +16,7 @@ export function ArtifactsView() {
   return (
     <ViewContainer>
       <ViewHeader title="작업물" description="단계마다 만들어진 파일입니다. 최종본은 최종검수를 통과한 뒤 생깁니다." />
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid gap-4 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <Panel title={`전체 (${workspace.artifacts.length})`}>
           <ArtifactList
             artifacts={workspace.artifacts}

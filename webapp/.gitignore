@@ -42,3 +42,9 @@ next-env.d.ts
 
 # 예시 환경변수 파일은 올린다
 !.env.example
+
+# 로컬 백엔드: DB·로그·가짜 실행 샌드박스(작업 파일의 원본은 저장소의 작업/·최종/)
+/.data/
+/server/.venv/
+/server/.pytest_cache/
+__pycache__/

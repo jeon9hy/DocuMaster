@@ -9,7 +9,7 @@ const nunito = Nunito({ subsets: ["latin"], weight: ["800"], variable: "--font-n
 
 export const metadata: Metadata = {
   title: BRAND.name,
-  description: BRAND.tagline,
+  description: BRAND.description,
   icons: { icon: BRAND.markSrc },
 };
 
