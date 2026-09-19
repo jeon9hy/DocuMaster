@@ -3,6 +3,8 @@
 DocuMaster의 멀티 에이전트 작업(로이드·요르·유리·아냐·본드)을 **회사 협업툴 같은 화면**으로 보여 주는 클릭형 프로토타입입니다.
 실제 AI API에는 연결되어 있지 않습니다. 「실행」을 누르면 목업 대본이 이벤트를 시간차로 내보내고, 화면은 그 이벤트로만 바뀝니다.
 
+요구사항 원문: [`docs/DocuMaster_Claude_Code_Request_v1.md`](docs/DocuMaster_Claude_Code_Request_v1.md)(구현 요청서) · [`docs/DocuMaster_WebApp_UIUX_Prototype_v1.1.md`](docs/DocuMaster_WebApp_UIUX_Prototype_v1.1.md)(UI/UX 명세)
+
 ## 실행
 
 ```bash
