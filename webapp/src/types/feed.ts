@@ -16,7 +16,8 @@ interface FeedItemBase {
  */
 export type FeedItem = FeedItemBase &
   (
-    | { kind: "agent"; agentId: AgentId; text: string }
+    | { kind: "agent"; agentId: AgentId; toAgentId?: AgentId; text: string }
+    | { kind: "activity"; agentId: AgentId; label: string }
     | { kind: "user"; text: string }
     | { kind: "system"; tone: SystemTone; title: string; detail?: string; agentId?: AgentId }
     | { kind: "artifact"; artifactId: string; agentId: AgentId }

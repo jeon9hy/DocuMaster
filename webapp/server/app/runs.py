@@ -239,7 +239,10 @@ class RunManager:
                               agent_configs=configs,
                               env={"DOCUMASTER_AGENT_MODELS": str(models_path)})
         try:
-            turn.process = ProcessTurn(self._adapter.build_command(request), request)
+            turn.process = ProcessTurn(
+                self._adapter.build_command(request), request,
+                on_activity=lambda payload: self._events.append(turn.project_id, payload, turn.run_id),
+            )
         except OSError as error:
             self._finish(turn.run_id, turn.project_id, "failed", self._stage_of(turn),
                          reason=describe_error("orchestrator_unavailable") + f" ({error})",
@@ -300,7 +303,7 @@ class RunManager:
         scanned = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
         outcome, reason = turn_outcome(scanned)
         if outcome == "completed":
-            if result.result_text:
+            if result.result_text and not turn.process.already_streamed(result.result_text):
                 self._events.append(turn.project_id, {"type": "agent.message", "agentId": "loid",
                                                       "text": result.result_text}, turn.run_id)
             self._finish(turn.run_id, turn.project_id, "completed", stage)
@@ -319,7 +322,7 @@ class RunManager:
             self._finish(turn.run_id, turn.project_id, "failed", self._stage_of(turn),
                          reason=reason, error_code="orchestrator_stalled")
             return
-        if result.result_text:  # 로이드의 중간 보고는 그대로 보여 준다(LLM 문장은 agent.message로만)
+        if result.result_text and not turn.process.already_streamed(result.result_text):
             self._events.append(turn.project_id, {"type": "agent.message", "agentId": "loid",
                                                   "text": result.result_text}, turn.run_id)
         prompt = _with_queued(RESUME_PROMPT, self._projects.take_undelivered_messages(turn.project_id))
@@ -355,8 +358,10 @@ class RunManager:
         cost = result.extra.get("total_cost_usd")
         self._db.execute(
             "UPDATE runs SET actual_model = COALESCE(?, actual_model),"
-            " cost_usd = COALESCE(cost_usd, 0) + COALESCE(?, 0) WHERE id = ?",
-            (result.model, cost if isinstance(cost, (int, float)) else None, run_id),
+            # Claude Code의 total_cost_usd는 같은 세션에서 누적된 값이다.
+            " cost_usd = CASE WHEN ? IS NULL THEN cost_usd ELSE MAX(COALESCE(cost_usd, 0), ?) END WHERE id = ?",
+            (result.model, cost if isinstance(cost, (int, float)) else None,
+             cost if isinstance(cost, (int, float)) else None, run_id),
         )
 
     def _warn_model_mismatch(self, turn: _Turn, stage: str) -> None:

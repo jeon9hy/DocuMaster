@@ -164,9 +164,61 @@ def claude_usage(cache: Path, now: float | None = None) -> dict:
             "observedAt": data.get("captured_at"), "source": source, "note": note}
 
 
-def usage_report(claude_cache: Path, codex_live: bool = True) -> list[dict]:
+def claude_usage_from_logs(log_dir: Path, now: float | None = None) -> dict:
+    """headless Claude 실행의 실제 rate_limit_event를 읽는다. 모델 호출은 하지 않는다."""
+    label = "Anthropic · Claude Code"
+    source = "Claude Code 실행 로그 (rate_limit_event)"
+    now = time.time() if now is None else now
+    latest: tuple[float, dict] | None = None
+    # 기존 Phase E 실험은 .data/smoke/logs에 격리해 두었다.
+    paths = (*log_dir.glob("run_*.jsonl"), *(log_dir.parent / "smoke" / "logs").glob("run_*.jsonl"))
+    for path in paths:
+        try:
+            modified_at = path.stat().st_mtime
+            with path.open(encoding="utf-8") as lines:
+                for line in lines:
+                    try:
+                        event = json.loads(line)
+                    except ValueError:
+                        continue
+                    if event.get("type") != "rate_limit_event":
+                        continue
+                    info = event.get("rate_limit_info")
+                    if isinstance(info, dict) and isinstance(info.get("unifiedWindows"), dict):
+                        if latest is None or modified_at >= latest[0]:
+                            latest = (modified_at, info)
+        except OSError as error:
+            log.warning("Claude 실행 로그를 읽지 못했습니다: %s", error)
+    if latest is None:
+        return _unavailable("anthropic", label, "Claude 사용량 정보를 확인할 수 없습니다.", source)
+    captured_at, info = latest
+    windows = []
+    for key, minutes in CLAUDE_WINDOWS:
+        raw = info["unifiedWindows"].get(key)
+        if not isinstance(raw, dict):
+            continue
+        utilization, resets_at = raw.get("utilization"), raw.get("resetsAt")
+        if (not isinstance(utilization, (int, float)) or isinstance(utilization, bool)
+                or not isinstance(resets_at, (int, float)) or isinstance(resets_at, bool)
+                or not 0 <= utilization <= 1):
+            continue
+        windows.append({"kind": key, "usedPercent": round(utilization * 100, 2),
+                        "windowMinutes": minutes, "resetsAt": _iso(resets_at),
+                        "expired": resets_at <= now})
+    if not windows:
+        return _unavailable("anthropic", label, "Claude 실행 로그에 유효한 한도 정보가 없습니다.", source)
+    return {"provider": "anthropic", "label": label, "available": True,
+            "stale": any(window["expired"] for window in windows), "windows": windows,
+            "observedAt": _iso(captured_at), "source": source,
+            "note": "마지막 Claude 실행에서 확인된 값입니다. 현재 값은 다음 실행 전까지 달라질 수 있습니다."}
+
+
+def usage_report(claude_cache: Path, codex_live: bool = True, claude_log_dir: Path | None = None) -> list[dict]:
+    claude = claude_usage(claude_cache)
+    if not claude["available"] and claude_log_dir is not None:
+        claude = claude_usage_from_logs(claude_log_dir)
     return [
-        claude_usage(claude_cache),
+        claude,
         codex_usage() if codex_live else _unavailable("openai", "OpenAI · Codex", "Codex 실시간 조회를 끈 상태입니다."),
         _unavailable("google", "Google · NotebookLM", "사용량 정보를 제공하지 않습니다. Provider에서 직접 확인하세요."),
     ]

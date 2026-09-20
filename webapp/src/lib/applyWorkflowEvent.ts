@@ -145,6 +145,7 @@ function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): Projec
     case "workflow.warning":
     case "validation.verdict":
     case "agent.message":
+    case "agent.activity":
     case "handoff.created":
     case "user.message":
       return workspace;

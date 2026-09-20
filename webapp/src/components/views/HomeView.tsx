@@ -85,6 +85,7 @@ function describe(item: FeedItem, workspace: ProjectWorkspace): string | null {
     case "user":
       return "작업 지시";
     case "agent":
+    case "activity":
       return null;
   }
 }

@@ -37,6 +37,19 @@ test("같은 seq를 두 번 받아도 한 번만 반영한다(재연결 중복 �
   assert.equal(workspace.feed.filter((item) => item.kind === "user").length, 1);
 });
 
+test("실제 발언과 도구 활동이 도착 순서대로 대화 피드에 붙는다", () => {
+  const events = toEvents([
+    { type: "agent.message", agentId: "loid", toAgentId: "yuri", text: "자료를 확인하겠습니다." },
+    { type: "agent.activity", agentId: "loid", label: "파일 읽기 · 자료.pdf" },
+    { type: "agent.message", agentId: "yuri", text: "출처를 다시 확인해야 합니다." },
+  ]);
+  const workspace = buildWorkspace(PROJECT, events);
+  assert.deepEqual(workspace.feed.map((item) => item.kind), ["agent", "activity", "agent"]);
+  assert.equal(workspace.feed[1].kind === "activity" && workspace.feed[1].label, "파일 읽기 · 자료.pdf");
+  assert.equal(workspace.feed[0].kind === "agent" && workspace.feed[0].toAgentId, "yuri");
+  assert.equal(workspace.lastEventSeq, 3);
+});
+
 test("자동 판정: 모드가 정해지면 그 모드의 팀으로 바뀐다", () => {
   let workspace = emptyWorkspace(PROJECT);
   assert.equal(workspace.agents.length, 5);
@@ -64,4 +77,19 @@ test("검증 판정·레퍼런스 추가/삭제", () => {
   const verdict = workspace.feed[0];
   assert.equal(verdict.kind === "system" && verdict.tone, "error");
   assert.equal(workspace.references.length, 0);
+});
+
+test("같은 파일 갱신과 같은 검증 판정은 피드에 반복 표시하지 않는다", () => {
+  const base = { id: "a5", name: "05_verified_research_pack.md", fileType: "markdown" as const,
+    status: "latest" as const, stageId: "validation" as const, agentId: "yuri" as const,
+    summary: "검증 결과", visibility: "primary" as const };
+  const workspace = buildWorkspace(PROJECT, toEvents([
+    { type: "artifact.created", artifact: base },
+    { type: "validation.verdict", verdict: "conditional", firstLine: "검증 통과 — 조건부" },
+    { type: "artifact.updated", artifactId: "a5", status: "latest", visibility: "primary", summary: "수정됨" },
+    { type: "validation.verdict", verdict: "conditional", firstLine: "검증 통과 — 조건부" },
+  ]));
+  assert.equal(workspace.feed.filter((item) => item.kind === "artifact").length, 1);
+  assert.equal(workspace.feed.filter((item) => item.kind === "system" && item.title.startsWith("05 검증 결과:")).length, 1);
+  assert.equal(workspace.artifacts[0].summary, "수정됨");
 });

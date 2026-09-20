@@ -102,75 +102,80 @@ export function PromptInput({ teamIds, runStatus, isComplete, readOnly = false }
 
   return (
     <div className="border-t border-line bg-white px-3 py-3 md:px-5">
-      <div className="mx-auto flex max-w-[860px] items-end gap-2 rounded-xl border border-line bg-white p-2 focus-within:border-blue-400">
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="작업 지시를 입력하세요 (@로 에이전트 호출)"
-          aria-label="작업 지시"
-          className="field-sizing-content max-h-40 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none"
-        />
-        <Dropdown
-          align="right"
-          placement="top"
-          trigger={({ toggle }) => <IconButton icon={AtSign} label="에이전트 호출" onClick={toggle} />}
-        >
-          {(close) =>
-            teamIds.map((id) => (
-              <DropdownItem
-                key={id}
-                onSelect={() => {
-                  insertMention(id);
-                  close();
-                }}
-              >
-                <AgentAvatar agentId={id} size="xs" />
-                <span className="font-medium">{getAgentProfile(id).name}</span>
-                <span className="text-xs text-gray-500">{getAgentProfile(id).role}</span>
-              </DropdownItem>
-            ))
-          }
-        </Dropdown>
-        <Button
-          icon={Send}
-          onClick={submitMessage}
-          disabled={!trimmed}
-          title={isActive ? "메시지만 보냅니다. 현재 단계가 끝난 뒤 반영됩니다. (Enter)" : "메시지만 보냅니다. 실행은 하지 않습니다. (Enter)"}
-          className="px-3"
-        >
-          <span className="hidden sm:inline">지시 보내기</span>
-        </Button>
-        <AddReferenceButton>
-          {(open) => (
-            <span className="hidden sm:block">
-              <Button icon={Paperclip} onClick={open}>
-                레퍼런스 추가
-              </Button>
-            </span>
-          )}
-        </AddReferenceButton>
-        {runStatus === "stopping" ? (
-          <Button variant="danger" icon={Hourglass} disabled title="현재 단계가 끝나면 멈춥니다.">
-            중지 요청됨
-          </Button>
-        ) : isActive ? (
-          <Button variant="danger" icon={Square} onClick={handleStop} title="현재 단계가 끝나면 멈춥니다.">
-            중지 요청
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            icon={isComplete ? CheckCircle2 : Play}
-            onClick={handleRun}
-            disabled={isComplete}
-            title="입력한 지시가 있으면 먼저 보낸 뒤, 멈춘 단계부터 워크플로우를 실행합니다."
+      <div className="mx-auto flex max-w-[860px] flex-col gap-2 rounded-xl border border-line bg-white p-2 focus-within:border-blue-400">
+        <div className="flex min-w-0 items-start gap-2">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="작업 지시를 입력하세요"
+            aria-label="작업 지시"
+            className="field-sizing-content max-h-40 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none"
+          />
+          <Dropdown
+            align="right"
+            placement="top"
+            trigger={({ toggle }) => <IconButton icon={AtSign} label="에이전트 호출" onClick={toggle} />}
           >
-            {isComplete ? "완료됨" : "워크플로우 실행"}
+            {(close) =>
+              teamIds.map((id) => (
+                <DropdownItem
+                  key={id}
+                  onSelect={() => {
+                    insertMention(id);
+                    close();
+                  }}
+                >
+                  <AgentAvatar agentId={id} size="xs" />
+                  <span className="font-medium">{getAgentProfile(id).name}</span>
+                  <span className="text-xs text-gray-500">{getAgentProfile(id).role}</span>
+                </DropdownItem>
+              ))
+            }
+          </Dropdown>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            icon={Send}
+            onClick={submitMessage}
+            disabled={!trimmed}
+            title={isActive ? "메시지만 보냅니다. 현재 단계가 끝난 뒤 반영됩니다. (Enter)" : "메시지만 보냅니다. 실행은 하지 않습니다. (Enter)"}
+            className="px-3"
+          >
+            <span className="sm:hidden">보내기</span>
+            <span className="hidden sm:inline">지시 보내기</span>
           </Button>
-        )}
+          <AddReferenceButton>
+            {(open) => (
+              <Button icon={Paperclip} onClick={open}>
+                <span className="sm:hidden">레퍼런스</span>
+                <span className="hidden sm:inline">레퍼런스 추가</span>
+              </Button>
+            )}
+          </AddReferenceButton>
+          {runStatus === "stopping" ? (
+            <Button variant="danger" icon={Hourglass} disabled title="현재 단계가 끝나면 멈춥니다.">
+              중지 요청됨
+            </Button>
+          ) : isActive ? (
+            <Button variant="danger" icon={Square} onClick={handleStop} title="현재 단계가 끝나면 멈춥니다.">
+              중지 요청
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              icon={isComplete ? CheckCircle2 : Play}
+              onClick={handleRun}
+              disabled={isComplete}
+              title="입력한 지시가 있으면 먼저 보낸 뒤, 멈춘 단계부터 워크플로우를 실행합니다."
+            >
+              <span className="sm:hidden">{isComplete ? "완료됨" : "실행"}</span>
+              <span className="hidden sm:inline">{isComplete ? "완료됨" : "워크플로우 실행"}</span>
+            </Button>
+          )}
+        </div>
       </div>
       {error && (
         <p role="alert" className="mx-auto max-w-[860px] px-1 pt-1.5 text-xs text-red-600">

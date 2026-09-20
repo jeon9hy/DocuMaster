@@ -48,6 +48,9 @@ export function UsageTile({ window, showBar = false }: { window: UsageWindow; sh
       {showBar && !window.expired && (
         <>
           <ProgressBar value={window.usedPercent} label={`${title} 사용량`} className="mt-1.5" />
+          <p className="mt-1 text-[11px] text-gray-500">
+            잔여 비율 {Math.max(0, 100 - window.usedPercent).toFixed(1)}%
+          </p>
           {reset && !exhausted && <p className="mt-1 text-[11px] text-gray-500">리셋 {reset.label}</p>}
         </>
       )}

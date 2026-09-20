@@ -31,6 +31,7 @@ EVENT_TYPES = frozenset(
         "user.input.resolved",
         "agent.started",
         "agent.message",
+        "agent.activity",
         "agent.completed",
         "agent.configured",
         "artifact.created",

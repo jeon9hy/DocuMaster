@@ -24,7 +24,10 @@ export function eventToFeedItem(
       return { ...base, kind: "user", text: event.text };
 
     case "agent.message":
-      return { ...base, kind: "agent", agentId: event.agentId, text: event.text };
+      return { ...base, kind: "agent", agentId: event.agentId, toAgentId: event.toAgentId, text: event.text };
+
+    case "agent.activity":
+      return { ...base, kind: "activity", agentId: event.agentId, label: event.label };
 
     case "workflow.started":
       return { ...base, kind: "system", tone: "info", title: "워크플로우 실행 시작" };
@@ -89,7 +92,13 @@ export function eventToFeedItem(
         title: `모드 판정: ${PROJECT_MODE_LABEL[event.mode]}`,
       };
 
-    case "validation.verdict":
+    case "validation.verdict": {
+      // 과거 로그에는 05를 같은 판정으로 다시 저장할 때 중복 이벤트가 남아 있다.
+      const lastVerdict = workspace.feed.findLast(
+        (item) => item.kind === "system" && item.title.startsWith("05 검증 결과:"),
+      );
+      if (lastVerdict?.kind === "system" && lastVerdict.title === `05 검증 결과: ${event.verdict}`)
+        return null;
       return {
         ...base,
         kind: "system",
@@ -97,6 +106,7 @@ export function eventToFeedItem(
         title: `05 검증 결과: ${event.verdict}`,
         detail: event.firstLine,
       };
+    }
 
     case "user.input.required":
       return { ...base, kind: "input", request: event.request };
@@ -146,7 +156,6 @@ export function eventToFeedItem(
         tone: "info",
         title: `${name(event.fromAgentId)} → ${name(event.toAgentId)} 전달 완료`,
         detail: event.artifactName,
-        importance: "detail",
       };
 
     case "reference.added":
@@ -167,11 +176,14 @@ export function eventToFeedItem(
         importance: "detail",
       };
 
-    // 작업물은 '최신'이 되는 순간에만 카드로 보여 준다. 내부 작업물(03·04·06 등)은 접는다.
+    // 같은 파일을 퇴고하며 여러 번 저장해도 카드는 한 장이다. 내용·표시는 artifact 상태에서 갱신된다.
+    case "artifact.updated":
+      return null;
+
+    // 내부 작업물(03·04·06 등)은 접는다.
     case "artifact.created":
-    case "artifact.updated": {
-      if (event.type === "artifact.updated" && event.silent) return null;
-      const artifactId = event.type === "artifact.created" ? event.artifact.id : event.artifactId;
+    {
+      const artifactId = event.artifact.id;
       const artifact = workspace.artifacts.find((item) => item.id === artifactId);
       if (!artifact || artifact.status !== "latest") return null;
       return {

@@ -6,6 +6,7 @@ CLI 출력 문자열을 파싱하지 않는다. 계약된 파일(00~07 · 상태
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -291,5 +292,10 @@ class ArtifactSync:
         else:
             verdict = contract.verdict_from_05(text)
             if verdict:
-                self._events.append(project["id"], {"type": "validation.verdict", "verdict": verdict[0],
-                                                    "firstLine": verdict[1]}, run_id)
+                previous = self._db.one(
+                    "SELECT payload_json FROM events WHERE project_id = ? AND type = 'validation.verdict'"
+                    " ORDER BY seq DESC LIMIT 1", (project["id"],))
+                last = json.loads(previous["payload_json"]) if previous else None
+                if last is None or (last.get("verdict"), last.get("firstLine")) != verdict:
+                    self._events.append(project["id"], {"type": "validation.verdict", "verdict": verdict[0],
+                                                        "firstLine": verdict[1]}, run_id)

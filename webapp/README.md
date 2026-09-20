@@ -47,7 +47,7 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 | `app/db.py` | SQLite 스키마(projects · runs · events · references · artifacts · agent_overrides · sessions · owner_profile · pending_inputs · user_messages) |
 | `app/auth.py` | 단일 Owner — PIN 해시 확인 · 5회 실패 30초 잠금 · 세션(토큰 sha256만 저장) · 프로필 |
 | `app/agent_settings.py` | 모델 설정(전역) — 실제로 반영되는 선택지만 · 실행 시작 때 스냅샷 |
-| `app/usage.py` · `claude_statusline.py` | 사용량 — Codex는 `codex app-server`의 `account/rateLimits/read`(실시간), Claude는 statusLine이 남긴 `.data/claude_usage.json`. 확인할 수 없으면 「확인 불가」 |
+| `app/usage.py` · `claude_statusline.py` | 사용량 — Codex는 `codex app-server`의 `account/rateLimits/read`(실시간), Claude는 statusLine 캐시 또는 실제 headless 실행 로그의 `rate_limit_event`. 확인할 수 없으면 「확인 불가」 |
 | `app/events.py` | EventStore — seq 부여 · replay · SSE 구독자 전달 |
 | `app/projects.py` · `files.py` | 프로젝트·지시·레퍼런스·작업물 메타데이터 · 안전한 파일 저장(허용 폴더·파일명 정리·sha256) |
 | `app/contract.py` · `scanner.py` | 파일 계약 읽기(00~07 → 6단계·담당 에이전트, 05 첫 줄 판정) · 바뀐 것만 이벤트로 |
@@ -139,6 +139,7 @@ public/
 
 - **화면을 바꾸는 길은 이벤트 하나뿐입니다.** 목업 서비스와 React 상태가 같은 `applyWorkflowEvent`를 써서 프로젝트를 오가도 상태가 어긋나지 않습니다.
 - **LLM이 쓰는 문장은 `agent.message`뿐입니다.** 단계 시작·완료, 전달(handoff), 레퍼런스 추가, 작업물 생성, 진행률은 모두 코드가 만듭니다(`lib/eventToFeedItem.ts`, `lib/progress.ts`).
+- 실제 Claude 실행에서는 `stream-json`의 발언과 도구 활동을 실행 중 `agent.message`·`agent.activity` 이벤트로 전달합니다. 대화 화면은 SSE로 자동 갱신되며, 다시 연결되면 누락 이벤트를 이어 받습니다. 역할이 확인되는 하위 에이전트 발언과 수신자가 확인되는 실제 전달 메시지만 이름을 붙입니다. 사고 과정·쉘 명령·일반 도구 입력 전문은 대화창에 내보내지 않습니다. 별도 모델 호출이나 프롬프트 변경은 없습니다.
 - **에이전트별 최소 Context**: `constants/workflow.ts`의 `readsFrom`·`usesReferences`와 `lib/stageContext.ts`가 단계마다 넘길 자료만 고릅니다. 단계 상세의 「넘겨받는 자료」에 표시됩니다.
 - 작업물 목록에는 메타데이터만 오고, 본문은 미리보기를 열 때 `getArtifactContent`로 한 번만 불러와 캐시합니다.
 
@@ -157,7 +158,7 @@ Agent Message / System Event / Artifact Card / User Message 구분 · @에이전
 | 실행 중 즉시 개입 | 지시는 현재 턴이 끝난 뒤 전달(지침서 §17) |
 | 긴급 강제 종료 | 없음 — 중지는 현재 단계가 끝난 뒤(graceful) |
 | 유리·아냐 추론 강도 | 지정 불가 — 서브에이전트 호출에 넘길 방법이 없음(도구 기본값) |
-| Claude 사용량 | 터미널 Claude Code의 statusLine(`~/.claude/settings.json`)이 응답마다 캐시에 남김 — 터미널에서 한 번 써야 나타남 |
+| Claude 사용량 | 터미널 Claude Code의 statusLine 캐시가 우선. 캐시가 없으면 `.data/logs/`와 기존 `.data/smoke/logs/`의 마지막 실제 한도 이벤트를 표시. 리셋이 지난 창은 오래된 값으로 표시 |
 | NotebookLM 사용량 | 확인 불가 — 공식 인터페이스 없음 |
 | 지식 라이브러리 · 프로젝트 설정 | 준비 중 화면 |
 
@@ -171,3 +172,12 @@ API 키는 두지 않습니다 — claude·codex·nlm은 각 CLI에 로그인된
 - 본문 서체 Pretendard는 CDN에서 불러옵니다(오프라인이면 시스템 서체로 대체). 워드마크 서체 Nunito는 빌드 때 Google Fonts에서 받습니다.
 - 캐릭터 초상은 머리색·배경색만 따온 단순 SVG입니다. 실제 이미지는 `public/avatars/`에 직접 넣으세요.
 - 목록이 수백 줄 이상 길어지면 `ActivityFeed`의 `FeedRow`를 가상 스크롤 목록에 넣으면 됩니다(행 컴포넌트는 이미 분리·memo 처리됨).
+
+## Phase E 인수인계 (2026-09-20)
+
+- 기존 실제 Claude 실행은 `run_0d6e8af110e8` / `p_c01419d5b4a9` / `작업/최저임금2026_20260920`입니다. 재실행하지 않고 `.data/smoke/documaster.db`의 해당 프로젝트 이벤트 83개, `.data/smoke/logs/run_0d6e8af110e8.jsonl`, 작업 폴더와 최종 폴더를 대조했습니다. DB 작업물 17개 모두 실제 파일과 크기가 일치하며, 폴더에 DB 누락 파일도 없습니다. 전체 DB의 45개 작업물에는 기존 가져온 프로젝트의 작업물도 포함됩니다.
+- 이벤트를 화면 reducer로 처음부터 재생하면 6단계 모두 완료, 작업물 17개, 대기 입력 0개, 마지막 seq 83, 실행 상태 `completed`입니다. 복사한 DB를 로컬 백엔드와 브라우저에 연결해 새로고침 후 100%·완료·작업물 17개와 최종본 미리보기도 확인했습니다. 최종 PDF는 A4 4쪽입니다. 최초 요청은 2쪽이었으나 사용자 응답(이벤트 75·77)이 내용 삭제 없이 4쪽으로 확정했습니다.
+- 실행 로그의 마지막 Claude Code 누적 비용은 **USD 23.1517063**입니다. 이전 DB의 USD 56.04042415는 누적 값을 턴마다 다시 더한 오류였으며, 코드와 기존 스모크 DB 기록을 수정했습니다. `05`가 같은 판정으로 다시 저장될 때 판정 이벤트가 중복되는 문제도 수정했습니다. 파일 퇴고 중 여러 번 저장한 기록이 채팅에 같은 작업물 카드를 반복 표시하던 문제를 고쳤습니다. 기존 이벤트 기록은 감사 증거로 그대로 둡니다.
+- Claude 사용량은 공식 statusLine 캐시를 우선 사용하고, 캐시가 없으면 실제 Claude CLI `rate_limit_event`의 5시간·7일 창을 읽습니다. 사용 퍼센트와 리셋 시각만 표시하며, 지난 창은 오래된 값으로 표시합니다. 로그가 없거나 필드가 유효하지 않으면 `확인 불가`입니다. 이 조회는 Claude 모델을 호출하지 않습니다.
+- 테스트: 백엔드 pytest, 프런트엔드 `npm test`, TypeScript 검사, lint, production build, fake 오케스트레이터 통합, SSE 재연결·실패·재시작 복구 테스트를 통과했습니다. 실제 Claude 통합 코드는 이번 수정에서 호출 방식이나 프롬프트를 바꾸지 않았습니다.
+- 최종 실제 재검증이 필요해질 때는 Claude 한도가 회복된 뒤 `DOCUMASTER_ORCHESTRATOR=claude`로 **새 소형 작업 한 번만** 실행합니다. 생성된 실행 ID를 기준으로 이벤트의 6단계 순서, 작업물 DB와 파일, UI 새로고침, 오류·사용량 표시를 대조합니다. 현재 판정: `Development / Local Verification: COMPLETE`; `Real Claude Final Acceptance: PENDING - quota`.

@@ -3,6 +3,8 @@
 import sqlite3
 from dataclasses import replace
 
+from app.orchestrator import TurnResult
+
 
 from .conftest import owner_client, create_project, events_of, types_of, wait_until
 
@@ -190,3 +192,17 @@ def test_repeated_turns_without_progress_fail_instead_of_looping(client):
     failed = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "workflow.failed"), None))
     assert "진행하지 않은 채" in failed["reason"]
     assert "user.input.required" not in types_of(client, project_id)
+
+
+def test_cumulative_claude_cost_is_not_added_twice(client, settings):
+    project_id = create_project(client)
+    services = client.app.state.services
+    run_id = "run_cost"
+    services.db.execute("INSERT INTO runs (id, project_id, status, started_at) VALUES (?, ?, 'completed', '2026-09-20')",
+                        (run_id, project_id))
+    for cumulative in (1.1, 1.1, 2.5, 3.0):
+        services.runs._record_turn(run_id, TurnResult(exit_code=0, model="claude-opus-5",
+                                                     extra={"total_cost_usd": cumulative}))
+    row = services.db.one("SELECT cost_usd, actual_model FROM runs WHERE id = ?", (run_id,))
+    assert row["cost_usd"] == 3.0
+    assert row["actual_model"] == "claude-opus-5"

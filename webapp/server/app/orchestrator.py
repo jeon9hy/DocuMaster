@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -18,11 +20,109 @@ import sys
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
+from urllib.parse import urlparse
 
 from .config import Settings
 
 _FAKE_SCRIPT = Path(__file__).with_name("fake_orchestrator.py")
 _STDERR_TAIL = 4000
+log = logging.getLogger(__name__)
+_AGENT_NAMES = {"로이드": "loid", "요르": "yor", "유리": "yuri", "아냐": "anya", "본드": "bond"}
+
+
+def _agent_in(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    return next((agent for name, agent in _AGENT_NAMES.items() if name in value), None)
+
+
+def _tool_label(name: str, data: dict) -> str | None:
+    """도구 입력 본문·명령·검색어는 노출하지 않고 활동 종류와 파일명만 보여 준다."""
+    if name in {"Read", "Write", "Edit", "MultiEdit"}:
+        path = data.get("file_path") or data.get("path")
+        filename = str(path).replace("\\", "/").rsplit("/", 1)[-1] if path else ""
+        verb = {"Read": "파일 읽기", "Write": "파일 작성", "Edit": "파일 수정", "MultiEdit": "파일 수정"}[name]
+        return f"{verb} · {filename[:100]}" if filename else verb
+    if name == "WebFetch":
+        host = urlparse(str(data.get("url") or "")).hostname
+        return f"웹 자료 열기 · {host}" if host else "웹 자료 열기"
+    return {
+        "WebSearch": "웹 검색", "ToolSearch": "도구 검색",
+        "Agent": "하위 에이전트 작업 요청", "SendMessage": "에이전트에게 메시지 전달",
+        "SubagentHandback": "검토 결과 전달", "Skill": "작업 지침 확인",
+    }.get(name)
+
+
+class StreamActivity:
+    """실제 stream-json에서 공개 가능한 발언과 도구 활동만 추출한다."""
+
+    def __init__(self):
+        self._subagent_by_call: dict[str, str | None] = {}
+        self._subagent_by_id: dict[str, str] = {}
+        self.emitted_texts: set[str] = set()
+
+    def read(self, message: dict) -> list[dict]:
+        if message.get("type") == "user":
+            self._read_agent_launch(message)
+            return []
+        if message.get("type") != "assistant":
+            return []
+        envelope = message.get("message")
+        content = envelope.get("content") if isinstance(envelope, dict) else None
+        if not isinstance(content, list):
+            return []
+        parent = message.get("parent_tool_use_id")
+        agent_id = self._subagent_by_call.get(parent) if parent else "loid"
+        if not agent_id:
+            return []  # 역할을 확인할 수 없는 하위 실행은 로이드의 말로 꾸미지 않는다.
+        events = []
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "text":
+                value = str(block.get("text") or "").strip()
+                if value:
+                    if agent_id == "loid":
+                        self.emitted_texts.add(value)
+                    events.append({"type": "agent.message", "agentId": agent_id, "text": value})
+            elif block.get("type") == "tool_use":
+                name = str(block.get("name") or "")
+                data = block.get("input") if isinstance(block.get("input"), dict) else {}
+                if name == "Agent" and isinstance(block.get("id"), str):
+                    self._subagent_by_call[block["id"]] = _agent_in(data.get("description"))
+                if name == "SendMessage":
+                    target = self._subagent_by_id.get(str(data.get("recipient") or data.get("to") or ""))
+                    speech = data.get("content") or data.get("message")
+                    if target and isinstance(speech, str) and speech.strip():
+                        events.append({"type": "agent.message", "agentId": agent_id,
+                                       "toAgentId": target, "text": speech.strip()})
+                        continue
+                label = _tool_label(name, data)
+                if label:
+                    target = _agent_in(data.get("description")) if name == "Agent" else None
+                    if target:
+                        label += f" · {next(key for key, value in _AGENT_NAMES.items() if value == target)}"
+                    events.append({"type": "agent.activity", "agentId": agent_id, "label": label})
+        return events
+
+    def _read_agent_launch(self, message: dict) -> None:
+        envelope = message.get("message")
+        blocks = envelope.get("content") if isinstance(envelope, dict) else None
+        if not isinstance(blocks, list):
+            return
+        for block in blocks:
+            if not isinstance(block, dict) or block.get("type") != "tool_result":
+                continue
+            agent = self._subagent_by_call.get(block.get("tool_use_id"))
+            if not agent:
+                continue
+            content = block.get("content")
+            texts = [part.get("text", "") for part in content if isinstance(part, dict)] if isinstance(content, list) else []
+            for value in texts:
+                found = re.search(r"\bagentId:\s*([A-Za-z0-9]+)", str(value))
+                if found:
+                    self._subagent_by_id[found.group(1)] = agent
 
 
 @dataclass(frozen=True)
@@ -121,17 +221,17 @@ def create_adapter(settings: Settings) -> OrchestratorAdapter:
 
 
 class ProcessTurn:
-    """프로세스 하나를 띄우고 stdout(stream-json)에서 init·result만 읽는다.
+    """프로세스 하나를 띄우고 stdout을 기록하며 공개 가능한 활동을 즉시 전달한다."""
 
-    나머지 줄(도구 호출·중간 출력)은 화면에 보내지 않고 로그 파일에만 남긴다(지침서 §15).
-    """
-
-    def __init__(self, command: list[str], request: TurnRequest):
+    def __init__(self, command: list[str], request: TurnRequest,
+                 on_activity: Callable[[dict], None] | None = None):
         request.log_path.parent.mkdir(parents=True, exist_ok=True)
         self._request = request
         self._result = TurnResult(exit_code=None)
         self._stderr: list[str] = []
         self._terminated = False
+        self._on_activity = on_activity
+        self._stream_activity = StreamActivity()
         flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
         self._process = subprocess.Popen(
             command,
@@ -157,6 +257,9 @@ class ProcessTurn:
     @property
     def pid(self) -> int:
         return self._process.pid
+
+    def already_streamed(self, text: str) -> bool:
+        return text.strip() in self._stream_activity.emitted_texts
 
     def is_alive(self) -> bool:
         return self._process.poll() is None
@@ -203,6 +306,13 @@ class ProcessTurn:
             return
         if not isinstance(message, dict):
             return
+        if self._on_activity:
+            try:
+                for activity in self._stream_activity.read(message):
+                    self._on_activity(activity)
+            except Exception:
+                # UI 이벤트 오류가 오케스트레이터의 stdout 수집을 멈추면 안 된다.
+                log.exception("실시간 대화 이벤트 전달 실패")
         if message.get("type") == "system" and message.get("subtype") == "init":
             self._result.session_id = message.get("session_id")
             self._result.model = message.get("model")

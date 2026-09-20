@@ -5,7 +5,7 @@ import { Lock, RotateCcw } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { PROVIDERS, REASONING_LABELS } from "@/constants/models";
 import { formatDateTime } from "@/lib/format";
-import { describeModelConfig, getModelLabel } from "@/lib/models";
+import { getModelLabel } from "@/lib/models";
 import type { AgentModelConfig, AgentSetting, ProviderId, ProviderUsage, ReasoningLevel } from "@/types";
 import { UsageTiles } from "../settings/UsageTiles";
 import { Button } from "../ui/Button";
@@ -77,9 +77,6 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
             기본값으로
           </Button>
         )}
-        <span className="shrink-0 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-blue-700">
-          {describeModelConfig(config)}
-        </span>
       </div>
       {usage?.available && (
         <div className="@container mb-2">

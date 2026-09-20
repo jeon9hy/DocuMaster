@@ -5,6 +5,8 @@ from pathlib import Path
 
 from app import contract
 from app.events import EVENT_TYPES
+from app.scanner import scan
+from .conftest import create_project, events_of
 
 WEBAPP = Path(__file__).resolve().parents[2]
 
@@ -46,3 +48,19 @@ def test_needs_user_reads_status_line_not_sentence_shape():
     assert contract.needs_user("검증 보류 — 사용자 결정 필요")
     assert not contract.needs_user("진행 중 02 조사")
     assert not contract.needs_user("진행 중 — 다음 단계로 넘어갈까요?")  # 질문형이어도 상태가 진행 중이면 계속
+
+
+def test_rewriting_05_without_changing_verdict_does_not_repeat_verdict(client, settings):
+    project_id = create_project(client, mode="document")
+    services = client.app.state.services
+    workspace_id = "verdict_test"
+    base = settings.sandbox_root / "작업" / workspace_id / "workspace"
+    base.mkdir(parents=True)
+    services.db.execute("UPDATE projects SET workspace_id = ? WHERE id = ?", (workspace_id, project_id))
+    path = base / "05_verified_research_pack.md"
+    path.write_text("검증 통과 — 조건부\n첫 내용", encoding="utf-8")
+    project = services.projects.get(project_id)
+    services.runs._sync.sync(project, scan(settings.sandbox_root, workspace_id, "document"))
+    path.write_text("검증 통과 — 조건부\n수정한 내용이 더 깁니다", encoding="utf-8")
+    services.runs._sync.sync(project, scan(settings.sandbox_root, workspace_id, "document"))
+    assert [event["type"] for event in events_of(client, project_id)].count("validation.verdict") == 1

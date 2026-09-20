@@ -26,7 +26,8 @@ export type WorkflowEventPayload =
   | { type: "user.input.required"; request: UserInputRequest }
   | { type: "user.input.resolved"; promptId: string; answer: string }
   | { type: "agent.started"; agentId: AgentId; stageId: WorkflowStageId }
-  | { type: "agent.message"; agentId: AgentId; text: string }
+  | { type: "agent.message"; agentId: AgentId; toAgentId?: AgentId; text: string }
+  | { type: "agent.activity"; agentId: AgentId; label: string }
   | { type: "agent.completed"; agentId: AgentId }
   | { type: "agent.configured"; agentId: AgentId; config: AgentModelConfig }
   /** updatedAt은 이벤트 시각(at)으로 채운다 */

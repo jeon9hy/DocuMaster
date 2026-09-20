@@ -5,7 +5,7 @@ import json
 import sys
 
 import claude_statusline
-from app.usage import claude_usage, codex_usage, codex_usage_from, usage_report
+from app.usage import claude_usage, claude_usage_from_logs, codex_usage, codex_usage_from, usage_report
 
 NOW = 1_790_000_000
 
@@ -93,3 +93,23 @@ def test_report_order_and_notebooklm(tmp_path):
     report = usage_report(tmp_path / "none.json", codex_live=False)
     assert [item["provider"] for item in report] == ["anthropic", "openai", "google"]
     assert all(not item["available"] and item["windows"] == [] for item in report)
+
+
+def test_claude_headless_log_usage_without_model_call(tmp_path):
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "run_example.jsonl").write_text("\n".join([
+        json.dumps({"type": "rate_limit_event", "rate_limit_info": {"unifiedWindows": {
+            "five_hour": {"utilization": 0.36, "resetsAt": NOW + 3600},
+            "seven_day": {"utilization": 0.92, "resetsAt": NOW + 86400}}}}),
+        json.dumps({"type": "rate_limit_event", "rate_limit_info": {"unifiedWindows": {
+            "five_hour": {"utilization": 0.81, "resetsAt": NOW + 3600},
+            "seven_day": {"utilization": 0.99, "resetsAt": NOW + 86400}}}}),
+    ]), encoding="utf-8")
+    result = claude_usage_from_logs(logs, NOW)
+    assert result["source"] == "Claude Code 실행 로그 (rate_limit_event)"
+    assert [window["usedPercent"] for window in result["windows"]] == [81.0, 99.0]
+    assert result["stale"] is False
+    assert claude_usage_from_logs(logs, NOW + 7200)["windows"][0]["expired"] is True
+    report = usage_report(tmp_path / "missing.json", codex_live=False, claude_log_dir=logs)
+    assert report[0]["available"] and report[1]["available"] is False

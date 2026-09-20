@@ -2,9 +2,10 @@
 
 import { memo, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, MessagesSquare } from "lucide-react";
+import { getAgentProfile } from "@/constants/agents";
 import { useStickToBottom } from "@/hooks/useStickToBottom";
 import { useAppActions, useIsOwner } from "@/state/WorkspaceProvider";
-import type { Artifact, FeedItem } from "@/types";
+import type { AgentId, Artifact, FeedItem } from "@/types";
 import { EmptyState } from "../ui/States";
 import { ActionCard } from "./ActionCard";
 import { AgentMessage } from "./AgentMessage";
@@ -38,7 +39,9 @@ const FeedRow = memo(function FeedRow({
 }: FeedRowProps) {
   switch (item.kind) {
     case "agent":
-      return <AgentMessage agentId={item.agentId} text={item.text} createdAt={item.createdAt} />;
+      return <AgentMessage agentId={item.agentId} toAgentId={item.toAgentId} text={item.text} createdAt={item.createdAt} />;
+    case "activity":
+      return <span className="text-[13px] text-gray-600">{item.label}</span>;
     case "user":
       return <UserMessage text={item.text} createdAt={item.createdAt} />;
     case "system":
@@ -69,13 +72,20 @@ const FeedRow = memo(function FeedRow({
 });
 
 /** 연속된 세부 활동(importance: "detail")은 한 묶음으로 접는다. */
-type FeedBlock = { kind: "item"; item: FeedItem } | { kind: "details"; key: string; items: FeedItem[] };
+type FeedBlock =
+  | { kind: "item"; item: FeedItem }
+  | { kind: "details"; key: string; items: FeedItem[] }
+  | { kind: "activities"; key: string; agentId: AgentId; items: FeedItem[] };
 
 function groupFeed(feed: FeedItem[]): FeedBlock[] {
   const blocks: FeedBlock[] = [];
   for (const item of feed) {
     const last = blocks.at(-1);
-    if (item.importance !== "detail") blocks.push({ kind: "item", item });
+    if (item.kind === "activity") {
+      if (last?.kind === "activities" && last.agentId === item.agentId) last.items.push(item);
+      else blocks.push({ kind: "activities", key: item.id, agentId: item.agentId, items: [item] });
+    }
+    else if (item.importance !== "detail") blocks.push({ kind: "item", item });
     else if (last?.kind === "details") last.items.push(item);
     else blocks.push({ kind: "details", key: item.id, items: [item] });
   }
@@ -147,6 +157,13 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
           {blocks.map((block) =>
             block.kind === "item" ? (
               renderRow(block.item)
+            ) : block.kind === "activities" ? (
+              <li key={block.key} className="ml-[52px] text-[13px] text-gray-500">
+                <span className="font-medium">{getAgentProfile(block.agentId).name} · 작업 기록</span>
+                <ul className="mt-1 space-y-1 border-l border-line pl-3">
+                  {block.items.map((item) => <li key={item.id} className="break-words">{item.kind === "activity" ? item.label : null}</li>)}
+                </ul>
+              </li>
             ) : (
               <li key={block.key}>
                 <DetailGroup count={block.items.length}>{block.items.map(renderRow)}</DetailGroup>

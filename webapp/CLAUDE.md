@@ -34,5 +34,8 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 화면은 `npx next start -p 3123` 후 Edge 헤드리스(DevTools 프로토콜로 몇 초 뒤) 캡처. 끝나면 서버를 끈다.
 
 ## 현재 상태 (세션 끝에 이 절만 고친다)
-- A(UX)·B(FastAPI+SQLite+SSE)·C(파일·기존 작업 읽기 전용) 완료, fake로 전체 경로 검증.
-- D: 어댑터 있음, E2E 스모크 승인 대기. Auth: 쓰기 API엔 `OWNER`, 화면은 `useIsOwner()`.
+- A~D 로컬 기능과 fake 전체 경로 검증 완료. Auth: 쓰기 API엔 `OWNER`, 화면은 `useIsOwner()`.
+- E: 실제 Claude 실행 `run_0d6e8af110e8`(작업 ID `최저임금2026_20260920`)이 6단계 완료. 83개 이벤트, DB 작업물 17개와 실제 파일, UI 이벤트 재생 완료 상태를 대조했다. 상세 증거와 재테스트 방법은 README 「Phase E 인수인계」.
+- 이번 안정화: 누적 실행 비용 중복 합산, 동일한 검증 판정 이벤트와 채팅 작업물 카드 중복을 수정. 기존 스모크 DB의 비용도 로그값으로 교정했다. Claude 사용량은 statusLine 캐시 또는 실제 headless 로그에서 읽고, 확인되지 않는 값은 표시하지 않는다.
+- 대화 실시간화: `stream-json`의 실제 발언과 도구 활동을 실행 중 SSE로 보낸다. 역할을 확인한 하위 에이전트와 수신자가 확인되는 실제 전달 메시지만 이름을 붙인다. 사고 과정·쉘 명령·일반 도구 입력 전문은 보내지 않는다. 프롬프트·모델 호출·오케스트레이터 동작은 바꾸지 않았다.
+- `Development / Local Verification: COMPLETE` / `Real Claude Final Acceptance: PENDING - quota`. 새 Claude 모델 호출은 한도 회복 뒤 소형 최종 재테스트 한 번에만 사용한다.
