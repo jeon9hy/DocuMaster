@@ -1,5 +1,7 @@
 
 from .conftest import owner_client, create_project, events_of, wait_until
+from app.db import Database, now_iso
+from app.events import EventStore
 
 
 def test_project_crud_and_persistence_across_restart(settings):
@@ -28,6 +30,19 @@ def test_event_envelope_and_sequence(client):
     assert [event["seq"] for event in events] == [1, 2, 3]
     assert set(events[0]) >= {"schemaVersion", "id", "projectId", "runId", "seq", "at", "type", "text"}
     assert events[0]["schemaVersion"] == 1 and events[0]["runId"] is None
+
+
+def test_appended_event_matches_replay(tmp_path):
+    db = Database(tmp_path / "events.db")
+    try:
+        db.execute("INSERT INTO projects (id, display_name, mode, work_root, source, created_at, updated_at)"
+                   " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                   ("p_test", "test", "auto", ".", "web", now_iso(), now_iso()))
+        store = EventStore(db)
+        live = store.append("p_test", {"type": "agent.message", "text": "안내", "agentId": "loid"}, "run_test")
+        assert store.list_after("p_test") == [live]
+    finally:
+        db.close()
 
 
 def test_validation_errors_are_explained(client):

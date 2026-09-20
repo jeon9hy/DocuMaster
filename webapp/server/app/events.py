@@ -80,14 +80,16 @@ class EventStore:
                 (project_id,),
             ).fetchone()
             event_id = f"evt_{uuid.uuid4().hex[:16]}"
+            created_at = now_iso()
             conn.execute(
                 "INSERT INTO events (id, project_id, run_id, seq, type, payload_json, created_at)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (event_id, project_id, run_id, row["next"], event_type,
-                 json.dumps(payload, ensure_ascii=False), now_iso()),
+                 json.dumps(payload, ensure_ascii=False), created_at),
             )
-            stored = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
-        event = _to_event(stored)
+        # INSERT에 사용한 값으로 같은 envelope을 만든다. replay는 DB 행을 그대로 읽는다.
+        event = {**payload, "schemaVersion": SCHEMA_VERSION, "id": event_id,
+                 "projectId": project_id, "runId": run_id, "seq": row["next"], "at": created_at}
         self._publish(project_id, event)
         return event
 

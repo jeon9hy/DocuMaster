@@ -66,6 +66,7 @@ class _Turn:
     started_at: float = field(default_factory=time.time)
     stalled_turns: int = 0  # 진행 없이 끝난 연속 자동 재개 턴 수
     fingerprint: tuple = ()
+    persisted_worker: tuple[str, str] | None = None
 
 
 class RunManager:
@@ -271,12 +272,13 @@ class RunManager:
                 project["workspace_id"] = workspace_id
         result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
         self._sync.sync(project, result, turn.run_id)
-        mode = self._projects.get(turn.project_id)["mode"]
-        turn.progress, payloads = track_progress(turn.progress, result, mode)
+        # ArtifactSync가 00의 모드를 판정하면 전달받은 project도 갱신한다.
+        turn.progress, payloads = track_progress(turn.progress, result, project["mode"])
         for payload in payloads:
             self._events.append(turn.project_id, payload, turn.run_id)
-        if turn.progress.worker:
+        if turn.progress.worker and turn.progress.worker != turn.persisted_worker:
             self._set_run(turn.run_id, current_stage=turn.progress.worker[0], current_agent=turn.progress.worker[1])
+            turn.persisted_worker = turn.progress.worker
 
     def _discover_workspace(self, project: dict, since: float) -> str | None:
         claimed = {row["workspace_id"] for row in self._db.query(
