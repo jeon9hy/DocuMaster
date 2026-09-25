@@ -12,7 +12,7 @@ import { Button, IconButton } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { ViewContainer, ViewHeader } from "./ViewHeader";
 
-/** 삭제 확인. 목록에서만 지우고 작업/·최종/ 파일은 남는다는 것을 분명히 알린다. */
+/** 삭제 확인. 프로젝트 전용 로컬 폴더까지 삭제됨을 분명히 알린다. */
 function DeleteProjectModal({ project, onClose }: { project: ProjectSummary; onClose: () => void }) {
   const { deleteProject } = useAppActions();
   const [error, setError] = useState<string | null>(null);
@@ -45,10 +45,10 @@ function DeleteProjectModal({ project, onClose }: { project: ProjectSummary; onC
       }
     >
       <p className="text-sm text-gray-800">
-        <strong>{project.name}</strong>을(를) 목록에서 삭제할까요?
+        <strong>{project.name}</strong>과(와) 로컬 폴더를 삭제할까요?
       </p>
       <p className="mt-2 text-[13px] text-gray-500">
-        화면의 대화·작업물 목록에서 사라집니다. 저장소의 작업/·최종/ 파일은 지우지 않으니, 결과물은 폴더에 그대로 남습니다.
+        화면의 대화·작업물과 이 프로젝트의 작업/·최종/·참고자료 폴더가 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
       </p>
       {error && (
         <p role="alert" className="mt-3 text-xs text-red-600">

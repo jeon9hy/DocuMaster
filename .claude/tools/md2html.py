@@ -18,6 +18,7 @@
   ::: stats           값 | 라벨 | 조건  (핵심 수치 띠, 2~4개)
   ::: note            Qualification — 바로 앞 주장에 붙는 짧은 한계 문구
   ::: quote [출처]     풀쿼트
+  ::: sources 출처     S01 | 자료명 | 발행 주체 | 날짜 | 링크 또는 위치
   자료: / 출처: / 주:  로 시작하는 문단 → 작은 캡션
 
 사용:
@@ -107,6 +108,8 @@ li::marker { color: var(--accent); }
 li > ul, li > ol { margin: 3pt 0 0; }
 strong { font-weight: 700; }
 a { color: var(--accent-deep); text-decoration: none; border-bottom: 0.4pt solid var(--rule); }
+sup.cite { font-size: 7.5pt; line-height: 0; margin-left: 1pt; }
+sup.cite a { border: 0; font-weight: 700; }
 hr { border: none; border-top: 0.6pt solid var(--rule); margin: 18pt 0; }
 .pagebreak { page-break-before: always; }
 code { font-family: "Consolas", monospace; font-size: 8.8pt; background: #f2f3f5;
@@ -158,6 +161,15 @@ blockquote p:last-child { margin-bottom: 0; }
                    color: var(--accent); }
 .pull .by { font-size: 8.5pt; color: var(--muted); margin-top: 6pt; }
 
+/* 출처 */
+.sources { margin-top: 24pt; padding-top: 10pt; border-top: 1.2pt solid var(--ink); }
+.sources h2 { margin-top: 0; }
+.source-row { display: grid; grid-template-columns: 18pt 1fr; gap: 6pt; padding: 5pt 0;
+              border-bottom: 0.5pt solid var(--hair); break-inside: avoid; page-break-inside: avoid;
+              font-size: 8.4pt; line-height: 1.5; }
+.source-no { color: var(--accent-deep); font-weight: 700; }
+.source-meta { color: var(--ink-2); }
+
 /* 그림 */
 figure { margin: 14pt 0 14pt; page-break-inside: avoid; }
 figure img { width: 100%%; display: block; }
@@ -194,6 +206,7 @@ RE_CODE = re.compile(r"`([^`]+)`")
 RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
 RE_EM = re.compile(r"(?<![\*\w])\*([^\*\n]+)\*(?!\*)")
 RE_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\)\s]+)\)")
+RE_CITATION = re.compile(r"\[S(\d{2,3})\]")
 RE_IMG = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(\{narrow\})?$')
 RE_SRC = re.compile(r"^(자료|출처|주)\s*[:：]")
 
@@ -214,6 +227,8 @@ def inline(text):
     out = RE_BOLD.sub(r"<strong>\1</strong>", out)
     out = RE_EM.sub(r"<em>\1</em>", out)
     out = RE_LINK.sub(r'<a href="\2">\1</a>', out)
+    out = RE_CITATION.sub(lambda m: '<sup class="cite"><a href="#source-S%s">%d</a></sup>'
+                          % (m.group(1), int(m.group(1))), out)
     for i, s in enumerate(kept):
         out = out.replace("\x00%d\x00" % i, s)
     return out
@@ -522,6 +537,24 @@ def render_block(kind, title, body, accent):
         q = " ".join(l.strip() for l in body if l.strip())
         by = '<div class="by">— %s</div>' % inline(title) if title else ""
         return '<div class="pull"><div class="q">%s</div>%s</div>' % (inline(q), by)
+    if kind == "sources":
+        rows = []
+        for raw in body:
+            if not raw.strip():
+                continue
+            cells = split_row(raw)
+            if len(cells) < 5 or not re.fullmatch(r"S\d{2,3}", cells[0]):
+                WARNINGS.append("출처 행 형식 오류: %s" % raw.strip()[:80])
+                continue
+            source_id = cells[0]
+            meta = " · ".join(cell for cell in cells[1:] if cell)
+            rows.append('<div class="source-row" id="source-%s"><div class="source-no">%d</div>'
+                        '<div class="source-meta">%s</div></div>'
+                        % (source_id, int(source_id[1:]), inline(meta)))
+        if not rows:
+            WARNINGS.append("sources 블록에 올바른 출처 행이 없다")
+        return '<section class="sources"><h2>%s</h2>%s</section>' % (
+            html.escape(title or "출처"), "".join(rows))
     WARNINGS.append("모르는 블록: ::: %s" % kind)
     return convert("\n".join(body), accent)
 
@@ -744,6 +777,9 @@ def main():
         meta.setdefault("title", title)
         # 표지가 제목을 맡으면 본문 첫 H1은 뺀다
         md = re.sub(r"^#\s+.+\n", "", md, count=1, flags=re.M)
+    elif meta.get("title") and not re.search(r"^#\s+.+$", md, re.M):
+        # 짧은 메모는 front matter만으로 제목을 주기도 한다. 표지가 없으면 본문 제목을 자동 표시한다.
+        md = "# " + meta["title"] + "\n\n" + md.lstrip()
 
     body = (cover_html(meta) if cover else "") + convert(md, accent)
     doc = ('<!doctype html>\n<html lang="ko"><head><meta charset="utf-8">'

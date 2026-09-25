@@ -168,10 +168,18 @@ def load_snapshot(raw: str | None) -> dict[str, dict]:
 def orchestrator_models(configs: dict[str, dict]) -> dict:
     """로이드가 읽을 파일 내용(실행.md §3). 호출에 그대로 넣을 값만 둔다."""
     yor = configs.get("yor") or contract.DEFAULT_AGENT_CONFIGS["yor"]
+
+    def subagent_model(agent_id: str) -> str:
+        config = configs.get(agent_id) or contract.DEFAULT_AGENT_CONFIGS[agent_id]
+        try:
+            return SUBAGENT_ALIAS[config["modelId"]]
+        except (KeyError, TypeError) as error:
+            raise UnsupportedConfigError(UNSUPPORTED_MESSAGE) from error
+
     return {
         "yor": {"model": yor["modelId"], "effort": yor["reasoningLevel"]},
-        "yuri": {"model": SUBAGENT_ALIAS.get((configs.get("yuri") or {}).get("modelId", ""), "sonnet")},
-        "anya": {"model": SUBAGENT_ALIAS.get((configs.get("anya") or {}).get("modelId", ""), "opus")},
+        "yuri": {"model": subagent_model("yuri")},
+        "anya": {"model": subagent_model("anya")},
     }
 
 
@@ -179,6 +187,8 @@ def orchestrator_models(configs: dict[str, dict]) -> dict:
 
 _CODEX_MODEL = re.compile(r"codex(?:\.cmd)?\s+exec\b.*?\s-m\s+\"?([\w.\-]+)")
 _CODEX_EFFORT = re.compile(r"model_reasoning_effort=\"?([\w\-]+)")
+_MODEL_ASSIGNMENT = re.compile(r"\bYM\s*=\s*[\"']?([\w.\-]+)")
+_EFFORT_ASSIGNMENT = re.compile(r"\bYE\s*=\s*[\"']?([\w\-]+)")
 
 
 def check_model_calls(log_path: Path, expected: dict) -> list[str]:
@@ -199,14 +209,22 @@ def check_model_calls(log_path: Path, expected: dict) -> list[str]:
             if not isinstance(block, dict) or block.get("type") != "tool_use":
                 continue
             data = block.get("input") or {}
-            if block.get("name") == "Agent" and data.get("model") and data["model"] not in subagent_models:
-                problems.append(f"서브에이전트를 설정에 없는 모델({data['model']})로 불렀습니다.")
+            if block.get("name") == "Agent" and data.get("model"):
+                call_text = json.dumps(data, ensure_ascii=False).lower()
+                agent_id = ("yuri" if "유리" in call_text or "verification" in call_text
+                            else "anya" if "아냐" in call_text or "final_document" in call_text else None)
+                wanted = expected[agent_id]["model"] if agent_id else None
+                if (wanted and data["model"] != wanted) or (not wanted and data["model"] not in subagent_models):
+                    label = {"yuri": "유리", "anya": "아냐"}.get(agent_id, "서브에이전트")
+                    problems.append(f"{label}를 설정과 다른 모델({data['model']})로 불렀습니다.")
             command = str(data.get("command") or "")
             if "codex" in command and " exec" in command:
                 model = _CODEX_MODEL.search(command)
                 effort = _CODEX_EFFORT.search(command)
-                if not model or model[1] != expected["yor"]["model"]:
-                    problems.append(f"요르(codex)를 설정과 다른 모델({model[1] if model else '미지정'})로 불렀습니다.")
-                if not effort or effort[1] != expected["yor"]["effort"]:
-                    problems.append(f"요르(codex)를 설정과 다른 추론 강도({effort[1] if effort else '미지정'})로 불렀습니다.")
+                actual_model = model[1] if model else ((_MODEL_ASSIGNMENT.search(command) or [None, None])[1])
+                actual_effort = effort[1] if effort else ((_EFFORT_ASSIGNMENT.search(command) or [None, None])[1])
+                if actual_model != expected["yor"]["model"]:
+                    problems.append(f"요르(codex)를 설정과 다른 모델({actual_model or '미지정'})로 불렀습니다.")
+                if actual_effort != expected["yor"]["effort"]:
+                    problems.append(f"요르(codex)를 설정과 다른 추론 강도({actual_effort or '미지정'})로 불렀습니다.")
     return list(dict.fromkeys(problems))

@@ -2,6 +2,7 @@
 from .conftest import owner_client, create_project, events_of, wait_until
 from app.db import Database, now_iso
 from app.events import EventStore
+from app import projects as projects_module
 
 
 def test_project_crud_and_persistence_across_restart(settings):
@@ -59,13 +60,21 @@ def test_health_reports_tool_presence_without_calling_models(client):
     assert all(isinstance(value, bool) for value in health["tools"].values())
 
 
-def test_delete_hides_project_but_keeps_files_and_is_not_reimported(settings):
+def test_delete_removes_local_folders_and_is_not_reimported(settings):
     work = settings.repo_root / "작업" / "옛작업_20260101"
     work.mkdir(parents=True)
     (work / "상태.md").write_text("# 옛작업_20260101 — 옛 작업 · 모드: DOCUMENT\n상태: 완료\n", encoding="utf-8")
+    final = settings.repo_root / "최종" / "옛작업_20260101"
+    final.mkdir(parents=True)
+    (final / "결과.pdf").write_bytes(b"test")
     with owner_client(settings) as client:
         imported = client.get("/api/projects").json()[0]["id"]
         web = create_project(client, "지울 것")
+        reference = client.post(f"/api/projects/{web}/references", data={
+            "source": "text", "title": "삭제 확인", "text": "프로젝트 전용 자료",
+            "applyPolicy": "nextStage",
+        })
+        assert reference.status_code == 201
         client.post(f"/api/projects/{web}/messages", json={"text": "보고서"})
         assert client.post(f"/api/projects/{web}/runs").status_code == 202
         busy = client.delete(f"/api/projects/{web}")
@@ -75,6 +84,27 @@ def test_delete_hides_project_but_keeps_files_and_is_not_reimported(settings):
         assert client.delete(f"/api/projects/{imported}").status_code == 204
         assert client.get("/api/projects").json() == []
         assert client.get(f"/api/projects/{web}/workspace").status_code == 404
-    assert (work / "상태.md").exists()  # 파일은 그대로
+    assert not work.exists()
+    assert not final.exists()
+    assert not (settings.sandbox_root / "자료" / f"web_{web}").exists()
     with owner_client(settings) as client:  # 재시작해도 가져오기가 되살리지 않는다
         assert client.get("/api/projects").json() == []
+
+
+def test_delete_failure_keeps_project_visible(settings, monkeypatch):
+    work = settings.repo_root / "작업" / "삭제실패_20260101"
+    work.mkdir(parents=True)
+    (work / "상태.md").write_text("# 삭제실패_20260101 — 테스트 · 모드: DOCUMENT\n상태: 완료\n", encoding="utf-8")
+
+    with owner_client(settings) as client:
+        project_id = client.get("/api/projects").json()[0]["id"]
+
+        def fail_delete(_path):
+            raise OSError("locked")
+
+        monkeypatch.setattr(projects_module.shutil, "rmtree", fail_delete)
+        response = client.delete(f"/api/projects/{project_id}")
+        assert response.status_code == 500
+        assert response.json()["detail"]["code"] == "delete_failed"
+        assert client.get(f"/api/projects/{project_id}/workspace").status_code == 200
+        assert work.exists()

@@ -34,7 +34,7 @@ export interface SubscribeHandlers {
 export interface WorkspaceService {
   listProjects(): Promise<ProjectSummary[]>;
   createProject(input: NewProjectInput): Promise<ProjectSummary>;
-  /** 목록에서만 지운다(작업/·최종/ 파일은 남는다). 실행 중이면 거절한다. */
+  /** 프로젝트 전용 작업/·최종/·참고자료 폴더와 목록 항목을 함께 지운다. 실행 중이면 거절한다. */
   deleteProject(projectId: string): Promise<void>;
   /** 스냅샷. lastEventSeq까지 반영된 상태를 돌려준다 — 이어서 subscribe(afterSeq=lastEventSeq)로 받는다. */
   getWorkspace(projectId: string): Promise<ProjectWorkspace>;

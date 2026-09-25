@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import uuid
 from pathlib import Path
 from typing import BinaryIO
@@ -24,6 +25,10 @@ class NotFoundError(LookupError):
 
 
 class InvalidRequestError(ValueError):
+    pass
+
+
+class ProjectDeleteError(RuntimeError):
     pass
 
 
@@ -91,8 +96,36 @@ class ProjectService:
         return summary_of(self._db.one("SELECT * FROM projects WHERE id = ?", (project_id,)))
 
     def delete(self, project_id: str) -> None:
-        """목록에서 지운다. 작업/·최종/ 파일과 이벤트 기록은 지우지 않는다(파일이 원본이다)."""
-        self.get(project_id)
+        """프로젝트 전용 로컬 폴더를 지운 뒤 목록에서 숨긴다."""
+        project = self.get(project_id)
+        targets = [self._reference_dir(project)]
+        workspace_id = project.get("workspace_id")
+        if workspace_id:
+            if Path(workspace_id).name != workspace_id or "/" in workspace_id or "\\" in workspace_id:
+                raise UnsafePathError("잘못된 작업 폴더 이름입니다.")
+            root = self.work_root(project)
+            for folder in ("작업", "최종"):
+                parent = self._files.ensure_allowed(root / folder)
+                target = self._files.ensure_allowed(parent / workspace_id)
+                if target.parent != parent:
+                    raise UnsafePathError("프로젝트 폴더 밖은 삭제할 수 없습니다.")
+                targets.append(target)
+
+        # 모든 경로를 먼저 검증한 다음에만 삭제한다. DB 삭제는 파일 삭제가 모두 성공한 뒤 기록한다.
+        safe_targets = []
+        for target in targets:
+            safe = self._files.ensure_allowed(target)
+            if safe not in safe_targets:
+                safe_targets.append(safe)
+        try:
+            for target in safe_targets:
+                if target.exists():
+                    if not target.is_dir():
+                        raise OSError(f"프로젝트 폴더가 디렉터리가 아닙니다: {target.name}")
+                    shutil.rmtree(target)
+        except OSError as error:
+            raise ProjectDeleteError("로컬 프로젝트 폴더를 삭제하지 못했습니다. 파일 사용 여부와 권한을 확인해 주세요.") from error
+
         self._db.execute("UPDATE projects SET deleted_at = ?, updated_at = ? WHERE id = ?",
                          (now_iso(), now_iso(), project_id))
 

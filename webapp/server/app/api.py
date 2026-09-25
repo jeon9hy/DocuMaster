@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from .agent_settings import UnsupportedConfigError
 from .auth import AVATAR_MAX_BYTES, SESSION_COOKIE, SESSION_DAYS, AuthError
 from .files import UnsafePathError, UploadTooLargeError
-from .projects import InvalidRequestError, NotFoundError
+from .projects import InvalidRequestError, NotFoundError, ProjectDeleteError
 from .runs import ConflictError
 from .usage import usage_report
 
@@ -87,6 +87,8 @@ def _guard(action):
         raise _error(400, "unsafe_path", "허용되지 않은 경로입니다.") from error
     except InvalidRequestError as error:
         raise _error(400, "invalid_request", str(error)) from error
+    except ProjectDeleteError as error:
+        raise _error(500, "delete_failed", str(error)) from error
 
 
 # --- 시스템 ---------------------------------------------------------------------
@@ -113,7 +115,7 @@ def create_project(body: NewProject, request: Request):
 
 @router.delete("/projects/{project_id}", status_code=204, dependencies=OWNER)
 def delete_project(project_id: str, request: Request):
-    """목록에서만 지운다(작업/·최종/ 파일은 그대로). 실행 중이면 먼저 멈춰야 한다."""
+    """프로젝트 전용 작업/·최종/·참고자료 폴더와 목록 항목을 함께 지운다."""
     services = _services(request)
     if services.runs.active_run(project_id):
         raise _error(409, "conflict", "실행 중인 프로젝트는 삭제할 수 없습니다. 먼저 중지하세요.")

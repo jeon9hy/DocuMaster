@@ -1,12 +1,13 @@
 """모델 설정: Owner만 · 지원 값만 · 실행 시작 때 스냅샷 · 조용한 대체 없음."""
 
-import json
-import sqlite3
-from pathlib import Path
-
 from dataclasses import replace
+import json
+from pathlib import Path
+import sqlite3
 
-from app.agent_settings import check_model_calls, codex_models, orchestrator_models
+import pytest
+
+from app.agent_settings import UnsupportedConfigError, check_model_calls, codex_models, orchestrator_models
 from app.orchestrator import ClaudeCodeOrchestratorAdapter, TurnRequest
 
 from .conftest import create_project
@@ -117,6 +118,8 @@ def test_yor_accepts_only_listed_model_and_effort(settings, tmp_path):
 
 
 def test_models_file_is_written_for_the_orchestrator(client, settings):
+    client.patch("/api/settings/agents/yuri",
+                 json={"provider": "anthropic", "modelId": "claude-haiku-4-5", "reasoningLevel": None})
     client.patch("/api/settings/agents/anya",
                  json={"provider": "anthropic", "modelId": "claude-fable-5-1", "reasoningLevel": None})
     project_id = create_project(client)
@@ -125,7 +128,7 @@ def test_models_file_is_written_for_the_orchestrator(client, settings):
     files = list(settings.log_dir.glob("*_models.json"))
     assert len(files) == 1
     assert json.loads(files[0].read_text(encoding="utf-8")) == {
-        "yor": {"model": "gpt-5.6-sol", "effort": "xhigh"}, "yuri": {"model": "sonnet"}, "anya": {"model": "fable"}}
+        "yor": {"model": "gpt-5.6-sol", "effort": "xhigh"}, "yuri": {"model": "haiku"}, "anya": {"model": "fable"}}
 
 
 def test_mismatched_calls_in_run_log_are_reported(tmp_path):
@@ -137,8 +140,15 @@ def test_mismatched_calls_in_run_log_are_reported(tmp_path):
 
     log = tmp_path / "run.jsonl"
     log.write_text(chr(10).join([
-        tool("Agent", {"model": "sonnet", "prompt": "x"}),
+        tool("Agent", {"model": "sonnet", "prompt": "유리 verification"}),
         tool("Bash", {"command": "cat a | codex.cmd exec -m gpt-6-astra -c model_reasoning_effort=high -o x -"}),
+    ]), encoding="utf-8")
+    assert check_model_calls(log, expected) == []
+
+    log.write_text(chr(10).join([
+        tool("Agent", {"model": "sonnet", "prompt": "유리 verification"}),
+        tool("Agent", {"model": "opus", "prompt": "아냐 07_final_document"}),
+        tool("Bash", {"command": "YM=gpt-6-astra; YE=high; codex.cmd exec -m $YM -c model_reasoning_effort=$YE -o x -"}),
     ]), encoding="utf-8")
     assert check_model_calls(log, expected) == []
 
@@ -148,3 +158,8 @@ def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     ]), encoding="utf-8")
     problems = check_model_calls(log, expected)
     assert len(problems) == 3 and "haiku" in problems[0] and "gpt-5.6-sol" in problems[1] and "xhigh" in problems[2]
+
+
+def test_subagent_model_does_not_silently_fallback():
+    with pytest.raises(UnsupportedConfigError):
+        orchestrator_models({"anya": {"modelId": "removed-model"}})
