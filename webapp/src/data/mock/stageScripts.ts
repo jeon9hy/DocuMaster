@@ -178,7 +178,7 @@ const COMMON: Omit<StageScripts, "writing" | "finalReview"> = {
     {
       kind: "ask",
       title: "조건부 판정 채택",
-      message: "REMOVE 1건 · CAUTION 2건을 반영하고 세부 기획으로 넘어갈까요?",
+      message: "REMOVE 1건 · CAUTION 2건을 반영하고 최종 작성을 진행할까요?",
       choices: ["반영하고 계속", "작업 중단"],
     },
     {
@@ -211,27 +211,12 @@ const DETAILED_PLAN: readonly ScriptStep[] = [
 
 const WRITING: Record<ProjectMode, readonly ScriptStep[]> = {
   document: [
-    ...DETAILED_PLAN,
-    {
-      kind: "artifact",
-      agentId: "yor",
-      name: "06B_visual_plan.md",
-      fileType: "markdown",
-      summary: "표·그림 배치 설계",
-      visibility: "internal",
-      content: markdown(`
-# 06B 비주얼 설계
-- 1장: 추이 선 그래프 1개
-- 2장: 원인 비교 표 1개
-`),
-    },
-    { kind: "done", agentId: "yor" },
-    { kind: "handoff", from: "yor", to: "anya", artifactName: "06_detailed_plan.md" },
+    { kind: "handoff", from: "yuri", to: "anya", artifactName: "05_validation.md" },
     { kind: "start", agentId: "anya" },
     {
       kind: "say",
       agentId: "anya",
-      text: "06 구조는 그대로 두고 문장만 다듬어 쓸게요. CAUTION 항목은 본문에 꼭 적어 둘게요!",
+      text: "00의 목적과 05의 검증된 사실로 구조와 비주얼을 직접 정하고, CAUTION은 관련 주장 가까이에 반영할게요!",
     },
     {
       kind: "artifact",

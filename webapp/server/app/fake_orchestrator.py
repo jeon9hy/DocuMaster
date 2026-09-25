@@ -6,7 +6,7 @@
 
 턴 구성(실제 로이드가 사용자에게 묻고 턴을 끝내는 것을 흉내 낸다):
   1턴: 00 · 01 작성 → 기획 확인을 묻고 끝
-  2턴(--resume): 02 → 03 → 04 → 05 → 06 → (문서) 06B → 07 → output → 최종 → 완료 보고
+  2턴(--resume): 02 → 03 → 04 → 05 → 문서 07 / 발표 06→07 → output → 최종 → 완료 보고
 요청에 넣는 표시(테스트용):
   [blocked]      05를 「검증 보류」로 쓰고 한 번 더 묻는다
   [fail]         00 뒤 오류로 끝난다
@@ -136,13 +136,12 @@ class FakeLoid:
         elif blocked_requested and not (self.workspace / "05_verified_research_pack_v02.md").exists():
             self.write("05_verified_research_pack_v02.md", "검증 통과 — 조건부\n# Verified Research Pack\n- 판정: conditional (주장 A REMOVE)")
 
-        self.state("진행 중 06·07", mode)
-        self.write("06_detailed_plan.md", "# Detailed Plan (LOCKED)\n## 1장 현황\n## 2장 원인")
+        self.state("진행 중 07" if mode == "DOCUMENT" else "진행 중 06·07", mode)
         if mode == "DOCUMENT":
-            self.write("06_visual_direction.md", "# Visual Direction\n- 1장: 표 1개")
             self.write("07_final_document.md", "# 최종 문서\n## 요약\n검증을 통과한 근거만으로 쓴 요약입니다.")
             output_name = f"{self.id}.pdf"
         else:
+            self.write("06_detailed_plan.md", "# Detailed Plan (LOCKED)\n## 1장 현황\n## 2장 원인")
             self.write("07_notebooklm_presentation_pack.md", "# 발표팩\n## Slide 1 표지\n## Slide 2 결론")
             output_name = f"{self.id}_slides.pdf"
 

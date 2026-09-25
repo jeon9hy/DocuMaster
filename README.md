@@ -26,7 +26,7 @@ The agents are named after the *Spy×Family* cast. Each one does a single job an
 | **Loid** (로이드) | The Claude Code session | Mode decision, brief & research plan, adoption decisions, every gate, final cross-check | Invent facts, redesign the plan |
 | **Yor** (요르) | Codex `gpt-5.6-sol` · xhigh | **The only source of facts** (research, verification answers), detailed plan, visual plan / presentation pack | Approve its own research, add facts after verification |
 | **Yuri** (유리) | Claude `sonnet` sub-agent | Independent verification — questions the research, opens sources itself, issues the verdict | Planning, large-scale research, writing |
-| **Anya** (아냐) | Claude `opus` sub-agent | **DOCUMENT only** — writes and revises the final document from the verified plan | New research, unverified facts, structural changes |
+| **Anya** (아냐) | Claude `opus` sub-agent | **DOCUMENT only** — designs structure and visuals, writes and revises the final document from `00 + 05` | New research, unverified facts |
 | **Bond** (본드) | NotebookLM via the `nlm` CLI | Turns the presentation pack into slides | Add anything outside the pack |
 
 Yor and Yuri come from different vendors, so we *assume* they are less likely to make the same mistake. This has not been measured.
@@ -43,15 +43,12 @@ flowchart TD
     Q --> A["Yor · 04 Answers + patches"]
     A --> V{"Yuri · 05 Verdict"}
     V -->|blocked| STOP([Stop and ask the user])
-    V -->|passed / conditional| D["Yor · 06 Detailed plan (new session, reads 05 only)"]
-    D -->|Completeness gate + gate_check| M{Mode}
-
-    M -->|DOCUMENT| VD["Yor · 06B Visual direction"]
-    VD -->|Visual gate| W["Anya · 07 Final document"]
-    W --> F["doc-finish: render PDF · read-through · render gate · 1 revision"]
+    V -->|DOCUMENT passed / conditional| W["Anya · 07 Structure + visuals + final document (reads 00 + 05)"]
+    W --> F["doc-finish: Lite Review · render gate · limited revision"]
     F --> X1["cross-check"] --> OUT1([최종/ID/ID.pdf])
 
-    M -->|PRESENTATION| PK["Yor · 06B = 07 Presentation pack"]
+    V -->|PRESENTATION passed / conditional| D["Yor · 06 Detailed plan (new session, reads 05 only)"]
+    D -->|Completeness gate + gate_check| PK["Yor · 07 Presentation pack"]
     PK --> DR["deck-review: flow · visuals · on-screen copy"]
     DR --> X2["cross-check"] --> NB["Bond · NotebookLM slides + render gate"] --> OUT2([최종/ID/ slides + pack])
 ```
@@ -60,7 +57,7 @@ flowchart TD
 
 - **Verification happens once.** Yuri asks at most ten questions, targeting the riskiest claims first, and opens up to three sources herself. Anything left unresolved is closed as **REMOVE**, closed as **CAUTION**, or reported to the user.
 - **`05` is the single source of truth for facts, and `06` is the single source of truth for structure.** From `06` onward nobody reads the raw research, and nobody adds a fact.
-- **Content and visuals are separate calls.** When `06` named formats such as tables or cards, the decks came out as walls of cards. So `06` decides *what* is said, and `06B` decides *how it looks*.
+- **Document structure and visuals are one writing decision.** Anya selects only visuals that clarify a comparison, trend or process; presentations retain a separate detailed-plan step.
 - **LOCKED vs FLEX.** Facts, numbers, structure, CAUTION placement and claim strength are LOCKED. Only phrasing marked `(FLEX)` is up to the writer. Claim strength may only ever be lowered.
 - **A conclusion is never stronger than its evidence.** Turning a before/after comparison into a cause, or a recommendation into a proven result, is an error even when every number is right.
 - **`[Unverified]` is a normal output.** A search snippet is not a verified source. Nobody fakes a URL, a paper, a statistic or a NotebookLM run.
@@ -93,15 +90,15 @@ Each claim gets one of four labels: **APPROVED**, **CORRECTED**, **REMOVE** (nev
 ### Mechanical gate: `gate_check.py`
 
 ```bash
-python .claude/tools/gate_check.py <ID> 06|06b|07
+python .claude/tools/gate_check.py <ID> 06|07
 ```
 
 This script runs before Loid reads a gated file. It catches:
 
 - numbers that do not appear in `05`
 - a REMOVE item's evidence ID showing up again
-- a CAUTION sentence that is not copied verbatim
-- a LOCKED violation: chapters or sections, or slide count and order, that differ from `06`
+- a CAUTION sentence whose meaning needs a human check
+- for documents, missing/unused citation-source pairs; for presentations, slide count and order that differ from `06`
 - Character Model drift between slides, and (story) the art-style sentence not repeated on every illustrated slide
 - a deck type that is missing, or differs between `00`, `06` and `07` (each compared within the same plan revision)
 - the type's NotebookLM instruction line not copied verbatim, lines over the type's length limit, and (briefing, academic) body slides without a claim title
@@ -188,7 +185,7 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 
 ### Not yet verified
 
-- The full DOCUMENT path (`06B` → Anya → `doc-finish`) has not run on a real job, and page breaks past 10 pages are untested.
+- The refactored DOCUMENT path (`00 + 05` → Anya → `doc-finish`) still needs a real-job acceptance run; page breaks past 10 pages remain untested.
 - Briefing decks have not run yet. Academic decks have run once: layout and sources held, but title size and position drifted between slides (E-049).
 - Whether NotebookLM's `presenter_slides` format beats `detailed_deck` for story decks — every type uses `detailed_deck` until tested.
 - How often Yor and Yuri make the *same* mistake, and whether ten questions are enough.

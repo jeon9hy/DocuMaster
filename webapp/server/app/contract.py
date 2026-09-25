@@ -108,7 +108,7 @@ def needs_user(status: str) -> bool:
     return waiting or status.startswith("중단") or "보류" in status or "blocked" in status.lower()
 
 
-def current_worker(numbers: set[str], mode: str, has_visual: bool) -> tuple[str, str]:
+def current_worker(numbers: set[str], mode: str, has_visual: bool = False) -> tuple[str, str]:
     """이미 있는 파일 번호로 지금 일하는 (단계, 에이전트)를 정한다. 파일 순서가 곧 계약이다."""
     if "00" not in numbers:
         return "requirements", "loid"
@@ -122,11 +122,10 @@ def current_worker(numbers: set[str], mode: str, has_visual: bool) -> tuple[str,
         return "validation", "yor"
     if "05" not in numbers:
         return "validation", "yuri"
+    if mode == "document":
+        return ("writing", "anya") if "07" not in numbers else ("finalReview", "loid")
     if "06" not in numbers:
         return "writing", "yor"
     if "07" not in numbers:
-        # 문서: 06B(비주얼) 뒤 아냐가 07. 발표: 06B가 곧 07 발표팩(요르)
-        if mode == "document" and has_visual:
-            return "writing", "anya"
         return "writing", "yor"
     return "finalReview", "loid"

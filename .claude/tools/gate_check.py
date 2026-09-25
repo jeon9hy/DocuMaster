@@ -1,7 +1,7 @@
-"""06·06B·07 게이트의 기계 검사 — 사실 재유입과 LOCKED 위반을 사람이 읽기 전에 걸러 낸다.
+"""PPT 06·07 / DOC 07 게이트 — 사실 재유입과 형식 위반을 사람이 읽기 전에 걸러 낸다.
 
 사용:
-    python .claude/tools/gate_check.py <작업ID> 06|06b|07 [--file <대상 경로>]
+    python .claude/tools/gate_check.py <작업ID> 06|07 [--file <대상 경로>]
 
 대상은 workspace에서 가장 높은 버전(_v02, _v03 …)을 자동으로 고른다. 모드는 대상 헤더에서 읽는다.
 판정:
@@ -23,7 +23,7 @@ except Exception:
 ROOT = Path(__file__).resolve().parents[2]
 BASES = {
     "00": "00_user_brief", "05": "05_verified_research_pack", "06": "06_detailed_plan",
-    "06b_doc": "06_visual_direction", "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
+    "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
 }
 # 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §4) · 강도 후보(E-021)
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
@@ -169,24 +169,29 @@ def check_caution(target: str, t05: str, strict: bool) -> None:
         report("OK", "CAUTION", f"{len(items)}건 전부 글자 그대로 있다")
 
 
-def heads(text: str, pat: str) -> list[str]:
-    return [norm(m) for m in re.findall(pat, text, re.M)]
-
-
-def check_doc_structure(t06: str, target: str, pat_target: str, what: str) -> None:
-    sec = re.search(r"^## 장별 지시(.*?)(?=^## (?!#)|\Z)", t06, re.S | re.M)
-    plan = heads(sec.group(1) if sec else t06, r"^#{3,4}\s+(\d+(?:-\d+)?\.\s+.+?)\s*$")
-    got = heads(target, pat_target)
-    if what == "06B":
-        plan = [p for p in plan if re.match(r"\d+\.\s", p)]
-    if plan == got:
-        report("OK", "LOCKED", f"{what}의 장·절 {len(got)}개가 06과 같다")
+def check_doc_sources(target: str) -> None:
+    """본문·비주얼 citation과 sources 블록의 양방향 무결성을 검사한다."""
+    match = re.search(r"^:::\s*sources\b[^\n]*\n(.*?)^:::\s*$", target, re.S | re.M)
+    if not match:
+        report("FAIL", "출처", "`::: sources` 블록이 없다")
         return
-    report("FAIL", "LOCKED", f"{what} 장·절이 06과 다르다 (06 {len(plan)}개 · {what} {len(got)}개)")
-    for a, b in zip(plan, got):
-        if a != b:
-            report("FAIL", "LOCKED", f"첫 차이: 06 「{a}」 ↔ {what} 「{b}」")
-            break
+    body = target[:match.start()]
+    cited = set(re.findall(r"\[S(\d{2,3})\]", body))
+    rows = re.findall(r"^\s*S(\d{2,3})\s*\|", match.group(1), re.M)
+    listed = set(rows)
+    duplicate = sorted({sid for sid in rows if rows.count(sid) > 1})
+    missing = sorted(cited - listed)
+    unused = sorted(listed - cited)
+    if duplicate:
+        report("FAIL", "출처", "출처 ID 중복: " + ", ".join("S" + sid for sid in duplicate))
+    if missing:
+        report("FAIL", "출처", "citation에 대응하는 출처 없음: " + ", ".join("S" + sid for sid in missing))
+    if unused:
+        report("FAIL", "출처", "최종 문서에서 쓰지 않은 출처 행: " + ", ".join("S" + sid for sid in unused))
+    if not cited:
+        report("CHECK", "출처", "본문·비주얼에 `[Snn]` citation이 없다")
+    elif not duplicate and not missing and not unused:
+        report("OK", "출처", f"citation {len(cited)}건과 출처 행이 양방향 대응")
 
 
 def slides(text: str) -> list[tuple[int, str]]:
@@ -363,26 +368,29 @@ def main() -> int:
         i = args.index("--file")
         file_arg = args[i + 1]
         del args[i:i + 2]
-    if len(args) != 2 or args[1].lower() not in {"06", "06b", "07"}:
+    if len(args) != 2 or args[1].lower() not in {"06", "07"}:
         print(__doc__)
         return 2
     job, stage = args[0], args[1].lower()
     ws = ROOT / "작업" / job / "workspace"
     f = {k: latest(ws, v) for k, v in BASES.items()}
-    if not f["05"] or not f["06"]:
-        print(f"[중단] 05·06이 없다: {ws}")
+    if not f["00"] or not f["05"]:
+        print(f"[중단] 00·05가 없다: {ws}")
         return 2
     read = lambda p: p.read_text(encoding="utf-8") if p else ""
     t00, t05, t06 = read(f["00"]), read(f["05"]), read(f["06"])
-    head06 = t06.split("--- 헤더 끝 ---")[0]
-    ppt = "PRESENTATION" in head06 or bool(slides(t06))
+    mode_match = re.search(r"모드\s*:\s*(DOCUMENT|PRESENTATION)", t00.split("--- 헤더 끝 ---")[0])
+    ppt = mode_match[1] == "PRESENTATION" if mode_match else bool(slides(t06))
 
     if stage == "06":
+        if not ppt:
+            print("[중단] DOCUMENT는 06 단계가 없다 — 00·05에서 아냐 07로 간다")
+            return 2
         target_path = f["06"]
     elif ppt:
         target_path = f["pack"]
     else:
-        target_path = f["06b_doc"] if stage == "06b" else f["07_doc"]
+        target_path = f["07_doc"]
     if file_arg:
         target_path = Path(file_arg) if Path(file_arg).is_absolute() else ROOT / file_arg
     if not target_path or not target_path.exists():
@@ -392,17 +400,19 @@ def main() -> int:
     # 대상의 기획 개정(r1·r2…)과 같은 개정의 00·06을 기준으로 쓴다 — 한 작업에 개정이 공존해도 섞이지 않게.
     # 개정 표시가 없는 파일은 r1로 본다.
     rev_of = lambda text: (re.search(r"(?<![A-Za-z])r(\d+)(?!\d)", text.split("--- 헤더 끝 ---")[0]) or [0, "1"])[1]
-    rev = rev_of(target)
-    for key in ("00", "06"):
+    rev = rev_of(target) if "--- 헤더 끝 ---" in target else None
+    for key in (("00", "05", "06") if ppt else ("00", "05")) if rev else ():
         cands = [p for p in ws.glob(BASES[key] + "*.md") if re.fullmatch(re.escape(BASES[key]) + r"(_v\d+)?\.md", p.name)]
         same = [p for p in cands if rev_of(read(p)) == rev]
         if same:
             f[key] = max(same, key=lambda p: int((re.search(r"_v(\d+)\.md$", p.name) or [0, 1])[1]))
-    t00, t06 = read(f["00"]), read(f["06"])
+    t00, t05, t06 = read(f["00"]), read(f["05"]), read(f["06"])
     mode = "PRESENTATION" if ppt else "DOCUMENT"
-    print(f"# gate_check · {job} · {stage} · {mode} · r{rev}\n대상 {target_path.name} · 근거 {f['05'].name} · 구조 {f['06'].name} · 브리프 {f['00'].name if f['00'] else '없음'}\n")
+    structure = f["06"].name if ppt and f["06"] else "아냐 직접 설계"
+    revision = "r" + rev if rev else "개정 표시 없음(최신본)"
+    print(f"# gate_check · {job} · {stage} · {mode} · {revision}\n대상 {target_path.name} · 근거 {f['05'].name} · 구조 {structure} · 브리프 {f['00'].name}\n")
 
-    allowed = base_numbers(t00, t05) if stage == "06" else base_numbers(t00, t05, t06)
+    allowed = base_numbers(t00, t05, t06) if ppt and stage == "07" else base_numbers(t00, t05)
     check_numbers(target, allowed, skip_layout=ppt)
     check_remove(target, t05)
 
@@ -417,11 +427,9 @@ def main() -> int:
         check_caution(target, t05, strict=False)
         screen = "\n".join(field(b, k) for _, b in slides(target) for k in ("제목", "화면 문구", "한정"))
         check_words(screen, STRONG_WORDS, "CHECK", "강도", "화면 문구의 강도 후보")
-    elif stage == "06b":
-        check_doc_structure(t06, target, r"^##\s+(\d+\.\s+.+?)\s*$", "06B")
     else:
-        check_doc_structure(t06, target, r"^#{2,3}\s+(\d+(?:-\d+)?\.\s+.+?)\s*$", "07")
-        check_caution(target, t05, strict=True)
+        check_doc_sources(target)
+        check_caution(target, t05, strict=False)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
 
     order = {"FAIL": 0, "CHECK": 1, "OK": 2}

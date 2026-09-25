@@ -44,9 +44,9 @@ def test_full_run_with_user_input_then_completion(client, settings):
     assert completed == ["requirements", "planning", "research", "validation", "writing", "finalReview"]
     started = [e["stageId"] for e in events if e["type"] == "workflow.stage.started"]
     assert started == ["requirements", "planning", "research", "validation", "writing", "finalReview"]
-    # 파일 계약 순서대로 일한 에이전트(문서 모드: 06B 뒤 아냐가 07)
+    # 파일 계약 순서대로 일한 에이전트(문서 모드: 05 뒤 아냐가 07)
     agents = [e["agentId"] for e in events if e["type"] == "agent.started"]
-    assert agents == ["loid", "loid", "yor", "yuri", "yor", "yuri", "yor", "anya", "loid"]
+    assert agents == ["loid", "loid", "yor", "yuri", "yor", "yuri", "anya", "loid"]
     verdicts = [e["verdict"] for e in events if e["type"] == "validation.verdict"]
     assert verdicts == ["conditional"]
     assert events[-1]["type"] == "workflow.completed"
