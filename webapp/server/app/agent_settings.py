@@ -189,6 +189,25 @@ _CODEX_MODEL = re.compile(r"codex(?:\.cmd)?\s+exec\b.*?\s-m\s+\"?([\w.\-]+)")
 _CODEX_EFFORT = re.compile(r"model_reasoning_effort=\"?([\w\-]+)")
 _MODEL_ASSIGNMENT = re.compile(r"\bYM\s*=\s*[\"']?([\w.\-]+)")
 _EFFORT_ASSIGNMENT = re.compile(r"\bYE\s*=\s*[\"']?([\w\-]+)")
+_CODEX_EXEC = re.compile(r"\bcodex(?:\.cmd)?\s+exec\b", re.IGNORECASE)
+_CODEX_INSPECTION = re.compile(
+    r"\bcodex(?:\.cmd)?\s+exec\s+(?:--help|-h|help|--version)\b", re.IGNORECASE
+)
+_MODEL_VARIABLE = re.compile(r"(?:\s-m(?:=|\s+))['\"]?\$(?:\{)?YM\b")
+_EFFORT_VARIABLE = re.compile(r"model_reasoning_effort\s*=\s*['\"]?\$(?:\{)?YE\b")
+
+
+def _dynamic_snapshot_value(command: str, log_path: Path, field: str) -> bool:
+    """현재 실행 스냅샷에서 YM/YE를 읽는 명령인지 보수적으로 확인한다."""
+    variable = "YM" if field == "model" else "YE"
+    argument = _MODEL_VARIABLE if field == "model" else _EFFORT_VARIABLE
+    snapshot_name = f"{log_path.stem}_models.json"
+    return (
+        argument.search(command) is not None
+        and re.search(rf"\b{variable}\s*=\s*\$\(", command) is not None
+        and snapshot_name in command
+        and f".yor.{field}" in command
+    )
 
 
 def check_model_calls(log_path: Path, expected: dict) -> list[str]:
@@ -218,11 +237,20 @@ def check_model_calls(log_path: Path, expected: dict) -> list[str]:
                     label = {"yuri": "유리", "anya": "아냐"}.get(agent_id, "서브에이전트")
                     problems.append(f"{label}를 설정과 다른 모델({data['model']})로 불렀습니다.")
             command = str(data.get("command") or "")
-            if "codex" in command and " exec" in command:
+            inspection_only = (
+                _CODEX_INSPECTION.search(command) is not None
+                and _CODEX_MODEL.search(command) is None
+                and _MODEL_VARIABLE.search(command) is None
+            )
+            if _CODEX_EXEC.search(command) and not inspection_only:
                 model = _CODEX_MODEL.search(command)
                 effort = _CODEX_EFFORT.search(command)
                 actual_model = model[1] if model else ((_MODEL_ASSIGNMENT.search(command) or [None, None])[1])
                 actual_effort = effort[1] if effort else ((_EFFORT_ASSIGNMENT.search(command) or [None, None])[1])
+                if actual_model is None and _dynamic_snapshot_value(command, log_path, "model"):
+                    actual_model = expected["yor"]["model"]
+                if actual_effort is None and _dynamic_snapshot_value(command, log_path, "effort"):
+                    actual_effort = expected["yor"]["effort"]
                 if actual_model != expected["yor"]["model"]:
                     problems.append(f"요르(codex)를 설정과 다른 모델({actual_model or '미지정'})로 불렀습니다.")
                 if actual_effort != expected["yor"]["effort"]:

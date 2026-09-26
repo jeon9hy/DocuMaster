@@ -244,6 +244,7 @@ class RunManager:
                 f"- DOCUMASTER_AGENT_MODELS가 가리키는 현재 실행 스냅샷: {models_path}\n"
                 f"- 요르 실제 호출값: model={yor['model']}, reasoning={yor['effort']}\n"
                 "- 경로 이름이 임시·스모크처럼 보여도 이 파일을 무시하거나 기본값으로 대체하지 않는다.\n"
+                "- codex exec 사용법을 다시 조회하지 말고 위 호출값을 그대로 넘긴다.\n"
                 "- Codex 호출은 백그라운드로 보내지 말고 포그라운드에서 종료까지 기다린다.\n\n"
                 "[사용자 요청]\n" + prompt
             )

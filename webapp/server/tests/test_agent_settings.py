@@ -160,6 +160,50 @@ def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     assert len(problems) == 3 and "haiku" in problems[0] and "gpt-5.6-sol" in problems[1] and "xhigh" in problems[2]
 
 
+def test_model_check_ignores_help_and_accepts_current_snapshot_variables(tmp_path):
+    expected = {"yor": {"model": "gpt-5.6-sol", "effort": "medium"},
+                "yuri": {"model": "sonnet"}, "anya": {"model": "opus"}}
+
+    def tool(command: str) -> str:
+        return json.dumps({"type": "assistant", "message": {"content": [{
+            "type": "tool_use", "name": "Bash", "input": {"command": command}}]}})
+
+    log = tmp_path / "run_abc.jsonl"
+    dynamic_call = (
+        "YM=$(node -e \"console.log(JSON.parse(require('fs').readFileSync("
+        "'run_abc_models.json','utf8')).yor.model)\"); "
+        "YE=$(node -e \"console.log(JSON.parse(require('fs').readFileSync("
+        "'run_abc_models.json','utf8')).yor.effort)\"); "
+        "codex.cmd exec -m \"$YM\" -c model_reasoning_effort=\"$YE\" -o out -"
+    )
+    log.write_text(chr(10).join([
+        tool(dynamic_call),
+        tool("codex.cmd exec --help"),
+        tool("codex exec -h"),
+    ]), encoding="utf-8")
+
+    assert check_model_calls(log, expected) == []
+
+
+def test_model_check_rejects_variables_from_a_different_snapshot(tmp_path):
+    expected = {"yor": {"model": "gpt-5.6-sol", "effort": "medium"},
+                "yuri": {"model": "sonnet"}, "anya": {"model": "opus"}}
+    command = (
+        "YM=$(node -e \"console.log(JSON.parse(require('fs').readFileSync("
+        "'old_models.json','utf8')).yor.model)\"); "
+        "YE=$(node -e \"console.log(JSON.parse(require('fs').readFileSync("
+        "'old_models.json','utf8')).yor.effort)\"); "
+        "codex.cmd exec -m \"$YM\" -c model_reasoning_effort=\"$YE\" -"
+    )
+    log = tmp_path / "run_abc.jsonl"
+    log.write_text(json.dumps({"type": "assistant", "message": {"content": [{
+        "type": "tool_use", "name": "Bash", "input": {"command": command}}]}}), encoding="utf-8")
+
+    problems = check_model_calls(log, expected)
+    assert len(problems) == 2
+    assert all("미지정" in problem for problem in problems)
+
+
 def test_real_run_prompt_marks_snapshot_as_authoritative(settings, monkeypatch, tmp_path):
     """실제 로이드가 임시 경로 이름만 보고 현재 실행 설정을 버리지 않는다."""
     from app import runs as runs_module
