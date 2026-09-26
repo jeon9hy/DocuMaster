@@ -151,6 +151,7 @@ class ProjectService:
     def snapshot(self, project_id: str) -> dict:
         """이벤트 전체 + lastEventSeq. 프론트엔드가 같은 reducer로 상태를 만든다."""
         project = self.get(project_id)
+        self._prune_missing_artifacts(project_id)
         events = self._events.list_after(project_id, 0)
         return {"project": summary_of(project), "events": events,
                 "lastEventSeq": events[-1]["seq"] if events else 0}
@@ -278,18 +279,47 @@ class ProjectService:
         try:
             path = self._files.resolve(row["relative_path"])
         except UnsafePathError as error:
+            self._remove_artifact(row)
             raise NotFoundError("허용되지 않은 경로입니다.") from error
         if not path.is_file():
+            self._remove_artifact(row)
             raise NotFoundError("파일이 없습니다(옮겨졌거나 삭제됨).")
         return path
 
     def artifact_list(self, project_id: str) -> list[dict]:
         self.get(project_id)
+        self._prune_missing_artifacts(project_id)
         rows = self._db.query("SELECT * FROM artifacts WHERE project_id = ? ORDER BY relative_path", (project_id,))
         return [{"id": row["id"], "name": row["name"], "fileType": row["file_type"], "stageId": row["stage_id"],
                  "agentId": row["agent_id"], "status": row["status"], "visibility": row["visibility"],
                  "relativePath": row["relative_path"], "mimeType": row["mime_type"], "size": row["size"],
                  "version": row["version"], "updatedAt": row["updated_at"]} for row in rows]
+
+    def _prune_missing_artifacts(self, project_id: str) -> None:
+        """로컬에서 없어진 파일의 메타데이터와 UI 카드를 함께 제거한다."""
+        active = self._db.one(
+            "SELECT 1 FROM runs WHERE project_id = ? AND status IN ('running','awaiting_input','stopping')",
+            (project_id,),
+        )
+        if active:
+            return  # 실행 중 교체 저장의 짧은 공백을 삭제로 오인하지 않는다.
+        for row in self._db.query("SELECT * FROM artifacts WHERE project_id = ?", (project_id,)):
+            try:
+                exists = self._files.resolve(row["relative_path"]).is_file()
+            except UnsafePathError:
+                exists = False
+            if not exists:
+                self._remove_artifact(row)
+
+    def _remove_artifact(self, row) -> None:
+        """삭제 이벤트를 먼저 남겨 과거 artifact.created 이벤트를 재생해도 카드가 되살아나지 않게 한다."""
+        current = self._db.one("SELECT id FROM artifacts WHERE id = ?", (row["id"],))
+        if current is None:
+            return
+        self._events.append(
+            row["project_id"], {"type": "artifact.removed", "artifactId": row["id"]}, row["run_id"]
+        )
+        self._db.execute("DELETE FROM artifacts WHERE id = ?", (row["id"],))
 
     def artifact_content(self, project_id: str, artifact_id: str, download_url: str) -> dict:
         row = self.artifact(project_id, artifact_id)

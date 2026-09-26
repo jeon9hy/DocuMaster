@@ -130,6 +130,15 @@ function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): Projec
         ),
       };
 
+    case "artifact.removed":
+      return {
+        ...workspace,
+        artifacts: workspace.artifacts.filter((artifact) => artifact.id !== event.artifactId),
+        feed: workspace.feed.filter(
+          (item) => item.kind !== "artifact" || item.artifactId !== event.artifactId,
+        ),
+      };
+
     case "reference.added":
       return {
         ...workspace,

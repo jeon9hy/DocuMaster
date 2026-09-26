@@ -41,6 +41,7 @@ export type WorkflowEventPayload =
       /** 옛 버전으로 내려가는 것처럼 알릴 필요 없는 갱신 — 피드에 카드를 만들지 않는다 */
       silent?: boolean;
     }
+  | { type: "artifact.removed"; artifactId: string }
   | { type: "handoff.created"; fromAgentId: AgentId; toAgentId: AgentId; artifactName?: string }
   /** addedAt은 이벤트 시각(at)으로 채운다 */
   | { type: "reference.added"; reference: Omit<Reference, "addedAt"> }

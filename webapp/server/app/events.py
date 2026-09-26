@@ -36,6 +36,7 @@ EVENT_TYPES = frozenset(
         "agent.configured",
         "artifact.created",
         "artifact.updated",
+        "artifact.removed",
         "handoff.created",
         "reference.added",
         "reference.removed",

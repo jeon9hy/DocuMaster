@@ -64,3 +64,23 @@ def test_rewriting_05_without_changing_verdict_does_not_repeat_verdict(client, s
     path.write_text("검증 통과 — 조건부\n수정한 내용이 더 깁니다", encoding="utf-8")
     services.runs._sync.sync(project, scan(settings.sandbox_root, workspace_id, "document"))
     assert [event["type"] for event in events_of(client, project_id)].count("validation.verdict") == 1
+
+
+def test_snapshot_removes_artifact_when_local_file_is_gone(client, settings):
+    project_id = create_project(client, mode="document")
+    services = client.app.state.services
+    project = services.projects.get(project_id)
+    workspace = settings.sandbox_root / "작업" / project["workspace_id"] / "workspace"
+    workspace.mkdir(parents=True)
+    path = workspace / "00_user_brief.md"
+    path.write_text("# User Brief\n- 모드: DOCUMENT\n", encoding="utf-8")
+    services.runs._sync.sync(project, scan(settings.sandbox_root, project["workspace_id"], "document"))
+    created = next(event for event in events_of(client, project_id) if event["type"] == "artifact.created")
+
+    path.unlink()
+    snapshot = client.get(f"/api/projects/{project_id}/workspace").json()
+
+    assert snapshot["events"][-1] == {
+        **snapshot["events"][-1], "type": "artifact.removed", "artifactId": created["artifact"]["id"]
+    }
+    assert services.projects.artifact_list(project_id) == []

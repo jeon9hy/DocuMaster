@@ -105,7 +105,12 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // 다른 프로젝트로 넘어간 뒤 늦게 도착한 이벤트는 버린다. 이미 반영한 seq도 버린다.
       if (!state.workspace || action.event.projectId !== state.projectId) return state;
       const workspace = applyWorkflowEvent(state.workspace, action.event);
-      return workspace === state.workspace ? state : { ...state, workspace };
+      if (workspace === state.workspace) return state;
+      const selectedArtifactId =
+        state.selectedArtifactId && !workspace.artifacts.some((item) => item.id === state.selectedArtifactId)
+          ? pickDefaultArtifact(workspace)
+          : state.selectedArtifactId;
+      return { ...state, workspace, selectedArtifactId };
     }
 
     case "connection/changed":

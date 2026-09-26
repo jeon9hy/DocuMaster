@@ -178,6 +178,7 @@ export function eventToFeedItem(
 
     // 같은 파일을 퇴고하며 여러 번 저장해도 카드는 한 장이다. 내용·표시는 artifact 상태에서 갱신된다.
     case "artifact.updated":
+    case "artifact.removed":
       return null;
 
     // 내부 작업물(03·04·06 등)은 접는다.

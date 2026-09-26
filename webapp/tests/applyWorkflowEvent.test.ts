@@ -93,3 +93,15 @@ test("같은 파일 갱신과 같은 검증 판정은 피드에 반복 표시하
   assert.equal(workspace.feed.filter((item) => item.kind === "system" && item.title.startsWith("05 검증 결과:")).length, 1);
   assert.equal(workspace.artifacts[0].summary, "수정됨");
 });
+
+test("로컬에서 사라진 작업물은 목록과 피드에서 함께 제거한다", () => {
+  const base = { id: "gone", name: "사라진.pdf", fileType: "pdf" as const,
+    status: "latest" as const, stageId: "finalReview" as const, agentId: "loid" as const,
+    summary: "최종본", visibility: "primary" as const };
+  const workspace = buildWorkspace(PROJECT, toEvents([
+    { type: "artifact.created", artifact: base },
+    { type: "artifact.removed", artifactId: "gone" },
+  ]));
+  assert.deepEqual(workspace.artifacts, []);
+  assert.equal(workspace.feed.some((item) => item.kind === "artifact"), false);
+});
