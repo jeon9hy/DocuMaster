@@ -1,7 +1,7 @@
 @echo off
 rem DocuMaster 웹앱: 로컬 백엔드(8000)와 화면(3000)을 켜고 브라우저를 엽니다.
 rem 백엔드 창과 이 창을 닫으면 둘 다 꺼집니다.
-rem 실제 에이전트 실행: 이 파일을 실행하기 전에  set DOCUMASTER_ORCHESTRATOR=claude  (기본은 비용 없는 fake)
+rem 기본은 실제 Claude 오케스트레이터. 비용 없는 테스트가 필요할 때만 먼저 set DOCUMASTER_ORCHESTRATOR=fake
 chcp 65001 >nul
 cd /d "%~dp0"
 
@@ -23,7 +23,7 @@ if "%DOCUMASTER_OWNER_PIN_HASH%"=="" if not exist .data\owner.json (
   popd
 )
 
-if "%DOCUMASTER_ORCHESTRATOR%"=="" set DOCUMASTER_ORCHESTRATOR=fake
+if "%DOCUMASTER_ORCHESTRATOR%"=="" set DOCUMASTER_ORCHESTRATOR=claude
 echo 오케스트레이터: %DOCUMASTER_ORCHESTRATOR%
 start "DocuMaster Backend" /d "%~dp0server" cmd /k ".venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 

@@ -13,7 +13,7 @@ Web App(Next.js) ── REST + SSE ──▶ Local Backend(FastAPI + SQLite) ─
 
 ## 실행
 
-`start.bat`을 더블클릭하면 백엔드(127.0.0.1:8000)와 화면(127.0.0.1:3000)이 함께 켜집니다. 처음에는 필요한 것을 설치하고,
+`start.bat`을 더블클릭하면 실제 Claude 오케스트레이터를 사용하는 백엔드(127.0.0.1:8000)와 화면(127.0.0.1:3000)이 함께 켜집니다. 처음에는 필요한 것을 설치하고,
 Owner PIN이 없으면 **6자리 PIN을 두 번 묻습니다**(원문은 저장하지 않고 scrypt 해시만 `webapp/.data/owner.json`에 씀 — Git 제외).
 PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\python setup_owner.py`.
 
@@ -26,8 +26,8 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 
 | 오케스트레이터 | 켜는 법 | 하는 일 |
 | --- | --- | --- |
-| `fake`(기본) | 그대로 실행 | 비용 없음. 가짜 로이드가 `webapp/.data/sandbox/`에 계약 파일을 써서 전체 경로를 흉내 냄 |
-| `claude` | `set DOCUMASTER_ORCHESTRATOR=claude` 후 실행 | 저장소 루트에서 실제 로이드 세션을 엶 — **모델 사용량이 발생합니다** |
+| `claude`(기본) | 그대로 실행 | 저장소 루트에서 실제 로이드 세션을 엶 — **모델 사용량이 발생합니다** |
+| `fake` | 실행 전에 `set DOCUMASTER_ORCHESTRATOR=fake` | 비용 없음. 가짜 로이드가 `webapp/.data/sandbox/`에 계약 파일을 써서 전체 경로를 흉내 냄 |
 
 기존 CLI 작업(`작업/<ID>/상태.md`가 있는 폴더)은 백엔드가 켜질 때 **읽기 전용 프로젝트**로 목록에 나옵니다.
 
