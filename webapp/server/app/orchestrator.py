@@ -132,6 +132,7 @@ class TurnRequest:
     resume: bool
     work_root: Path
     log_path: Path
+    workspace_id: str | None = None
     """실행 시작 때 고정한 에이전트 설정(agent_settings). 없으면 기본 배치."""
     agent_configs: dict = field(default_factory=dict)
     """프로세스에 더할 환경변수(DOCUMASTER_AGENT_MODELS 등)"""
@@ -173,6 +174,8 @@ class FakeOrchestratorAdapter(OrchestratorAdapter):
     def build_command(self, request: TurnRequest) -> list[str]:
         command = [sys.executable, str(_FAKE_SCRIPT), "--work-root", str(request.work_root),
                    "--session-id", request.session_id, "--step-seconds", str(self._step)]
+        if request.workspace_id:
+            command += ["--workspace-id", request.workspace_id]
         return command + (["--resume"] if request.resume else [])
 
 

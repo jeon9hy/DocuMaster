@@ -15,8 +15,9 @@ def test_project_crud_and_persistence_across_restart(settings):
     with owner_client(settings) as client:
         projects = client.get("/api/projects").json()
         assert len(projects) == 1
-        assert {key: projects[0][key] for key in ("id", "name", "description", "mode", "readOnly")} == {
-            "id": project_id, "name": "주거 보고서", "description": "", "mode": "document", "readOnly": False}
+        assert {key: projects[0][key] for key in ("id", "name", "mode", "readOnly")} == {
+            "id": project_id, "name": "주거 보고서", "mode": "document", "readOnly": False}
+        assert projects[0]["description"].startswith("작업/주거보고서_")
         assert projects[0]["lastActivityAt"]
         snapshot = client.get(f"/api/projects/{project_id}/workspace").json()
         assert snapshot["lastEventSeq"] == 1
@@ -31,6 +32,17 @@ def test_event_envelope_and_sequence(client):
     assert [event["seq"] for event in events] == [1, 2, 3]
     assert set(events[0]) >= {"schemaVersion", "id", "projectId", "runId", "seq", "at", "type", "text"}
     assert events[0]["schemaVersion"] == 1 and events[0]["runId"] is None
+
+
+def test_web_projects_reserve_distinct_workspace_ids_on_creation(client):
+    first = create_project(client, "같은 제목")
+    second = create_project(client, "같은 제목")
+    rows = {row["id"]: dict(row) for row in client.app.state.services.db.query(
+        "SELECT id, workspace_id, description FROM projects WHERE id IN (?, ?)", (first, second)
+    )}
+    assert rows[first]["workspace_id"] != rows[second]["workspace_id"]
+    assert rows[first]["description"] == f"작업/{rows[first]['workspace_id']}"
+    assert rows[second]["description"] == f"작업/{rows[second]['workspace_id']}"
 
 
 def test_appended_event_matches_replay(tmp_path):

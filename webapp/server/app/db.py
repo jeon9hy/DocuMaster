@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS projects (
   display_name  TEXT NOT NULL,
   description   TEXT NOT NULL DEFAULT '',
   mode          TEXT NOT NULL CHECK (mode IN ('auto','document','presentation')),
-  workspace_id  TEXT,                 -- 작업/<ID>의 ID. 오케스트레이터가 정하면 채운다
+  workspace_id  TEXT,                 -- 작업/<ID>의 ID. 웹 프로젝트는 생성 때 예약하고 가져오기는 기존 ID를 쓴다
   work_root     TEXT NOT NULL,        -- 작업/·최종/·자료/가 있는 폴더(저장소 루트 기준 상대경로)
   source        TEXT NOT NULL CHECK (source IN ('web','imported')),
   session_id    TEXT,                 -- 로이드 세션 ID(--resume용)

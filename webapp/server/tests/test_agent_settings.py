@@ -236,6 +236,8 @@ def test_real_run_prompt_marks_snapshot_as_authoritative(settings, monkeypatch, 
     assert "reasoning=medium" in captured["prompt"]
     assert "smoke-named-data" in captured["prompt"]
     assert "무시하거나 기본값으로 대체하지 않는다" in captured["prompt"]
+    assert "이 프로젝트에 배정된 작업 ID:" in captured["prompt"]
+    assert "다른 작업 ID의 상태·파일·최종본을 탐색하거나 이어받거나 완료 근거로 삼지 않는다" in captured["prompt"]
 
 
 def test_model_mismatch_fails_instead_of_completing(client, monkeypatch):

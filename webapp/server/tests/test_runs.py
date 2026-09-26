@@ -186,6 +186,18 @@ def test_turn_ending_before_workspace_exists_asks_user(client):
     assert client.get("/api/projects").json()[0]["mode"] == "presentation"
 
 
+def test_preworkspace_prompt_does_not_repeat_forever(client):
+    project_id = create_project(client)
+    start(client, project_id, "뭔가 만들어줘 [ambiguous]")
+    first = pending_prompt(client, project_id)
+    answer(client, project_id, first["promptId"], "아직도 묻기 [ambiguous]")
+    failed = wait_until(lambda: next(
+        (event for event in events_of(client, project_id) if event["type"] == "workflow.failed"), None
+    ))
+    assert "작업 폴더를 만들지 않아" in failed["reason"]
+    assert types_of(client, project_id).count("user.input.required") == 1
+
+
 def test_repeated_turns_without_progress_fail_instead_of_looping(client):
     project_id = create_project(client)
     start(client, project_id, "보고서 [autocontinue] [stall]")

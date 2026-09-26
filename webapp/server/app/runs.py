@@ -241,6 +241,10 @@ class RunManager:
             runtime_prompt = (
                 "[웹앱 실행 계약 — 이 블록은 현재 실행에만 적용]\n"
                 f"- 실행 ID: {turn.run_id}\n"
+                f"- 현재 웹 프로젝트: {project['display_name']} ({project['id']})\n"
+                f"- 이 프로젝트에 배정된 작업 ID: {project['workspace_id']}\n"
+                f"- 작업 경로는 작업/{project['workspace_id']}, 최종 경로는 최종/{project['workspace_id']}만 사용한다.\n"
+                "- 다른 작업 ID의 상태·파일·최종본을 탐색하거나 이어받거나 완료 근거로 삼지 않는다.\n"
                 f"- DOCUMASTER_AGENT_MODELS가 가리키는 현재 실행 스냅샷: {models_path}\n"
                 f"- 요르 실제 호출값: model={yor['model']}, reasoning={yor['effort']}\n"
                 "- 경로 이름이 임시·스모크처럼 보여도 이 파일을 무시하거나 기본값으로 대체하지 않는다.\n"
@@ -251,6 +255,7 @@ class RunManager:
         request = TurnRequest(prompt=runtime_prompt, session_id=session_id, resume=resume,
                               work_root=self._projects.work_root(project),
                               log_path=self._settings.log_dir / f"{turn.run_id}.jsonl",
+                              workspace_id=project["workspace_id"],
                               agent_configs=configs,
                               env={"DOCUMASTER_AGENT_MODELS": str(models_path)})
         try:
@@ -329,7 +334,18 @@ class RunManager:
                                                       "text": result.result_text}, turn.run_id)
             self._finish(turn.run_id, turn.project_id, "completed", stage)
         elif outcome == "needs_input":
-            self._ask_user(turn, reason, result.result_text)
+            already_asked_before_workspace = not scanned.workspace_exists and self._db.one(
+                "SELECT 1 FROM pending_inputs WHERE run_id = ? AND title = ?",
+                (turn.run_id, "로이드의 확인 요청 · 작업 시작 전"),
+            )
+            if already_asked_before_workspace:
+                self._finish(
+                    turn.run_id, turn.project_id, "failed", stage,
+                    reason="로이드가 사용자 응답 뒤에도 배정된 작업 폴더를 만들지 않아 실행을 닫았습니다. 새 요청으로 다시 실행하세요.",
+                    error_code="orchestrator_stalled",
+                )
+            else:
+                self._ask_user(turn, reason, result.result_text)
         else:
             self._continue(turn, scanned, result)
 

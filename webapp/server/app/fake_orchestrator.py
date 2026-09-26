@@ -55,8 +55,8 @@ def tiny_pdf(title: str) -> bytes:
 
 
 class FakeLoid:
-    def __init__(self, work_root: Path, session_id: str, step: float):
-        self.id = f"fake_{date.today():%Y%m%d}_{session_id[:6]}"
+    def __init__(self, work_root: Path, session_id: str, step: float, workspace_id: str | None = None):
+        self.id = workspace_id or f"fake_{date.today():%Y%m%d}_{session_id[:6]}"
         self.base = work_root / "작업" / self.id
         self.final = work_root / "최종" / self.id
         self.workspace = self.base / "workspace"
@@ -160,12 +160,13 @@ def main() -> int:
     parser.add_argument("--work-root", required=True, type=Path)
     parser.add_argument("--session-id", required=True)
     parser.add_argument("--step-seconds", type=float, default=1.0)
+    parser.add_argument("--workspace-id")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
     sys.stdout.reconfigure(encoding="utf-8")
     prompt = sys.stdin.buffer.read().decode("utf-8")
-    loid = FakeLoid(args.work_root, args.session_id, args.step_seconds)
+    loid = FakeLoid(args.work_root, args.session_id, args.step_seconds, args.workspace_id)
     emit({"type": "system", "subtype": "init", "session_id": args.session_id, "model": "fake-orchestrator"})
     text = loid.continue_turn(prompt) if args.resume else loid.first_turn(prompt)
     emit({"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": args.session_id})

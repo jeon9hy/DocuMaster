@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
 import shutil
+import unicodedata
 import uuid
+from datetime import date
 from pathlib import Path
 from typing import BinaryIO
 from urllib.parse import urlparse
@@ -86,14 +89,30 @@ class ProjectService:
         root = self._settings.sandbox_root if self._settings.orchestrator == "fake" else self._settings.repo_root
         root.mkdir(parents=True, exist_ok=True)
         project_id = f"p_{uuid.uuid4().hex[:12]}"
+        workspace_id = self._new_workspace_id(root, name, project_id)
         now = now_iso()
         with self._db.transaction() as conn:
             conn.execute(
-                "INSERT INTO projects (id, display_name, description, mode, work_root, source, created_at, updated_at)"
-                " VALUES (?, ?, '', ?, ?, 'web', ?, ?)",
-                (project_id, name, mode, root.relative_to(self._settings.repo_root).as_posix() or ".", now, now),
+                "INSERT INTO projects (id, display_name, description, mode, workspace_id, work_root, source,"
+                " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'web', ?, ?)",
+                (project_id, name, f"작업/{workspace_id}", mode, workspace_id,
+                 root.relative_to(self._settings.repo_root).as_posix() or ".", now, now),
             )
         return summary_of(self._db.one("SELECT * FROM projects WHERE id = ?", (project_id,)))
+
+    def _new_workspace_id(self, root: Path, name: str, project_id: str) -> str:
+        """웹 프로젝트가 다른 작업 폴더를 이어받지 않도록 생성 시점에 전용 ID를 예약한다."""
+        normalized = unicodedata.normalize("NFKC", name)
+        stem = re.sub(r"[^0-9A-Za-z가-힣]+", "", normalized)[:32] or "프로젝트"
+        base = f"{stem}_{date.today():%Y%m%d}"
+        work_root = root.relative_to(self._settings.repo_root).as_posix() or "."
+        for candidate in (base, f"{base}_{project_id[-4:]}"):
+            claimed = self._db.one(
+                "SELECT 1 FROM projects WHERE work_root = ? AND workspace_id = ?", (work_root, candidate)
+            )
+            if not claimed and not (root / "작업" / candidate).exists() and not (root / "최종" / candidate).exists():
+                return candidate
+        return f"{base}_{project_id[2:]}"
 
     def delete(self, project_id: str) -> None:
         """프로젝트 전용 로컬 폴더를 지운 뒤 목록에서 숨긴다."""
