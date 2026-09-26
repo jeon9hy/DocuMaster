@@ -73,6 +73,13 @@ def section_table(text: str, title: str) -> list[list[str]]:
     return [header] + out
 
 
+def declared_count(t05: str, label: str) -> int | None:
+    """05 헤더의 `REMOVE 0`·`CAUTION 0`처럼 명시된 판정 개수."""
+    header = t05.split("--- 헤더 끝 ---", 1)[0]
+    match = re.search(rf"\b{label}\s*(\d+)\b", header, re.I)
+    return int(match[1]) if match else None
+
+
 def remove_items(t05: str) -> list[tuple[str, list[str]]]:
     tab = section_table(t05, "REMOVE")
     return [(r[0], re.findall(r"\bS\d{2,3}\b", r[0])) for r in tab[1:] if r and r[0]]
@@ -135,7 +142,10 @@ def check_numbers(target: str, allowed: set[str], skip_layout: bool) -> None:
 def check_remove(target: str, t05: str) -> None:
     items = remove_items(t05)
     if not items:
-        report("CHECK", "REMOVE", "05에서 REMOVE 표를 못 읽었다 — 05 §1 형식 확인")
+        if declared_count(t05, "REMOVE") == 0:
+            report("OK", "REMOVE", "05 헤더에 REMOVE 0건으로 명시")
+        else:
+            report("CHECK", "REMOVE", "05에서 REMOVE 표를 못 읽었다 — 05 §1 형식 확인")
         return
     hit = False
     for label, ids in items:
@@ -155,7 +165,10 @@ def check_remove(target: str, t05: str) -> None:
 def check_caution(target: str, t05: str, strict: bool) -> None:
     items = caution_items(t05)
     if not items:
-        report("CHECK", "CAUTION", "05에서 CAUTION 표를 못 읽었다 — 05 §1 형식 확인")
+        if declared_count(t05, "CAUTION") == 0:
+            report("OK", "CAUTION", "05 헤더에 CAUTION 0건으로 명시")
+        else:
+            report("CHECK", "CAUTION", "05에서 CAUTION 표를 못 읽었다 — 05 §1 형식 확인")
         return
     body = norm(target)
     missing = [(l, s) for l, s in items if s not in body]
@@ -167,6 +180,20 @@ def check_caution(target: str, t05: str, strict: bool) -> None:
                + " / ".join(l[:25] for l, _ in missing))
     if not missing:
         report("OK", "CAUTION", f"{len(items)}건 전부 글자 그대로 있다")
+
+
+def check_state_bookkeeping(state: str) -> None:
+    """완료 게이트 전에 실제 호출 ID 대신 자리표시자가 남았는지 검사한다."""
+    line = next((line for line in state.splitlines() if line.startswith("## 세션")), "")
+    if not line:
+        report("FAIL", "상태 기록", "상태.md에 `## 세션` 줄이 없다 — 로이드가 기록")
+        return
+    placeholders = re.findall(r"실행 후 기록|\(미실행\)", line)
+    if placeholders:
+        report("FAIL", "상태 기록", "실제 ID 또는 `해당 없음(이유)`으로 바꾸지 않은 자리표시자: "
+               + ", ".join(dict.fromkeys(placeholders)))
+    else:
+        report("OK", "상태 기록", "세션·에이전트 자리표시자 없음")
 
 
 def check_doc_sources(target: str) -> None:
@@ -431,6 +458,8 @@ def main() -> int:
         check_doc_sources(target)
         check_caution(target, t05, strict=False)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
+    if stage == "07":
+        check_state_bookkeeping(read(ws.parent / "상태.md"))
 
     order = {"FAIL": 0, "CHECK": 1, "OK": 2}
     for level, name, msg in sorted(results, key=lambda r: order[r[0]]):

@@ -10,7 +10,7 @@ import pytest
 from app.agent_settings import UnsupportedConfigError, check_model_calls, codex_models, orchestrator_models
 from app.orchestrator import ClaudeCodeOrchestratorAdapter, TurnRequest
 
-from .conftest import create_project
+from .conftest import create_project, wait_until
 from .test_runs import pending_prompt, start
 
 OPUS_HIGH = {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": "high"}
@@ -158,6 +158,57 @@ def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     ]), encoding="utf-8")
     problems = check_model_calls(log, expected)
     assert len(problems) == 3 and "haiku" in problems[0] and "gpt-5.6-sol" in problems[1] and "xhigh" in problems[2]
+
+
+def test_real_run_prompt_marks_snapshot_as_authoritative(settings, monkeypatch, tmp_path):
+    """실제 로이드가 임시 경로 이름만 보고 현재 실행 설정을 버리지 않는다."""
+    from app import runs as runs_module
+    from .conftest import owner_client
+
+    captured = {}
+
+    class CapturingTurn:
+        def __init__(self, command, request, on_activity=None):
+            captured["prompt"] = request.prompt
+            raise OSError("stop after capture")
+
+    monkeypatch.setattr(runs_module, "ProcessTurn", CapturingTurn)
+    codex_home = tmp_path / "codex"
+    codex_home.mkdir()
+    (codex_home / "models_cache.json").write_text(json.dumps({"models": [{
+        "slug": "gpt-5.6-sol", "visibility": "list",
+        "supported_reasoning_levels": [{"effort": "medium"}],
+    }]}), encoding="utf-8")
+    real_settings = replace(settings, orchestrator="claude", data_dir=tmp_path / "smoke-named-data",
+                            codex_home=codex_home)
+    with owner_client(real_settings) as client:
+        response = client.patch("/api/settings/agents/yor", json={
+            "provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "medium"})
+        assert response.status_code == 200
+        project_id = create_project(client)
+        start(client, project_id, "작은 보고서")
+        wait_until(lambda: "웹앱 실행 계약" in captured.get("prompt", ""))
+
+    assert "reasoning=medium" in captured["prompt"]
+    assert "smoke-named-data" in captured["prompt"]
+    assert "무시하거나 기본값으로 대체하지 않는다" in captured["prompt"]
+
+
+def test_model_mismatch_fails_instead_of_completing(client, monkeypatch):
+    from app import runs as runs_module
+
+    monkeypatch.setattr(runs_module, "check_model_calls",
+                        lambda log_path, expected: ["요르 추론 강도가 설정과 다릅니다."])
+    project_id = create_project(client)
+    start(client, project_id, "작은 보고서")
+
+    def terminal_events():
+        events = client.get(f"/api/projects/{project_id}/workspace").json()["events"]
+        return [event for event in events if event["type"] in {"workflow.failed", "workflow.completed"}]
+
+    terminal = wait_until(terminal_events)
+    assert terminal[-1]["type"] == "workflow.failed"
+    assert "홈페이지 설정과 달라" in terminal[-1]["reason"]
 
 
 def test_subagent_model_does_not_silently_fallback():

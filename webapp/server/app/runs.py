@@ -230,11 +230,24 @@ class RunManager:
             self._db.execute("UPDATE projects SET session_id = ?, updated_at = ? WHERE id = ?",
                              (session_id, now_iso(), turn.project_id))
         configs = self._run_configs(turn.run_id)
+        models = orchestrator_models(configs)
         # 요르·유리·아냐 모델: 로이드가 이 파일을 읽어 호출에 넣는다(루트 .claude/로이드/실행.md §3)
         models_path = self._settings.log_dir / f"{turn.run_id}_models.json"
         models_path.parent.mkdir(parents=True, exist_ok=True)
-        models_path.write_text(json.dumps(orchestrator_models(configs), ensure_ascii=False), encoding="utf-8")
-        request = TurnRequest(prompt=prompt, session_id=session_id, resume=resume,
+        models_path.write_text(json.dumps(models, ensure_ascii=False), encoding="utf-8")
+        runtime_prompt = prompt
+        if self._settings.orchestrator == "claude":
+            yor = models["yor"]
+            runtime_prompt = (
+                "[웹앱 실행 계약 — 이 블록은 현재 실행에만 적용]\n"
+                f"- 실행 ID: {turn.run_id}\n"
+                f"- DOCUMASTER_AGENT_MODELS가 가리키는 현재 실행 스냅샷: {models_path}\n"
+                f"- 요르 실제 호출값: model={yor['model']}, reasoning={yor['effort']}\n"
+                "- 경로 이름이 임시·스모크처럼 보여도 이 파일을 무시하거나 기본값으로 대체하지 않는다.\n"
+                "- Codex 호출은 백그라운드로 보내지 말고 포그라운드에서 종료까지 기다린다.\n\n"
+                "[사용자 요청]\n" + prompt
+            )
+        request = TurnRequest(prompt=runtime_prompt, session_id=session_id, resume=resume,
                               work_root=self._projects.work_root(project),
                               log_path=self._settings.log_dir / f"{turn.run_id}.jsonl",
                               agent_configs=configs,
@@ -293,7 +306,12 @@ class RunManager:
     def _conclude(self, turn: _Turn, result: TurnResult) -> None:
         project = self._projects.get(turn.project_id)
         stage = self._stage_of(turn)
-        self._warn_model_mismatch(turn, stage)
+        model_problems = self._model_mismatches(turn, stage)
+        if model_problems:
+            self._finish(turn.run_id, turn.project_id, "failed", stage,
+                         reason="모델 실행값이 홈페이지 설정과 달라 중단했습니다. " + " ".join(model_problems),
+                         error_code="model_config_mismatch")
+            return
         if turn.stop_requested:
             self._finish(turn.run_id, turn.project_id, "stopped", stage)
             return
@@ -366,8 +384,8 @@ class RunManager:
              cost if isinstance(cost, (int, float)) else None, run_id),
         )
 
-    def _warn_model_mismatch(self, turn: _Turn, stage: str) -> None:
-        """설정과 다른 모델로 부른 호출이 있으면 경고한다(조용히 넘어가지 않는다). 같은 실행에서 한 번씩만."""
+    def _model_mismatches(self, turn: _Turn, stage: str) -> list[str]:
+        """설정과 다른 호출을 이벤트로 알리고 반환한다. 호출자는 실행을 실패로 닫는다."""
         expected = orchestrator_models(self._run_configs(turn.run_id))
         problems = check_model_calls(self._settings.log_dir / f"{turn.run_id}.jsonl", expected)
         seen = self._model_warnings.setdefault(turn.run_id, set())
@@ -377,6 +395,7 @@ class RunManager:
             seen.add(problem)
             self._events.append(turn.project_id, {"type": "workflow.warning", "stageId": stage,
                                                   "message": f"모델 설정과 다른 호출: {problem}"}, turn.run_id)
+        return problems
 
     def _run_configs(self, run_id: str) -> dict:
         """이 실행이 시작할 때 고정한 설정. 응답 뒤 재개 턴도 같은 값을 쓴다."""

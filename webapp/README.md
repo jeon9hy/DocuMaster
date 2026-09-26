@@ -11,8 +11,6 @@ Web App(Next.js) ── REST + SSE ──▶ Local Backend(FastAPI + SQLite) ─
 - **파일이 원본**입니다. SQLite(`webapp/.data/documaster.db`)에는 메타데이터·실행 상태·이벤트 기록만 둡니다.
 - 백엔드 없이 `npm run dev`만 켜면 브라우저 목업(MockWorkspaceService)으로 돕니다.
 
-구현 지침: [`docs/DocuMaster_Prototype_Audit_and_RealService_Phase2_v1.1.md`](docs/DocuMaster_Prototype_Audit_and_RealService_Phase2_v1.1.md)
-
 ## 실행
 
 `start.bat`을 더블클릭하면 백엔드(127.0.0.1:8000)와 화면(127.0.0.1:3000)이 함께 켜집니다. 처음에는 필요한 것을 설치하고,
@@ -179,5 +177,5 @@ API 키는 두지 않습니다 — claude·codex·nlm은 각 CLI에 로그인된
 - 이벤트를 화면 reducer로 처음부터 재생하면 6단계 모두 완료, 작업물 17개, 대기 입력 0개, 마지막 seq 83, 실행 상태 `completed`입니다. 복사한 DB를 로컬 백엔드와 브라우저에 연결해 새로고침 후 100%·완료·작업물 17개와 최종본 미리보기도 확인했습니다. 최종 PDF는 A4 4쪽입니다. 최초 요청은 2쪽이었으나 사용자 응답(이벤트 75·77)이 내용 삭제 없이 4쪽으로 확정했습니다.
 - 실행 로그의 마지막 Claude Code 누적 비용은 **USD 23.1517063**입니다. 이전 DB의 USD 56.04042415는 누적 값을 턴마다 다시 더한 오류였으며, 코드와 기존 스모크 DB 기록을 수정했습니다. `05`가 같은 판정으로 다시 저장될 때 판정 이벤트가 중복되는 문제도 수정했습니다. 파일 퇴고 중 여러 번 저장한 기록이 채팅에 같은 작업물 카드를 반복 표시하던 문제를 고쳤습니다. 기존 이벤트 기록은 감사 증거로 그대로 둡니다.
 - Claude 사용량은 공식 statusLine 캐시를 우선 사용하고, 캐시가 없으면 실제 Claude CLI `rate_limit_event`의 5시간·7일 창을 읽습니다. 사용 퍼센트와 리셋 시각만 표시하며, 지난 창은 오래된 값으로 표시합니다. 로그가 없거나 필드가 유효하지 않으면 `확인 불가`입니다. 이 조회는 Claude 모델을 호출하지 않습니다.
-- 테스트: 백엔드 pytest, 프런트엔드 `npm test`, TypeScript 검사, lint, production build, fake 오케스트레이터 통합, SSE 재연결·실패·재시작 복구 테스트를 통과했습니다. 실제 Claude 통합 코드는 이번 수정에서 호출 방식이나 프롬프트를 바꾸지 않았습니다.
-- 최종 실제 재검증이 필요해질 때는 Claude 한도가 회복된 뒤 `DOCUMASTER_ORCHESTRATOR=claude`로 **새 소형 작업 한 번만** 실행합니다. 생성된 실행 ID를 기준으로 이벤트의 6단계 순서, 작업물 DB와 파일, UI 새로고침, 오류·사용량 표시를 대조합니다. 현재 판정: `Development / Local Verification: COMPLETE`; `Real Claude Final Acceptance: PENDING - quota`.
+- 테스트: 백엔드 pytest, 프런트엔드 `npm test`, TypeScript 검사, lint, production build, fake 오케스트레이터 통합, SSE 재연결·실패·재시작 복구 테스트를 통과했습니다.
+- 2026-09-26 실제 Claude 소형 DOCUMENT 실행(`run_8f25628d971c`)으로 6단계 완료와 최종 PDF 저장을 확인했습니다. 로이드 `claude-sonnet-5/medium`, 요르 최초·재개 호출 `gpt-5.6-sol/medium`이 실행 스냅샷과 일치했고 모델 불일치 경고는 없었습니다. 테스트 프로젝트 삭제 뒤 DB·`작업/`·`최종/` 동기 삭제도 확인했습니다. 현재 판정: `Development / Local Verification: COMPLETE`; `Real Claude Final Acceptance: COMPLETE`.
