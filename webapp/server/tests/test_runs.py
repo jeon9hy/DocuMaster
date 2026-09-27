@@ -173,8 +173,9 @@ def test_normal_turn_end_continues_automatically_without_asking(client):
     wait_until(lambda: "workflow.completed" in types_of(client, project_id))
     types = types_of(client, project_id)
     assert "user.input.required" not in types
-    # 로이드의 중간 보고와 완료 보고는 agent.message로 남는다
-    assert types.count("agent.message") == 2
+    # 로이드의 중간 보고와 완료 보고는 agent.message로 남는다(요르의 중간 보고는 따로)
+    said = [e.get("agentId") for e in events_of(client, project_id) if e["type"] == "agent.message"]
+    assert said.count("loid") == 2 and said.count("yor") == 1
 
 
 def test_turn_ending_before_workspace_exists_asks_user(client):
