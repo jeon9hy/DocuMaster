@@ -1,18 +1,16 @@
 "use client";
 
 import { memo, useState } from "react";
-import { RotateCcw } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { PROVIDERS, REASONING_LABELS } from "@/constants/models";
 import { formatDateTime } from "@/lib/format";
 import { getModelLabel } from "@/lib/models";
 import type { AgentModelConfig, AgentSetting, ProviderId, ProviderUsage, ReasoningLevel } from "@/types";
 import { UsageTiles } from "../settings/UsageTiles";
-import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 import { AgentAvatar } from "./AgentAvatar";
 
-/** 추론 강도를 넘기지 않을 때(도구 기본값) select에 쓰는 값 */
+/** 추론 강도를 넘기지 않을 때(기본값) select에 쓰는 값 */
 const TOOL_DEFAULT = "";
 const ORDER: ReasoningLevel[] = ["low", "medium", "high", "xhigh", "max", "ultra"];
 
@@ -21,7 +19,6 @@ interface AgentSettingsRowProps {
   /** Owner만 true. false면 보기만 한다 */
   editable: boolean;
   onChange: (config: AgentModelConfig) => Promise<void>;
-  onReset: () => Promise<void>;
   /** 이 에이전트가 쓰는 공급자의 사용량(로이드·유리·아냐 = Claude, 요르 = Codex) */
   usage?: ProviderUsage;
 }
@@ -30,7 +27,7 @@ interface AgentSettingsRowProps {
  * 에이전트 한 명의 모델·추론 강도. 공급자와 상관없이 같은 UI를 쓴다.
  * 선택지는 백엔드가 준 「실제로 반영되는 값」뿐이다. 잠긴 에이전트는 이유를 함께 보여 준다.
  */
-const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onChange, onReset, usage }: AgentSettingsRowProps) {
+const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onChange, usage }: AgentSettingsRowProps) {
   const profile = getAgentProfile(setting.agentId);
   const { config } = setting;
   const locked = setting.lockedReason !== null;
@@ -50,7 +47,7 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
     }
   };
 
-  const reasoningLabel = (level: ReasoningLevel | null) => (level ? REASONING_LABELS[level] : "도구 기본값");
+  const reasoningLabel = (level: ReasoningLevel | null) => (level ? REASONING_LABELS[level] : "기본값");
   const levelsFor = (modelId: string): (ReasoningLevel | null)[] =>
     setting.reasoningByModel?.[modelId] ?? setting.reasoningLevels;
   const levels = levelsFor(config.modelId);
@@ -72,11 +69,6 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
           </p>
           <p className="truncate text-xs text-gray-500">{PROVIDERS[config.provider].label}</p>
         </div>
-        {editable && setting.overridden && (
-          <Button size="sm" variant="ghost" icon={RotateCcw} disabled={saving} onClick={() => save(onReset)}>
-            기본값으로
-          </Button>
-        )}
       </div>
       {usage?.available && (
         <div className="@container mb-2">
@@ -137,11 +129,10 @@ interface AgentSettingsListProps {
   settings: AgentSetting[];
   editable: boolean;
   onChange: (setting: AgentSetting, config: AgentModelConfig) => Promise<void>;
-  onReset: (setting: AgentSetting) => Promise<void>;
   usageByProvider?: Partial<Record<ProviderId, ProviderUsage>>;
 }
 
-export function AgentSettingsList({ settings, editable, onChange, onReset, usageByProvider }: AgentSettingsListProps) {
+export function AgentSettingsList({ settings, editable, onChange, usageByProvider }: AgentSettingsListProps) {
   return (
     <ul className="divide-y divide-gray-100">
       {settings.map((setting) => (
@@ -150,7 +141,6 @@ export function AgentSettingsList({ settings, editable, onChange, onReset, usage
           setting={setting}
           editable={editable}
           onChange={(config) => onChange(setting, config)}
-          onReset={() => onReset(setting)}
           usage={usageByProvider?.[setting.config.provider]}
         />
       ))}

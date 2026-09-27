@@ -33,7 +33,7 @@ export interface AgentSetting {
   overridden: boolean;
   updatedAt: string | null;
   modelIds: string[];
-  /** null = 추론 강도를 넘기지 않음(도구 기본값) */
+  /** null = 추론 강도를 넘기지 않음(기본값) */
   reasoningLevels: (ReasoningLevel | null)[];
   /** 모델마다 지원 추론 강도가 다를 때(요르·Codex). 없으면 reasoningLevels를 모든 모델에 쓴다 */
   reasoningByModel: Record<string, ReasoningLevel[]> | null;

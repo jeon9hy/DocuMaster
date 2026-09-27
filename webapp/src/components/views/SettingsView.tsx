@@ -42,10 +42,6 @@ function ModelSettingsPanel() {
       set(await workspaceService.updateAgentSetting(setting.agentId, config)),
     [set],
   );
-  const reset = useCallback(
-    async (setting: AgentSetting) => set(await workspaceService.resetAgentSetting(setting.agentId)),
-    [set],
-  );
 
   return (
     <Panel title={<PanelTitle icon={Bot}>모델 설정</PanelTitle>}>
@@ -64,7 +60,6 @@ function ModelSettingsPanel() {
           settings={state.data}
           editable={isOwner}
           onChange={change}
-          onReset={reset}
           usageByProvider={usageByProvider}
         />
       )}
