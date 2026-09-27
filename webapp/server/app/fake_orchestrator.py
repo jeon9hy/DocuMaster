@@ -21,7 +21,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 PRESENTATION_WORDS = ("발표", "ppt", "슬라이드", "presentation", "덱")
@@ -76,6 +76,20 @@ class FakeLoid:
             encoding="utf-8",
         )
 
+    def yor_call(self, status: str) -> None:
+        """yor.py가 남기는 호출 상태·Codex 로그를 흉내 낸다 — 웹앱의 요르 피드(yor_feed.py)를 비용 없이 확인한다."""
+        self.base.mkdir(parents=True, exist_ok=True)
+        call = self.base / "_yor_call.json"
+        if status == "running":
+            (self.base / "_log_02.txt").write_text(
+                "OpenAI Codex (가짜)\n--------\nuser\n(입력 전문)\ncodex\n"
+                "요르(가짜): 핵심 질문 두 개부터 원문을 확인하겠습니다.\nweb search: \nweb search: \n", encoding="utf-8")
+            state = {"status": "running", "kind": "research", "log": "_log_02.txt",
+                     "started_at": datetime.now().astimezone().isoformat(timespec="seconds")}
+        else:
+            state = {**json.loads(call.read_text(encoding="utf-8")), "status": "done", "exit": 0}
+        call.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+
     def request_text(self) -> str:
         path = self.base / "_요청.txt"
         return path.read_text(encoding="utf-8") if path.exists() else ""
@@ -125,7 +139,10 @@ class FakeLoid:
             return "01 기획을 마쳤습니다. 이 기획대로 자료조사를 시작할까요?"
         self.state("진행 중 조사·검증", mode)
         if not (self.workspace / "02_research_pack.md").exists():
+            self.yor_call("running")
+            time.sleep(self.step * 2)
             self.write("02_research_pack.md", "# Research Pack\n- 주장 A — 출처 1\n- 주장 B — 출처 2 [미확인]")
+            self.yor_call("done")
             self.write("03_verification_questions.md", "# 검증 질문\n1. 주장 A의 기준 시점은?")
             self.write("04_verification_answers.md", "# 검증 응답\n1. 2025년 기준")
             if blocked_requested:

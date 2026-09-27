@@ -23,6 +23,7 @@ _FINAL_MARKERS = ("--- 헤더 끝 ---", "=== 수정 패치 시작 ===")
 _MAX_MESSAGE = 1200
 _BLOCK_HEADS = {"user", "codex", "exec", "thinking", "tokens used"}
 COUNT_FLUSH_SECONDS = 20  # 검색만 길게 이어질 때도 요르가 살아 있는 게 보이게, 이 간격으로 건수를 올린다
+STARTED_SLACK_SECONDS = 5  # started_at은 초 단위로 잘려 기록된다 — 방금 시작한 호출을 옛 호출로 오해하지 않게
 
 
 def _is_final(text: str) -> bool:
@@ -84,7 +85,7 @@ class YorLogFollower:
         self._offset = 0
         started = _started_epoch(state.get("started_at"))
         # 백엔드가 켜지기 전에 시작한 호출은 이미 쓰인 부분을 건너뛴다(재시작 뒤 같은 말이 다시 올라오지 않게)
-        if started is not None and started < self._created:
+        if started is not None and started < self._created - STARTED_SLACK_SECONDS:
             try:
                 self._offset = log.stat().st_size
             except OSError:

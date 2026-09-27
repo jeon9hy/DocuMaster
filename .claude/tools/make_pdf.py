@@ -5,6 +5,9 @@ Edge 인쇄는 머리말·꼬리말을 넣지 않으므로 쪽번호는 PyMuPDF�
 
 사용:
     python .claude/tools/make_pdf.py <입력.html> <출력.pdf> [--label "문서명"] [--no-page-number]
+                                     [--contact] [--pages 3,7]
+    --contact    같은 폴더에 contact.png(전 쪽 모아보기, 4열)
+    --pages 3,7  같은 폴더에 p03.png·p07.png(확대, 100dpi). PDF를 다시 굽지 않으려면 --only-images와 함께
 
 출력 마지막 줄이 `검사 결과: OK` 가 아니면 그 PDF를 쓰지 않는다.
 """
@@ -106,14 +109,48 @@ def inspect(pdf_path):
             "min_chars": min(chars) if chars else 0, "fonts": fonts}
 
 
+def save_images(pdf_path, contact, pages):
+    """Render Gate용 이미지. 모아보기 한 장 + 의심 쪽 확대."""
+    import io
+    import fitz
+    from PIL import Image
+    out_dir = os.path.dirname(os.path.abspath(pdf_path))
+    doc = fitz.open(pdf_path)
+    if contact:
+        ims = [Image.open(io.BytesIO(p.get_pixmap(dpi=40).tobytes("png"))) for p in doc]
+        w, h = ims[0].size
+        cols = 4
+        sheet = Image.new("RGB", (w * cols, h * ((len(ims) + cols - 1) // cols)), "white")
+        for i, im in enumerate(ims):
+            sheet.paste(im, ((i % cols) * w, (i // cols) * h))
+        sheet.save(os.path.join(out_dir, "contact.png"))
+        print("모아보기:", os.path.join(out_dir, "contact.png"), "·", doc.page_count, "쪽")
+    for n in pages:
+        if 1 <= n <= doc.page_count:
+            path = os.path.join(out_dir, "p%02d.png" % n)
+            doc[n - 1].get_pixmap(dpi=100).save(path)
+            print("확대:", path)
+    doc.close()
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    pages = []
+    if "--pages" in sys.argv:
+        raw = sys.argv[sys.argv.index("--pages") + 1]
+        pages = [int(n) for n in raw.split(",") if n.strip().isdigit()]
+        args = [a for a in args if a != raw]
+    if "--only-images" in sys.argv and args:
+        save_images(args[-1], "--contact" in sys.argv, pages)
+        return 0
     if len(args) < 2:
         print(__doc__)
         return 2
     label = ""
     if "--label" in sys.argv:
         label = sys.argv[sys.argv.index("--label") + 1]
+    if label in args:
+        args.remove(label)
     html_path, pdf_path = args[0], args[1]
 
     print_pdf(html_path, pdf_path)
@@ -133,6 +170,8 @@ def main():
         problems.append("사실상 빈 페이지: %s" % info["empty"])
     if info["chars"] < 200:
         problems.append("본문 글자가 거의 없다 — 변환이 깨졌을 수 있다")
+    if not problems and ("--contact" in sys.argv or pages):
+        save_images(pdf_path, "--contact" in sys.argv, pages)
     print("검사 결과:", "OK" if not problems else " / ".join(problems))
     return 0 if not problems else 1
 

@@ -24,6 +24,14 @@ def test_citation_links_to_rendered_source_row():
     assert 'href="https://example.com"' in sources
 
 
+def test_adjacent_citations_share_one_superscript():
+    # [S01][S02]가 "12"로 붙어 보이면 출처 12로 오해한다 — 한 위첨자에 쉼표로 묶는다
+    html = md2html.inline("근거가 있다.[S01][S02] 다음.[S09][S10]")
+    assert 'href="#source-S01">1</a>,<a href="#source-S02">2</a></sup>' in html
+    assert 'href="#source-S09">9</a>,<a href="#source-S10">10</a></sup>' in html
+    assert html.count('<sup class="cite">') == 2
+
+
 def test_sources_always_start_on_a_new_page():
     # 본문 끝에 붙으면 쪽 경계에서 출처 목록이 잘린다 — 항상 새 쪽에서 시작한다
     rule = next(line for line in md2html.CSS.splitlines() if line.startswith(".sources {"))

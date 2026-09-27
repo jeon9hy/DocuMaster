@@ -13,15 +13,9 @@ user-invocable: true
 W="작업/$ID/workspace"; O="작업/$ID/output"
 python .claude/tools/gate_check.py "$ID" 07                                    # FAIL은 아냐에게, CHECK는 정독 때 닫는다
 python .claude/tools/md2html.py "$W/07_final_document.md" "$O/$ID.html"      # `경고:` 줄부터 닫는다
-python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --label "$ID"    # 마지막 줄이 "검사 결과: OK"
-python - "$O/$ID.pdf" "$O/contact.png" <<'EOF'
-import sys, io, fitz; from PIL import Image
-d=fitz.open(sys.argv[1]); ims=[Image.open(io.BytesIO(p.get_pixmap(dpi=40).tobytes("png"))) for p in d]
-w,h=ims[0].size; c=4; s=Image.new("RGB",(w*c,h*((len(ims)+c-1)//c)),"white")
-for i,im in enumerate(ims): s.paste(im,((i%c)*w,(i//c)*h))
-s.save(sys.argv[2]); print(d.page_count,"쪽")
-EOF
+python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --label "$ID" --contact   # 마지막 줄 "검사 결과: OK" · $O/contact.png
 ```
+이미지용 스크립트를 따로 짜지 않는다 — 모아보기·확대는 `make_pdf.py` 옵션으로만 만든다.
 
 ## 2. 로이드 Lite Review — 마지막 이상 탐지
 
@@ -40,9 +34,9 @@ EOF
 `contact.png` 한 장으로 전 쪽의 흐름을 본다: 표지와 accent · 과도한 공백/밀집 · 쪽 끝에 홀로 남은 제목 · 비주얼과 본문의 균형. 비주얼의 장별 할당량은 검사하지 않는다.
 00에 정확한 쪽수 제약이 있으면 PDF 쪽수와 대조한다. 다르면 Render Gate 실패다. 표·차트·`자료:`·한정·출처가 있는 쪽과 모아보기에서 걸린 쪽만 확대해서 본다:
 ```bash
-python -c "import fitz,sys; d=fitz.open('$O/$ID.pdf'); [d[int(n)-1].get_pixmap(dpi=100).save('$O/p%02d.png'%int(n)) for n in sys.argv[1:]]" 3 7
+python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --only-images --pages 3,7   # $O/p03.png · p07.png
 ```
-확대해서 볼 것: 본문 인용이 작은 위첨자인가 · 출처가 별도 페이지에서 자료별 한 행인가 · 표·차트 잘림 · 값·조건이 05와 같은가 · `자료:`와 한정의 위치 · 글자 겹침.
+확대해서 볼 것: 본문 인용이 작은 위첨자인가(연속 인용은 렌더러가 `1,2`로 묶는다) · 출처가 별도 페이지에서 자료별 한 행인가 · 표·차트 잘림 · 값·조건이 05와 같은가 · `자료:`와 한정의 위치 · 글자 겹침.
 
 ## 4. 필요한 경우에만 제한 수정
 
@@ -50,4 +44,5 @@ python -c "import fitz,sys; d=fitz.open('$O/$ID.pdf'); [d[int(n)-1].get_pixmap(d
 `SendMessage(to:"<아냐>", message:"REVISE: <쪽/절 · [범주] 문제> 목록. 보고된 문제만 Edit.")`
 
 아냐는 보고된 문제만 고치며 전체를 다시 쓰지 않는다. 다시 굽고 고친 쪽만 확대한다. 수정은 1회다. 남은 기계적 오류는 로이드가 고치고 기록한다.
+렌더러·도구(`.claude/tools/`)의 결함은 실행 중에 고치지 않는다 — 원고에서 피해 가고 `기록.md`에 `규칙 제안:`으로 남겨 완료 보고에 올린다.
 LLM 검수 에이전트를 더 부르지 않는다. 그다음 `skills/cross-check`로 간다.

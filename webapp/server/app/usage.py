@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,7 +27,7 @@ log = logging.getLogger(__name__)
 
 CODEX_TIMEOUT_SECONDS = 15
 CODEX_CACHE_SECONDS = 30  # 화면을 열 때마다 프로세스를 띄우지 않게 잠깐 기억한다
-CLAUDE_TIMEOUT_SECONDS = 30
+CLAUDE_TIMEOUT_SECONDS = 20  # 로그인이 풀려 응답이 없으면 화면이 오래 기다리지 않게
 CLAUDE_CACHE_SECONDS = 60  # 실시간 조회는 작은 호출 한 번이라 Codex보다 길게 기억한다
 CODEX_LIMIT_ID = "codex"
 FIVE_HOURS, ONE_WEEK = 300, 10080
@@ -304,12 +305,14 @@ def _newer(a: dict, b: dict) -> dict:
 
 def usage_report(claude_cache: Path, codex_live: bool = True, claude_log_dir: Path | None = None,
                  claude_live: bool = False) -> list[dict]:
-    claude = claude_usage_live() if claude_live else None
+    # 두 공급자 조회는 각각 몇 초씩 걸린다 — 동시에 부른다
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        live = pool.submit(claude_usage_live) if claude_live else None
+        codex = pool.submit(codex_usage) if codex_live else None
+        claude = live.result() if live else None
+        openai = codex.result() if codex else _unavailable("openai", "OpenAI · Codex", "Codex 실시간 조회를 끈 상태입니다.")
     if claude is None:
         claude = claude_usage(claude_cache)
         if claude_log_dir is not None:
             claude = _newer(claude, claude_usage_from_logs(claude_log_dir))
-    return [
-        claude,
-        codex_usage() if codex_live else _unavailable("openai", "OpenAI · Codex", "Codex 실시간 조회를 끈 상태입니다."),
-    ]
+    return [claude, openai]

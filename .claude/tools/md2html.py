@@ -207,6 +207,7 @@ RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
 RE_EM = re.compile(r"(?<![\*\w])\*([^\*\n]+)\*(?!\*)")
 RE_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\)\s]+)\)")
 RE_CITATION = re.compile(r"\[S(\d{2,3})\]")
+RE_CITATIONS = re.compile(r"(?:\[S\d{2,3}\])+")  # 붙어 있는 인용 묶음 → 위첨자 하나에 쉼표로
 RE_IMG = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(\{narrow\})?$')
 RE_SRC = re.compile(r"^(자료|출처|주)\s*[:：]")
 
@@ -227,8 +228,8 @@ def inline(text):
     out = RE_BOLD.sub(r"<strong>\1</strong>", out)
     out = RE_EM.sub(r"<em>\1</em>", out)
     out = RE_LINK.sub(r'<a href="\2">\1</a>', out)
-    out = RE_CITATION.sub(lambda m: '<sup class="cite"><a href="#source-S%s">%d</a></sup>'
-                          % (m.group(1), int(m.group(1))), out)
+    out = RE_CITATIONS.sub(lambda m: '<sup class="cite">%s</sup>' % ",".join(
+        '<a href="#source-S%s">%d</a>' % (n, int(n)) for n in RE_CITATION.findall(m.group(0))), out)
     for i, s in enumerate(kept):
         out = out.replace("\x00%d\x00" % i, s)
     return out

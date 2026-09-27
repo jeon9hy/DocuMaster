@@ -45,11 +45,12 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 | `app/db.py` | SQLite 스키마(projects · runs · events · references · artifacts · agent_overrides · sessions · owner_profile · pending_inputs · user_messages) |
 | `app/auth.py` | 단일 Owner — PIN 해시 확인 · 5회 실패 30초 잠금 · 세션(토큰 sha256만 저장) · 프로필 |
 | `app/agent_settings.py` | 모델 설정(전역) — 실제로 반영되는 선택지만 · 실행 시작 때 스냅샷 |
-| `app/usage.py` · `claude_statusline.py` | 사용량 — Codex는 `codex app-server`의 `account/rateLimits/read`(실시간), Claude는 statusLine 캐시 또는 실제 headless 실행 로그의 `rate_limit_event`. 확인할 수 없으면 「확인 불가」 |
+| `app/usage.py` · `claude_statusline.py` | 사용량(두 공급자 동시 조회) — Codex는 `codex app-server`의 `account/rateLimits/read`, Claude는 haiku 최소 호출의 `rate_limit_event`(1회 약 $0.002, 60초 캐시, 끄기 `DOCUMASTER_CLAUDE_USAGE_LIVE=0`). 실패하면 statusLine 캐시·실행 로그 중 최근 값, 그것도 없으면 「확인 불가」 |
 | `app/events.py` | EventStore — seq 부여 · replay · SSE 구독자 전달 |
 | `app/projects.py` · `files.py` | 프로젝트·지시·레퍼런스·작업물 메타데이터 · 안전한 파일 저장(허용 폴더·파일명 정리·sha256) |
 | `app/contract.py` · `scanner.py` | 파일 계약 읽기(00~07 → 6단계·담당 에이전트, 05 첫 줄 판정) · 바뀐 것만 이벤트로 |
 | `app/runs.py` · `orchestrator.py` | 한 번에 한 실행 · graceful stop · 응답 후 `--resume` · 재시작 복구 · 오류 분류 |
+| `app/yor_feed.py` | 요르(Codex) 진행을 피드로 — `_yor_call.json`·Codex 로그를 따라 읽어 중간 보고는 대화, 검색·명령은 건수만 |
 | `app/fake_orchestrator.py` · `imports.py` | 비용 없는 가짜 로이드 · 기존 작업 읽기 전용 가져오기 |
 
 - **이벤트**: `{schemaVersion, id, projectId, runId, seq, at, type, ...payload}`. `seq`는 프로젝트마다 1부터 증가합니다.

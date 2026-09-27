@@ -47,6 +47,9 @@ def test_full_run_with_user_input_then_completion(client, settings):
     # 파일 계약 순서대로 일한 에이전트(문서 모드: 05 뒤 아냐가 07)
     agents = [e["agentId"] for e in events if e["type"] == "agent.started"]
     assert agents == ["loid", "loid", "yor", "yuri", "yor", "yuri", "anya", "loid"]
+    # 요르(Codex)의 중간 보고가 로그에서 피드로 올라온다
+    yor_said = [e.get("text") for e in events if e["type"] == "agent.message" and e.get("agentId") == "yor"]
+    assert any("핵심 질문 두 개" in (text or "") for text in yor_said)
     verdicts = [e["verdict"] for e in events if e["type"] == "validation.verdict"]
     assert verdicts == ["conditional"]
     assert events[-1]["type"] == "workflow.completed"
