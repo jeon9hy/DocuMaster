@@ -44,6 +44,20 @@ def test_stream_activity_uses_only_actual_text_and_labels_tools_safely():
     assert "secret" not in json.dumps(events, ensure_ascii=False)
 
 
+def test_pipeline_commands_show_only_a_fixed_label():
+    reader = StreamActivity()
+    events = reader.read(_assistant([
+        {"type": "tool_use", "name": "Bash", "input": {"command": 'python .claude/tools/yor.py research --id "비밀_ID"'}},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "python .claude/tools/gate_check.py X 07"}},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "ls 작업"}},
+        {"type": "tool_use", "name": "Bash", "input": {"command": "cat .claude/tools/gate_check.py"}},
+    ]))
+    assert events == [
+        {"type": "agent.activity", "agentId": "loid", "label": "요르 조사 요청"},
+        {"type": "agent.activity", "agentId": "loid", "label": "기계 검사"},
+    ]
+
+
 def test_process_turn_forwards_activity_before_result(tmp_path: Path):
     script = tmp_path / "stream.py"
     script.write_text(

@@ -47,7 +47,7 @@ python -c "import fitz,sys; d=fitz.open(r'작업/$ID/output/${ID}_slides.pdf'); 
   - 로고, "공식" 표기, 사진풍 실존 얼굴, `Slide Title` 같은 자리표시자
   - 잘림·겹침·화면 밖으로 나간 글자, 안내선·격자, 워터마크 간섭
 
-**실패한 장만 고친다.** 설계와 다르게 그렸으면 팩의 해당 필드를 그대로 인용해 revise한다. 설계 자체가 문제면 요르 06B로 돌린다.
+**실패한 장만 고친다.** 설계와 다르게 그렸으면 팩의 해당 필드를 그대로 인용해 revise한다. 설계 자체가 문제면 요르 07(발표팩)로 돌린다.
 ```bash
 nlm slides revise <artifact-id> --slide '3 제목을 지우고 「화면」의 주인공을 화면 절반 이상으로 키워 주세요' --confirm
 ```

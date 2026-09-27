@@ -11,7 +11,7 @@
   python .claude/tools/nlm_pipeline.py promote --id <작업ID>
 
 설계상 지키는 것 —
-  * 업로드 대상은 발표팩(07, 요르 06B가 쓰고 로이드가 검수한다)과 명시된 자료뿐이다. `00`~`06` 는 **코드가 거부한다**
+  * 업로드 대상은 발표팩(07, 요르가 쓰고 로이드가 검수한다)과 명시된 자료뿐이다. `00`~`06` 는 **코드가 거부한다**
     (중간 파일을 올리면 NotebookLM이 REMOVE된 주장을 되살린다).
   * 생성은 비동기다. 호출은 시작만 시킨다. `run` 은 완료까지 폴링한다.
   * 검사를 통과하지 못한 것을 `최종/<ID>/` 로 올리지 않는다. 이관은 `promote` 로 분리돼 있다.
@@ -195,7 +195,7 @@ def pack_instruction(pack_text: str) -> str:
         body = re.sub(r"^```\w*\s*$", "", body, flags=re.M).strip()
         if len(body) > 40:
             return body
-    raise SystemExit("발표팩의 `# 제작 지시`를 읽지 못했다 — 06B에 되돌린다. 기본 지시로 대신하지 않는다(E-050).")
+    raise SystemExit("발표팩의 `# 제작 지시`를 읽지 못했다 — 요르 07에 되돌린다. 기본 지시로 대신하지 않는다(E-050).")
 
 
 def pack_slide_format(pack_text: str) -> str:

@@ -762,7 +762,7 @@ def main():
     if not accent:
         accent = DEFAULT_ACCENT
         if meta:
-            WARNINGS.append("accent 미지정 — 06B의 Art Direction 색을 front matter에 넣는다")
+            WARNINGS.append("accent 미지정 — 문서규격 §4대로 accent를 front matter에 넣는다")
     if contrast(accent) < 3.0:
         WARNINGS.append("accent %s 의 흰 배경 대비가 %.2f:1 — 3:1 미만. 글자·가는 선이 안 보인다" % (accent, contrast(accent)))
     accent2 = meta.get("accent2", "")

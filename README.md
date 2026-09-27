@@ -56,7 +56,8 @@ flowchart TD
 ### Design rules that hold it together
 
 - **Verification happens once.** Yuri asks at most ten questions, targeting the riskiest claims first, and opens up to three sources herself. Anything left unresolved is closed as **REMOVE**, closed as **CAUTION**, or reported to the user.
-- **`05` is the single source of truth for facts, and `06` is the single source of truth for structure.** From `06` onward nobody reads the raw research, and nobody adds a fact.
+- **`05` is the single source of truth for facts, and (in presentations) `06` is the single source of truth for structure.** After `05` nobody reads the raw research, and nobody adds a fact.
+- **Yor is called through one tool, `.claude/tools/yor.py`.** It re-reads the model snapshot for every call, inlines the input files into the prompt (Codex cannot open files under a Korean path), keeps the session IDs, forces read-only, and checks the exit code, the output header and the model Codex actually ran. Loid never assembles a `codex` command by hand.
 - **Document structure and visuals are one writing decision.** Anya selects only visuals that clarify a comparison, trend or process; presentations retain a separate detailed-plan step.
 - **LOCKED vs FLEX.** Facts, numbers, structure, CAUTION placement and claim strength are LOCKED. Only phrasing marked `(FLEX)` is up to the writer. Claim strength may only ever be lowered.
 - **A conclusion is never stronger than its evidence.** Turning a before/after comparison into a cause, or a recommendation into a proven result, is an error even when every number is right.
@@ -118,7 +119,7 @@ CLAUDE.md                 Constitution & wiring (loaded every turn — kept unde
 ├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec (common) · one rule file per deck type
 ├─ 요르/ 유리/ 아냐/ 로이드/   Role + procedure files, one folder per agent
 ├─ skills/                doc-finish · cross-check · deck-review · notebooklm-handoff
-├─ tools/                 gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
+├─ tools/                 yor (Codex calls) · gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
 ├─ 환경기록.md             One-line index of environment findings (E-numbers)
 └─ archive/               Retired originals (local only, not read)
 자료/                      User reference material (not committed)
@@ -149,7 +150,7 @@ Loid picks the mode and runs the pipeline. It stops to ask only when:
 - the evidence forces a change of direction, or
 - verification is blocked.
 
-**Requirements:** Claude Code, Codex CLI (`codex.cmd`), Python 3.12 with PyMuPDF and Pillow, Microsoft Edge for HTML→PDF, the Pretendard font, and `nlm` (notebooklm-mcp-cli) with a one-time `nlm login`.
+**Requirements:** Claude Code, Codex CLI (`npm i -g @openai/codex`, called only through `yor.py`), Python 3.12 with PyMuPDF and Pillow, Microsoft Edge for HTML→PDF, the Pretendard font, and `nlm` (notebooklm-mcp-cli) with a one-time `nlm login`.
 
 ---
 
@@ -177,11 +178,12 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 | 2026-09-17 | Pipeline smoke test — first end-to-end NotebookLM run: upload → generate → download → mechanical checks |
 | 2026-09-18 | Architecture review and refactoring. Split planning (06) from writing (07) and added the LOCKED/FLEX boundary |
 | 2026-09-18 | Production run (Chiikawa). Added the claim-strength check (E-021), separated content from visuals (E-026), and made the Character Model repeat verbatim on every slide (E-031, E-036) |
-| 2026-09-19 | Team reshuffle (E-039): Codex became the sole fact supplier and Claude sonnet the independent verifier; `06` now starts a fresh session instead of resuming research |
-| 2026-09-19 | Compression (E-040): size budgets, per-mode specs, the `doc-finish` skill, and a render gate that shows one contact sheet first and zooms in only on suspect pages |
+| 2026-09-19 | Team reshuffle: Codex became the sole fact supplier and Claude sonnet the independent verifier; `06` now starts a fresh session instead of resuming research |
+| 2026-09-19 | Compression: size budgets, per-mode specs, the `doc-finish` skill, and a render gate that shows one contact sheet first and zooms in only on suspect pages |
 | 2026-09-19 | `gate_check.py` (E-041) automates the fact-leak and LOCKED checks. `apply_patch.py` now also extracts `04` (fixes a missing-env-var bug). The repository moved to git |
 | 2026-09-19 | NotebookLM rendering fixes from real outputs (E-042, E-045, E-046): text placed in the empty space of the scene, no split panels, line-length limits, mandatory source lines, a "what was counted" line on every number slide. NotebookLM keeps what is repeated on every slide and drifts on what is said once, so the art style and error-prone features are now repeated per slide |
 | 2026-09-19 | Deck types (E-043, E-047–E-050): separate rule files for story, briefing and academic, loaded one at a time; purpose-based routing; type-drift and missing-source gates; NotebookLM runs stop instead of falling back to a story-style prompt, and the slide format is read from the type file |
+| 2026-09-27 | Codex calls moved into `yor.py` (E-051, E-053): inputs are inlined instead of passed as Korean paths, resumed sessions are forced read-only (they had been running with write access, E-007), and long calls are awaited with `yor.py wait` instead of a tool that does not exist. Sub-agents now read their role files themselves instead of Loid pasting them, and the dead DOCUMENT section of the Yor plan procedure was removed |
 
 ### Not yet verified
 
@@ -189,6 +191,7 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 - Briefing decks have not run yet. Academic decks have run once: layout and sources held, but title size and position drifted between slides (E-049).
 - Whether NotebookLM's `presenter_slides` format beats `detailed_deck` for story decks — every type uses `detailed_deck` until tested.
 - How often Yor and Yuri make the *same* mistake, and whether ten questions are enough.
+- `yor.py` is tested against a fake Codex; its first real run should confirm that a resumed session's log header says `sandbox: read-only`.
 
 ---
 

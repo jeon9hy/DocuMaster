@@ -25,7 +25,7 @@ doc-finish·deck-review의 정독 때 `기록.md`에 적어 둔 후보 목록을
 - 05·06에 식이 없는 계산값이 있는가 → 새 수치다. 지운다
 
 ## 4. 함께 닫기
-`gate_check.py "$ID" 07`의 결과(CAUTION 글자 일치 · REMOVE 근거 ID · 06의 개수와 순서)를 확인한다. 스크립트가 못 잡는 것 — 표현만 바뀐 REMOVE, 발표팩에서 줄인 CAUTION의 뜻 — 은 읽어서 본다.
+`gate_check.py "$ID" 07`의 결과(CAUTION 글자 일치 · REMOVE 근거 ID · DOC 출처 대응 · PPT 06의 개수와 순서)를 확인한다. 스크립트가 못 잡는 것 — 표현만 바뀐 REMOVE, 발표팩에서 줄인 CAUTION의 뜻 — 은 읽어서 본다.
 
 ## 5. 처리
 전부 일치하면 기록하고 닫는다. **한 건이라도 어긋나면 같은 유형 전체를 다시 본다.** 근거를 열 수 없으면 CAUTION이나 REMOVE로 내린다.

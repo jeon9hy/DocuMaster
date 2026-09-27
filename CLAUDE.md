@@ -66,7 +66,7 @@ PPT   → 요르 06(새 세션, 05만) ◀완성도 → 요르 07 발표팩(resu
 - 보고서는 `--- 헤더 끝 ---`까지만 읽는다. **본문을 읽는 것**: REMOVE·CAUTION, 02 §D·§H, 03 「못 본 것」, 교차 확인 원문, 05·07, PPT 06.
 - 같은 것을 두 번 읽지 않는다 — 07 정독 때 교차 확인 후보를 `기록.md`에 적어 둔다. 렌더는 모아보기 한 장 뒤 의심 쪽만 확대한다.
 - 수정은 전문 재출력이 아니라 **PATCH**로 받는다.
-- 호출 명령은 `로이드/실행.md` §3~§5. 유리의 05와 아냐의 퇴고는 같은 에이전트에 `SendMessage`로 잇는다. 요르는 모델·effort를 항상 명시하고 세션 ID로만 resume한다.
+- 호출 명령은 `로이드/실행.md` §3~§5. 유리의 05와 아냐의 퇴고는 같은 에이전트에 `SendMessage`로 잇는다. 요르는 `tools/yor.py`로만 부른다(모델·세션·입력 인라인은 도구가 지킨다).
 - 요청 모델과 실행 로그의 실제 모델을 구분해 기록한다. 결과는 **종료 코드와 파일 내용을 함께** 확인한다.
 
 ## 7. 보고
@@ -83,7 +83,7 @@ PPT   → 요르 06(새 세션, 05만) ◀완성도 → 요르 07 발표팩(resu
 ├─ 아냐/   문서작성.md(역할 포함, 07)
 ├─ 로이드/ 실행.md(필요한 절만) · 기획.md(01) · 상태파일.md
 ├─ skills/ doc-finish · cross-check · deck-review · notebooklm-handoff (로이드 전용)
-├─ tools/  gate_check(PPT 06·07 / DOC 07) · md2html · make_pdf · apply_patch · nlm_pipeline
+├─ tools/  yor(요르 호출) · gate_check(PPT 06·07 / DOC 07) · md2html · make_pdf · apply_patch · nlm_pipeline
 ├─ 환경기록.md  E-번호 한 줄 색인. 필요한 번호만 grep한다
 └─ archive/    옛 원문. 읽지 않는다
 ```

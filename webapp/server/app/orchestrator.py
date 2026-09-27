@@ -37,8 +37,27 @@ def _agent_in(value: object) -> str | None:
     return next((agent for name, agent in _AGENT_NAMES.items() if name in value), None)
 
 
+# 로이드가 셸로 부르는 파이프라인 도구 → 화면 문구. 명령 원문은 내보내지 않고 이 이름만 보인다.
+_YOR_CALLS = {"research": "요르 조사 요청", "answer": "요르 검증 응답 요청", "plan": "요르 세부 기획 요청",
+              "pack": "요르 발표팩 요청", "patch": "요르 수정 요청", "wait": "요르 작업 기다리는 중"}
+_PIPELINE_TOOLS = {"gate_check.py": "기계 검사", "md2html.py": "문서 렌더링", "make_pdf.py": "PDF 만들기",
+                   "nlm_pipeline.py": "NotebookLM 작업", "apply_patch.py": "패치 적용"}
+_PYTHON_TOOL = re.compile(r"\bpython[\w.]*\s+\S*?\b(\w+\.py)(?:\s+(\w+))?")
+
+
+def _command_label(command: str) -> str | None:
+    """`python …/<도구>.py` 실행만 본다 — 파일을 읽기만 하는 명령(cat 등)은 표시하지 않는다."""
+    for tool, first_arg in _PYTHON_TOOL.findall(command):
+        label = _YOR_CALLS.get(first_arg) if tool == "yor.py" else _PIPELINE_TOOLS.get(tool)
+        if label:
+            return label
+    return None
+
+
 def _tool_label(name: str, data: dict) -> str | None:
     """도구 입력 본문·명령·검색어는 노출하지 않고 활동 종류와 파일명만 보여 준다."""
+    if name in {"Bash", "PowerShell"}:
+        return _command_label(str(data.get("command") or ""))
     if name in {"Read", "Write", "Edit", "MultiEdit"}:
         path = data.get("file_path") or data.get("path")
         filename = str(path).replace("\\", "/").rsplit("/", 1)[-1] if path else ""

@@ -234,6 +234,7 @@ def test_real_run_prompt_marks_snapshot_as_authoritative(settings, monkeypatch, 
         wait_until(lambda: "웹앱 실행 계약" in captured.get("prompt", ""))
 
     assert "reasoning=medium" in captured["prompt"]
+    assert "yor.py <종류> --id" in captured["prompt"]
     assert "smoke-named-data" in captured["prompt"]
     assert "무시하거나 기본값으로 대체하지 않는다" in captured["prompt"]
     assert "이 프로젝트에 배정된 작업 ID:" in captured["prompt"]

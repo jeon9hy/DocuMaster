@@ -25,7 +25,7 @@ BASES = {
     "00": "00_user_brief", "05": "05_verified_research_pack", "06": "06_detailed_plan",
     "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
 }
-# 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §4) · 강도 후보(E-021)
+# 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §3) · 강도 후보(E-021)
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
 VAGUE_WORDS = re.compile(r"적절히|적당히|알아서|필요시|필요하면|등등|재량껏")
 STRONG_WORDS = re.compile(r"때문이다|때문에|덕분|결정적|입증|증명|반드시|확실히|분명히|모든 |누구나|최고의|압도적")

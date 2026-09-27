@@ -246,10 +246,11 @@ class RunManager:
                 f"- 작업 경로는 작업/{project['workspace_id']}, 최종 경로는 최종/{project['workspace_id']}만 사용한다.\n"
                 "- 다른 작업 ID의 상태·파일·최종본을 탐색하거나 이어받거나 완료 근거로 삼지 않는다.\n"
                 f"- DOCUMASTER_AGENT_MODELS가 가리키는 현재 실행 스냅샷: {models_path}\n"
-                f"- 요르 실제 호출값: model={yor['model']}, reasoning={yor['effort']}\n"
+                f"- 요르 호출값(yor.py가 위 스냅샷에서 읽는다): model={yor['model']}, reasoning={yor['effort']}\n"
                 "- 경로 이름이 임시·스모크처럼 보여도 이 파일을 무시하거나 기본값으로 대체하지 않는다.\n"
-                "- codex exec 사용법을 다시 조회하지 말고 위 호출값을 그대로 넘긴다.\n"
-                "- Codex 호출은 백그라운드로 보내지 말고 포그라운드에서 종료까지 기다린다.\n\n"
+                f"- 요르는 `python .claude/tools/yor.py <종류> --id {project['workspace_id']}`로만 부른다. "
+                "codex를 직접 부르거나 사용법을 조회하지 않는다.\n"
+                "- yor.py는 포그라운드로 기다린다. 백그라운드로 넘어가면 턴을 끝내지 말고 `yor.py wait`을 반복한다.\n\n"
                 "[사용자 요청]\n" + prompt
             )
         request = TurnRequest(prompt=runtime_prompt, session_id=session_id, resume=resume,
