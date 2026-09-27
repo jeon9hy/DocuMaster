@@ -68,8 +68,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    // 시작 화면은 항상 홈(DEFAULT_VIEW). 주소에서는 보던 프로젝트만 이어받는다
+    // 새로고침이면 주소의 화면으로, 처음 열면 홈(DEFAULT_VIEW)으로. 프로젝트는 주소에서 이어받는다
     const fromUrl = readUrlState();
+    if (fromUrl.view) dispatch({ type: "view/changed", view: fromUrl.view });
     loadProjects(fromUrl.projectId).catch(() => dispatch({ type: "workspace/failed" }));
     // 백엔드가 없으면 로그인 확인도 실패한다 — 그때는 Guest(읽기 전용)로 둔다
     refreshSession().catch(() =>
