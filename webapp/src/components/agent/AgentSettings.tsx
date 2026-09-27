@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { Lock, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { PROVIDERS, REASONING_LABELS } from "@/constants/models";
 import { formatDateTime } from "@/lib/format";
@@ -93,7 +93,7 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
         >
           {setting.modelIds.map((modelId) => (
             <option key={modelId} value={modelId}>
-              {getModelLabel({ ...config, modelId })}
+              {setting.modelLabels?.[modelId] ?? getModelLabel({ ...config, modelId })}
             </option>
           ))}
         </Select>
@@ -118,15 +118,12 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
           ))}
         </Select>
       </div>
-      <p className="mt-1.5 flex items-start gap-1 text-[11px] text-gray-400">
-        {locked && <Lock className="mt-px size-3 shrink-0" aria-hidden />}
-        {locked
-          ? setting.lockedReason
-          : setting.overridden && setting.updatedAt
-            ? `Owner 설정 · 마지막 변경 ${formatDateTime(setting.updatedAt)}`
-            : "기본값(DocuMaster 기본 배치)"}
-        {!locked && levels.length === 1 && levels[0] === null && " · 서브에이전트는 추론 강도를 지정할 수 없습니다"}
-      </p>
+      {/* 마지막 변경만 오른쪽에. 박스 끝에 딱 붙으면 밖으로 나가 보여 살짝 안쪽(pr-2)에 둔다 */}
+      {setting.updatedAt && (
+        <p className="mt-1.5 pr-2 text-right text-[11px] text-gray-400">
+          Owner 설정 · 마지막 변경 {formatDateTime(setting.updatedAt)}
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-1 text-xs text-red-600">
           {error}

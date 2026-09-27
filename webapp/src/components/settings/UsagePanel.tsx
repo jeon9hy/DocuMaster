@@ -2,7 +2,6 @@
 
 import { Gauge, RefreshCw } from "lucide-react";
 import { useServiceData } from "@/hooks/useServiceData";
-import { formatDateTime } from "@/lib/format";
 import { workspaceService } from "@/services";
 import type { ProviderUsage } from "@/types";
 import { Badge } from "../ui/Badge";
@@ -44,11 +43,8 @@ function ProviderUsageRow({ usage }: { usage: ProviderUsage }) {
         <StatusBadgeFor usage={usage} />
       </div>
       <UsageTiles usage={usage} showBar />
-      <p className="mt-2 text-[11px] leading-relaxed text-gray-400">
-        {usage.available && usage.observedAt && `기준 ${formatDateTime(usage.observedAt)} · `}
-        {usage.available && usage.source && `${usage.source} · `}
-        {usage.note}
-      </p>
+      {/* 값이 있으면 막대만. 못 읽었을 때만 이유를 적는다 */}
+      {!usage.available && <p className="text-[13px] leading-relaxed text-gray-500">{usage.note}</p>}
     </li>
   );
 }

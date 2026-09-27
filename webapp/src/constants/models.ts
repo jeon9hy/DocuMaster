@@ -36,12 +36,14 @@ export const MODEL_OPTIONS: readonly ModelOption[] = [
   // 로이드 기본값: --model을 넘기지 않는다 — 사용자의 Claude Code 기본 설정을 따른다(실행 때 실제 모델을 기록).
   { id: "claude-code-default", label: "Claude Code 기본값", provider: "anthropic" },
   { id: "claude-fable-5-1", label: "Claude Fable 5.1", provider: "anthropic" },
-  { id: "claude-opus-5", label: "Claude Opus 5", provider: "anthropic" },
+  { id: "claude-opus-5-5", label: "Claude Opus 5.5", provider: "anthropic" },
   { id: "claude-sonnet-5", label: "Claude Sonnet 5", provider: "anthropic" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", provider: "anthropic" },
   // Codex: 실제 선택지는 백엔드가 ~/.codex/models_cache.json에서 읽는다. 여기는 표시 이름만.
-  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "openai" },
   { id: "gpt-6-astra", label: "GPT-6 Astra", provider: "openai" },
+  { id: "gpt-6-sol", label: "GPT-6 Sol", provider: "openai" },
+  { id: "gpt-6-luna", label: "GPT-6 Luna", provider: "openai" },
+  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "openai" },
   { id: "gpt-5.6-terra", label: "GPT-5.6 Terra", provider: "openai" },
   { id: "gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "openai" },
   { id: "gpt-5.5", label: "GPT-5.5", provider: "openai" },

@@ -20,7 +20,7 @@ DEFAULT_AGENT_CONFIGS: dict[str, dict] = {
     "loid": {"provider": "anthropic", "modelId": "claude-code-default", "reasoningLevel": None},
     "yor": {"provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "xhigh"},
     "yuri": {"provider": "anthropic", "modelId": "claude-sonnet-5", "reasoningLevel": None},
-    "anya": {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": None},
+    "anya": {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": None},
     "bond": {"provider": "google", "modelId": "notebooklm", "reasoningLevel": None},
 }
 

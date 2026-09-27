@@ -76,7 +76,7 @@ def test_guest_can_read_but_not_mutate(client, guest):
     assert guest.get("/api/system/usage").status_code == 200
 
     # 바꾸는 요청은 모두 401
-    loid = {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": "high"}
+    loid = {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": "high"}
     mutations = [
         ("post", "/api/projects", {"json": {"name": "x", "mode": "auto"}}),
         ("delete", f"/api/projects/{project_id}", {}),

@@ -31,6 +31,7 @@ from .orchestrator import (
 )
 from .projects import InvalidRequestError, NotFoundError, ProjectService
 from .scanner import ArtifactSync, Progress, find_new_workspace, scan, track_progress, turn_outcome
+from .yor_feed import YorLogFollower
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +81,8 @@ class RunManager:
         self._adapter = adapter
         self._agent_settings = agent_settings
         self._model_warnings: dict[str, set[str]] = {}
+        # 요르(Codex) 로그를 프로젝트마다 따라 읽는다 — 로이드 턴이 바뀌어도 이어서 읽어야 해서 턴 밖에 둔다
+        self._yor_feeds: dict[str, YorLogFollower] = {}
         self._sync = ArtifactSync(db, events, files)
         self._lock = threading.RLock()
         self._turn: _Turn | None = None
@@ -296,6 +299,11 @@ class RunManager:
         turn.progress, payloads = track_progress(turn.progress, result, project["mode"])
         for payload in payloads:
             self._events.append(turn.project_id, payload, turn.run_id)
+        if project["workspace_id"]:
+            feed = self._yor_feeds.setdefault(turn.project_id, YorLogFollower())
+            work_dir = self._projects.work_root(project) / "작업" / project["workspace_id"]
+            for payload in feed.poll(work_dir):
+                self._events.append(turn.project_id, payload, turn.run_id)
         if turn.progress.worker and turn.progress.worker != turn.persisted_worker:
             self._set_run(turn.run_id, current_stage=turn.progress.worker[0], current_agent=turn.progress.worker[1])
             turn.persisted_worker = turn.progress.worker

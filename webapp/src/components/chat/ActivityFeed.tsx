@@ -1,9 +1,10 @@
 "use client";
 
 import { memo, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, MessagesSquare } from "lucide-react";
+import { ArrowDown, CalendarDays, ChevronDown, ChevronRight, MessagesSquare } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { useStickToBottom } from "@/hooks/useStickToBottom";
+import { dayKey, formatFullDate } from "@/lib/format";
 import { useAppActions, useIsOwner } from "@/state/WorkspaceProvider";
 import type { AgentId, Artifact, FeedItem } from "@/types";
 import { EmptyState } from "../ui/States";
@@ -71,6 +72,22 @@ const FeedRow = memo(function FeedRow({
   }
 });
 
+/** 카카오톡처럼 날짜가 바뀌는 곳에 넣는 구분선 */
+function DateDivider({ iso }: { iso: string }) {
+  return (
+    <li className="flex justify-center py-1" role="separator">
+      <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+        <CalendarDays className="size-3.5 text-gray-400" aria-hidden />
+        <time dateTime={iso}>{formatFullDate(iso)}</time>
+      </span>
+    </li>
+  );
+}
+
+function firstCreatedAt(block: FeedBlock): string {
+  return block.kind === "item" ? block.item.createdAt : block.items[0].createdAt;
+}
+
 /** 연속된 세부 활동(importance: "detail")은 한 묶음으로 접는다. */
 type FeedBlock =
   | { kind: "item"; item: FeedItem }
@@ -121,7 +138,7 @@ interface ActivityFeedProps {
 export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: ActivityFeedProps) {
   const { selectArtifact, respondToInput } = useAppActions();
   const isOwner = useIsOwner();
-  const scrollRef = useStickToBottom<HTMLDivElement>(feed.length);
+  const { ref: scrollRef, atBottom, scrollToBottom } = useStickToBottom<HTMLDivElement>(feed.length);
 
   const artifactById = useMemo(
     () => new Map(artifacts.map((artifact) => [artifact.id, artifact])),
@@ -143,34 +160,58 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
     </li>
   );
 
+  const renderBlock = (block: FeedBlock) =>
+    block.kind === "item" ? (
+      renderRow(block.item)
+    ) : block.kind === "activities" ? (
+      <li key={block.key} className="ml-[52px] text-[13px] text-gray-500">
+        <span className="font-medium">{getAgentProfile(block.agentId).name} · 작업 기록</span>
+        <ul className="mt-1 space-y-1 border-l border-line pl-3">
+          {block.items.map((item) => <li key={item.id} className="break-words">{item.kind === "activity" ? item.label : null}</li>)}
+        </ul>
+      </li>
+    ) : (
+      <li key={block.key}>
+        <DetailGroup count={block.items.length}>{block.items.map(renderRow)}</DetailGroup>
+      </li>
+    );
+
+  let lastDay: string | null = null;
+  const rows: ReactNode[] = [];
+  for (const block of blocks) {
+    const at = firstCreatedAt(block);
+    if (dayKey(at) !== lastDay) {
+      lastDay = dayKey(at);
+      rows.push(<DateDivider key={`day-${lastDay}`} iso={at} />);
+    }
+    rows.push(renderBlock(block));
+  }
+
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
-      {feed.length === 0 ? (
-        <EmptyState
-          icon={MessagesSquare}
-          title="아직 대화가 없습니다"
-          description="아래 입력창에 작업을 지시하고 「워크플로우 실행」을 누르면 에이전트들이 단계별로 일을 시작합니다."
-          className="h-full"
-        />
-      ) : (
-        <ol className="mx-auto flex max-w-[860px] flex-col gap-4 px-4 py-5 md:px-6">
-          {blocks.map((block) =>
-            block.kind === "item" ? (
-              renderRow(block.item)
-            ) : block.kind === "activities" ? (
-              <li key={block.key} className="ml-[52px] text-[13px] text-gray-500">
-                <span className="font-medium">{getAgentProfile(block.agentId).name} · 작업 기록</span>
-                <ul className="mt-1 space-y-1 border-l border-line pl-3">
-                  {block.items.map((item) => <li key={item.id} className="break-words">{item.kind === "activity" ? item.label : null}</li>)}
-                </ul>
-              </li>
-            ) : (
-              <li key={block.key}>
-                <DetailGroup count={block.items.length}>{block.items.map(renderRow)}</DetailGroup>
-              </li>
-            ),
-          )}
-        </ol>
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+        {feed.length === 0 ? (
+          <EmptyState
+            icon={MessagesSquare}
+            title="아직 대화가 없습니다"
+            description="아래 입력창에 작업을 지시하고 「워크플로우 실행」을 누르면 에이전트들이 단계별로 일을 시작합니다."
+            className="h-full"
+          />
+        ) : (
+          <ol className="mx-auto flex max-w-[860px] flex-col gap-4 px-4 py-5 md:px-6">
+            {rows}
+          </ol>
+        )}
+      </div>
+      {!atBottom && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          aria-label="맨 아래로"
+          className="absolute right-4 bottom-3 flex size-10 items-center justify-center rounded-full border border-line bg-white/95 text-gray-600 shadow-md transition-colors hover:bg-gray-50 md:right-6"
+        >
+          <ArrowDown className="size-5" aria-hidden />
+        </button>
       )}
     </div>
   );

@@ -38,6 +38,8 @@ export interface AgentSetting {
   /** 모델마다 지원 추론 강도가 다를 때(요르·Codex). 없으면 reasoningLevels를 모든 모델에 쓴다 */
   reasoningByModel: Record<string, ReasoningLevel[]> | null;
   lockedReason: string | null;
+  /** 백엔드가 아는 표시 이름(요르·Codex 캐시의 display_name). 없으면 constants/models.ts의 이름 */
+  modelLabels?: Record<string, string>;
 }
 
 export interface UsageWindow {

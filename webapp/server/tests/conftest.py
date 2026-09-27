@@ -38,6 +38,7 @@ def settings(tmp_path: Path) -> Settings:
         cors_origins=("http://localhost:3000",),
         owner_pin_hash=TEST_PIN_HASH,
         codex_usage_live=False,  # 테스트는 실제 Codex 계정을 조회하지 않는다
+        claude_usage_live=False,  # 실제 Claude 호출도 하지 않는다
     )
 
 

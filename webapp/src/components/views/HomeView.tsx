@@ -43,30 +43,38 @@ function RecentProjects() {
         <EmptyState icon={Folder} title="아직 프로젝트가 없습니다" className="py-6" />
       ) : (
         <ul className="divide-y divide-gray-100">
-          {shown.map((project) => (
-            <li key={project.id} className="flex items-center gap-3 px-2 py-3">
-              <Folder className="size-4 shrink-0 text-blue-600" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-gray-900">{project.name}</span>
-                  <Badge>{PROJECT_MODE_LABEL[project.mode]}</Badge>
-                </p>
-                {project.lastActivityAt && (
-                  <p className="mt-0.5 text-xs text-gray-500">마지막 작업 {formatRelative(project.lastActivityAt)}</p>
-                )}
-              </div>
-              <Button
-                size="sm"
-                icon={ArrowRight}
-                onClick={() => {
-                  selectProject(project.id);
-                  setView("chat");
-                }}
-              >
-                계속 작업
-              </Button>
-            </li>
-          ))}
+          {shown.map((project) => {
+            const open = () => {
+              selectProject(project.id);
+              setView("chat");
+            };
+            return (
+              <li key={project.id} className="flex items-center gap-3 px-2 py-3">
+                {/* 폴더·이름 줄 어디를 눌러도 프로젝트로 넘어간다 */}
+                <button
+                  type="button"
+                  onClick={open}
+                  className="-my-1 -ml-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-gray-50"
+                >
+                  <Folder className="size-4 shrink-0 text-blue-600" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-gray-900">{project.name}</span>
+                      <Badge>{PROJECT_MODE_LABEL[project.mode]}</Badge>
+                    </span>
+                    {project.lastActivityAt && (
+                      <span className="mt-0.5 block text-xs text-gray-500">
+                        마지막 작업 {formatRelative(project.lastActivityAt)}
+                      </span>
+                    )}
+                  </span>
+                </button>
+                <Button size="sm" icon={ArrowRight} onClick={open}>
+                  계속 작업
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </Panel>

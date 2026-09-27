@@ -24,6 +24,12 @@ def test_citation_links_to_rendered_source_row():
     assert 'href="https://example.com"' in sources
 
 
+def test_sources_always_start_on_a_new_page():
+    # 본문 끝에 붙으면 쪽 경계에서 출처 목록이 잘린다 — 항상 새 쪽에서 시작한다
+    rule = next(line for line in md2html.CSS.splitlines() if line.startswith(".sources {"))
+    assert "page-break-before: always" in rule and "break-before: page" in rule
+
+
 def test_front_matter_title_is_visible_without_cover(tmp_path, monkeypatch):
     source = tmp_path / "memo.md"
     output = tmp_path / "memo.html"

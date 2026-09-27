@@ -31,6 +31,8 @@ class Settings:
     codex_home: Path | None = None
     """설정 화면의 Codex 사용량을 codex app-server로 실시간 조회할지(테스트는 끈다)"""
     codex_usage_live: bool = True
+    """Claude 사용량을 가장 싼 호출(haiku)로 실시간 조회할지(테스트는 끈다). 끄면 statusLine 캐시·실행 로그만"""
+    claude_usage_live: bool = True
 
     @property
     def db_path(self) -> Path:
@@ -74,4 +76,5 @@ def load_settings() -> Settings:
         owner_pin_hash=os.environ.get("DOCUMASTER_OWNER_PIN_HASH", ""),
         cookie_secure=os.environ.get("DOCUMASTER_COOKIE_SECURE", "") == "1",
         codex_home=Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex"),
+        claude_usage_live=os.environ.get("DOCUMASTER_CLAUDE_USAGE_LIVE", "1") != "0",
     )

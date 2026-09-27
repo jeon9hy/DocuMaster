@@ -108,7 +108,7 @@ li::marker { color: var(--accent); }
 li > ul, li > ol { margin: 3pt 0 0; }
 strong { font-weight: 700; }
 a { color: var(--accent-deep); text-decoration: none; border-bottom: 0.4pt solid var(--rule); }
-sup.cite { font-size: 7.5pt; line-height: 0; margin-left: 1pt; }
+sup.cite { font-size: 7.5pt; line-height: 0; margin-left: 2.5pt; }
 sup.cite a { border: 0; font-weight: 700; }
 hr { border: none; border-top: 0.6pt solid var(--rule); margin: 18pt 0; }
 .pagebreak { page-break-before: always; }
@@ -161,8 +161,8 @@ blockquote p:last-child { margin-bottom: 0; }
                    color: var(--accent); }
 .pull .by { font-size: 8.5pt; color: var(--muted); margin-top: 6pt; }
 
-/* 출처 */
-.sources { margin-top: 24pt; padding-top: 10pt; border-top: 1.2pt solid var(--ink); }
+/* 출처 — 본문에 붙어 쪽 끝에서 잘리지 않게 항상 새 쪽에서 시작한다 */
+.sources { break-before: page; page-break-before: always; padding-top: 10pt; border-top: 1.2pt solid var(--ink); }
 .sources h2 { margin-top: 0; }
 .source-row { display: grid; grid-template-columns: 18pt 1fr; gap: 6pt; padding: 5pt 0;
               border-bottom: 0.5pt solid var(--hair); break-inside: avoid; page-break-inside: avoid;

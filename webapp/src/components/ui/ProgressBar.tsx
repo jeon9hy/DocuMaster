@@ -5,9 +5,11 @@ interface ProgressBarProps {
   value: number;
   label: string;
   className?: string;
+  /** thick = 두 배 굵기(설정 화면의 사용량) */
+  size?: "default" | "thick";
 }
 
-export function ProgressBar({ value, label, className }: ProgressBarProps) {
+export function ProgressBar({ value, label, className, size = "default" }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, value));
   return (
     <div
@@ -16,7 +18,7 @@ export function ProgressBar({ value, label, className }: ProgressBarProps) {
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn("h-2 w-full overflow-hidden rounded-full bg-gray-100", className)}
+      className={cn(size === "thick" ? "h-4" : "h-2", "w-full overflow-hidden rounded-full bg-gray-100", className)}
     >
       <div
         className="h-full rounded-full bg-blue-600 transition-[width] duration-500"

@@ -13,7 +13,7 @@ from app.orchestrator import ClaudeCodeOrchestratorAdapter, TurnRequest
 from .conftest import create_project, wait_until
 from .test_runs import pending_prompt, start
 
-OPUS_HIGH = {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": "high"}
+OPUS_HIGH = {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": "high"}
 
 
 def by_agent(rows: list[dict]) -> dict[str, dict]:
@@ -24,7 +24,7 @@ def test_defaults_match_claude_md_placement(client):
     rows = by_agent(client.get("/api/settings/agents").json())
     assert rows["yor"]["config"] == {"provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "xhigh"}
     assert rows["yuri"]["config"]["modelId"] == "claude-sonnet-5"
-    assert rows["anya"]["config"]["modelId"] == "claude-opus-5"
+    assert rows["anya"]["config"]["modelId"] == "claude-opus-5-5"
     assert rows["loid"]["config"]["modelId"] == "claude-code-default"
     assert all(not row["overridden"] for row in rows.values())
     # 모델 선택이 없는 본드만 잠긴다. 유리·아냐는 추론 강도를 넘길 방법이 없어 「도구 기본값」 하나뿐
@@ -39,15 +39,21 @@ def test_owner_can_change_loid_and_reset(client):
     assert rows["loid"]["config"] == OPUS_HIGH and rows["loid"]["overridden"] and rows["loid"]["updatedAt"]
     rows = by_agent(client.delete("/api/settings/agents/loid").json())
     assert rows["loid"]["config"]["modelId"] == "claude-code-default" and not rows["loid"]["overridden"]
+    assert rows["loid"]["updatedAt"]  # 되돌린 것도 마지막 변경으로 남는다
+
+
+def test_saved_old_model_id_moves_to_its_successor(client):
+    client.app.state.services.agent_settings._save("anya", {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": None})
+    assert by_agent(client.get("/api/settings/agents").json())["anya"]["config"]["modelId"] == "claude-opus-5-5"
 
 
 def test_unsupported_settings_are_refused_not_substituted(client):
     cases = [
         ("yor", {"provider": "openai", "modelId": "gpt-imaginary", "reasoningLevel": "xhigh"}),
-        ("yuri", {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": "high"}),
+        ("yuri", {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": "high"}),
         ("bond", {"provider": "google", "modelId": "gemini", "reasoningLevel": None}),
         ("loid", {"provider": "anthropic", "modelId": "claude-imaginary", "reasoningLevel": "high"}),
-        ("loid", {"provider": "openai", "modelId": "claude-opus-5", "reasoningLevel": "high"}),
+        ("loid", {"provider": "openai", "modelId": "claude-opus-5-5", "reasoningLevel": "high"}),
     ]
     for agent_id, config in cases:
         response = client.patch(f"/api/settings/agents/{agent_id}", json=config)
@@ -80,7 +86,7 @@ def test_claude_adapter_passes_loid_model_only_when_set(settings):
     default = command({"loid": {"provider": "anthropic", "modelId": "claude-code-default", "reasoningLevel": None}})
     assert "--model" not in default and "--effort" not in default
     chosen = command({"loid": OPUS_HIGH})
-    assert chosen[chosen.index("--model") + 1] == "claude-opus-5"
+    assert chosen[chosen.index("--model") + 1] == "claude-opus-5-5"
     assert chosen[chosen.index("--effort") + 1] == "high"
     assert "--fallback-model" not in chosen
 
@@ -133,7 +139,7 @@ def test_models_file_is_written_for_the_orchestrator(client, settings):
 
 def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     expected = orchestrator_models({"yor": {"modelId": "gpt-6-astra", "reasoningLevel": "high"},
-                                    "yuri": {"modelId": "claude-sonnet-5"}, "anya": {"modelId": "claude-opus-5"}})
+                                    "yuri": {"modelId": "claude-sonnet-5"}, "anya": {"modelId": "claude-opus-5-5"}})
 
     def tool(name: str, data: dict) -> str:
         return json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": name, "input": data}]}})

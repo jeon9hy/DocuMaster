@@ -1,8 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "claudeMdExcludes": [
-    "**/DocuMaster/CLAUDE.md"
-  ],
   "permissions": {
     "ask": [
       "Bash(git restore:*)",

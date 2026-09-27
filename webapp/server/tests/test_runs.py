@@ -213,8 +213,8 @@ def test_cumulative_claude_cost_is_not_added_twice(client, settings):
     services.db.execute("INSERT INTO runs (id, project_id, status, started_at) VALUES (?, ?, 'completed', '2026-09-20')",
                         (run_id, project_id))
     for cumulative in (1.1, 1.1, 2.5, 3.0):
-        services.runs._record_turn(run_id, TurnResult(exit_code=0, model="claude-opus-5",
+        services.runs._record_turn(run_id, TurnResult(exit_code=0, model="claude-opus-5-5",
                                                      extra={"total_cost_usd": cumulative}))
     row = services.db.one("SELECT cost_usd, actual_model FROM runs WHERE id = ?", (run_id,))
     assert row["cost_usd"] == 3.0
-    assert row["actual_model"] == "claude-opus-5"
+    assert row["actual_model"] == "claude-opus-5-5"

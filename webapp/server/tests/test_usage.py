@@ -89,9 +89,9 @@ def test_codex_failure_is_reported_not_invented():
     assert result["available"] is False and "로그인 필요" in result["note"]
 
 
-def test_report_order_and_notebooklm(tmp_path):
+def test_report_order_without_notebooklm(tmp_path):
     report = usage_report(tmp_path / "none.json", codex_live=False)
-    assert [item["provider"] for item in report] == ["anthropic", "openai", "google"]
+    assert [item["provider"] for item in report] == ["anthropic", "openai"]
     assert all(not item["available"] and item["windows"] == [] for item in report)
 
 
@@ -113,3 +113,34 @@ def test_claude_headless_log_usage_without_model_call(tmp_path):
     assert claude_usage_from_logs(logs, NOW + 7200)["windows"][0]["expired"] is True
     report = usage_report(tmp_path / "missing.json", codex_live=False, claude_log_dir=logs)
     assert report[0]["available"] and report[1]["available"] is False
+
+
+def test_claude_live_probe_is_used_and_cached():
+    import app.usage as usage_module
+    usage_module._claude_cache = None
+    calls = []
+
+    def probe():
+        calls.append(1)
+        return {"unifiedWindows": {"five_hour": {"utilization": 0.05, "resetsAt": NOW + 3600},
+                                   "seven_day": {"utilization": 0.01, "resetsAt": NOW + 86400}}}
+
+    first = usage_module.claude_usage_live(probe, NOW)
+    assert [window["usedPercent"] for window in first["windows"]] == [5.0, 1.0]
+    assert first["source"] == "Claude Code CLI (rate_limit_event)"
+    assert usage_module.claude_usage_live(probe, NOW) is first and len(calls) == 1
+    usage_module._claude_cache = None
+
+
+def test_claude_live_failure_falls_back_to_newest_record():
+    import app.usage as usage_module
+    usage_module._claude_cache = None
+
+    def fail():
+        raise RuntimeError("로그인 필요")
+
+    assert usage_module.claude_usage_live(fail, NOW) is None
+    older = {"available": True, "observedAt": "2026-09-25T12:00:00Z"}
+    newer = {"available": True, "observedAt": "2026-09-27T12:00:00Z"}
+    assert usage_module._newer(older, newer) is newer
+    assert usage_module._newer(newer, {"available": False}) is newer

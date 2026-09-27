@@ -61,7 +61,7 @@ export const AGENT_PROFILES = {
     role: "문서 집필",
     description: "문서 업무 전용입니다. 확정된 구성과 검증된 사실만으로 최종 문서를 쓰고 다듬습니다.",
     accent: { text: "text-pink-700", soft: "bg-pink-50", dot: "bg-pink-400" },
-    defaultConfig: { provider: "anthropic", modelId: "claude-opus-5", reasoningLevel: null },
+    defaultConfig: { provider: "anthropic", modelId: "claude-opus-5-5", reasoningLevel: null },
   },
   bond: {
     name: "본드",

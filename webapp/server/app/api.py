@@ -309,7 +309,8 @@ def reset_agent_setting(agent_id: str, request: Request):
 def system_usage(request: Request):
     """실제로 확인되는 값만. 확인할 수 없으면 available=false와 이유."""
     settings = _services(request).settings
-    return usage_report(settings.claude_usage_file, settings.codex_usage_live, settings.log_dir)
+    return usage_report(settings.claude_usage_file, settings.codex_usage_live, settings.log_dir,
+                        claude_live=settings.claude_usage_live)
 
 
 # --- 인증(단일 Owner) ------------------------------------------------------------------

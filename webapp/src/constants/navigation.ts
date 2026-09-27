@@ -46,7 +46,8 @@ export const PROJECT_NAV: readonly NavItem[] = [
   { id: "projectSettings", label: "프로젝트 설정", icon: FolderCog },
 ];
 
-export const DEFAULT_VIEW: ViewId = "chat";
+/** 앱을 처음 열면 항상 이 화면(주소에 남은 화면은 복원하지 않는다) */
+export const DEFAULT_VIEW: ViewId = "home";
 
 /** 모바일 하단 탭. 한 번에 한 패널만 보여 준다. */
 export type MobileTab = "chat" | "progress" | "references" | "artifacts";

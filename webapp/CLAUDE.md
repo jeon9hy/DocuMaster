@@ -27,6 +27,7 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 - 반복 값은 `constants/`, 목업은 `data/mock/`. 컴포넌트에 문자열·목업을 박지 않는다. 모델명에 묶인 컴포넌트를 만들지 않는다.
 - 의존성은 `next · react · tailwind · lucide-react`만. 더하기 전에 사용자에게 묻는다.
 - `Button`/`IconButton`에 `hidden md:…`를 직접 주지 않는다(`inline-flex`와 충돌) — 감싼 `span`에 준다.
+- 커밋 안 된 변경을 `restore`·`checkout --`·`reset --hard`·`clean`·`stash`로 버리지 않는다. 끝난 변경은 바로 커밋.
 
 ## 확인
 `npx tsc --noEmit` → `npm run lint` → `npm test` → `npm run build`(dev 서버가 꺼져 있을 때만 — `.next`를 같이 써서 켜진 화면이 깨진다) · 백엔드 `server/.venv/Scripts/python -m pytest`.
@@ -35,5 +36,4 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 
 ## 현재 상태 (세션 끝에 이 절만 고친다)
 - A~E 완료: fake 전체 경로 · 실제 Claude 실행(09-20 PPT 이전 흐름, 09-26 소형 DOCUMENT) 6단계 완료. 증거는 README 「Phase E 인수인계」.
-- 09-27: 요르 호출은 `.claude/tools/yor.py`. 실행 계약·활동 라벨이 이를 안다. `check_model_calls`는 codex 직접 호출만 보고, yor.py는 로그의 실제 모델을 스스로 대조한다.
-- 남은 확인: yor.py 첫 실제 04에서 로그 `sandbox: read-only`.
+- 09-27: 요르는 `yor.py`로만 호출, 진행은 `yor_feed.py`가 로그를 읽어 피드로. Claude 사용량은 haiku 최소 호출로 실시간.

@@ -5,7 +5,7 @@ import { ProgressBar } from "../ui/ProgressBar";
 
 /** 창 길이 → 이름. 모르는 길이는 그대로 적는다(추측하지 않는다). */
 export function windowName(window: UsageWindow): string {
-  if (window.windowMinutes === 300) return "현재 세션";
+  if (window.windowMinutes === 300) return "현재";
   if (window.windowMinutes === 10080) return "주간";
   if (window.windowMinutes) return `${Math.round(window.windowMinutes / 60)}시간`;
   return window.kind;
@@ -17,14 +17,16 @@ export function isExhausted(window: UsageWindow): boolean {
 }
 
 /**
- * 한 창의 사용량 타일: 「현재 세션 47%」, 다 썼으면 「19:18 재개」.
- * 주간 창은 제목에 리셋 날짜를 붙인다(「주간 · 9/26 리셋」). 리셋이 지난 값은 흐리게 「리셋됨」.
+ * 한 창의 사용량 타일. 제목에 리셋 시각을 붙인다: 「현재 · 9/28 02:22 리셋」 · 「주간 · 10/1 리셋」.
+ * 다 썼으면 값 자리에 「19:18 재개」, 리셋이 지난 값은 흐리게 「리셋됨」.
+ * showBar면 제목 줄 아래에 굵은 막대만 둔다(설정 화면). 설명 문구는 두지 않는다.
  */
 export function UsageTile({ window, showBar = false }: { window: UsageWindow; showBar?: boolean }) {
   const exhausted = isExhausted(window) && !window.expired;
   const weekly = window.windowMinutes === 10080;
   const reset = window.resetsAt ? formatResetShort(window.resetsAt) : null;
-  const title = weekly && reset && !exhausted ? `${windowName(window)} · ${reset.date} 리셋` : windowName(window);
+  const resetAt = reset && (weekly ? reset.date : `${reset.date} ${reset.time}`);
+  const title = resetAt && !exhausted && !window.expired ? `${windowName(window)} · ${resetAt} 리셋` : windowName(window);
   let value: string;
   if (window.expired) value = "리셋됨";
   else if (exhausted && reset) value = `${reset.label} 재개`;
@@ -46,13 +48,7 @@ export function UsageTile({ window, showBar = false }: { window: UsageWindow; sh
         </span>
       </div>
       {showBar && !window.expired && (
-        <>
-          <ProgressBar value={window.usedPercent} label={`${title} 사용량`} className="mt-1.5" />
-          <p className="mt-1 text-[11px] text-gray-500">
-            잔여 비율 {Math.max(0, 100 - window.usedPercent).toFixed(1)}%
-          </p>
-          {reset && !exhausted && <p className="mt-1 text-[11px] text-gray-500">리셋 {reset.label}</p>}
-        </>
+        <ProgressBar value={window.usedPercent} label={`${title} 사용량`} size="thick" className="mt-2.5 mb-1" />
       )}
     </div>
   );

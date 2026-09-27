@@ -15,6 +15,23 @@ const dateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
   minute: "2-digit",
 });
 
+const fullDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  weekday: "long",
+});
+
+/** 대화의 날짜 구분선: "2026년 9월 27일 일요일" */
+export function formatFullDate(iso: string): string {
+  return fullDateFormatter.format(new Date(iso));
+}
+
+/** 같은 날(브라우저 시간대)인지 비교하는 키 */
+export function dayKey(iso: string): string {
+  return new Date(iso).toDateString();
+}
+
 /** "9. 19. 오후 9:30" */
 export function formatDateTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso));
@@ -33,15 +50,15 @@ export function formatRelative(iso: string, now: Date = new Date()): string {
 const clockFormatter = new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 /**
- * 리셋·재개 시각을 짧게. 오늘이면 "19:18", 다른 날이면 "9/26 10:07". date는 "9/26".
+ * 리셋·재개 시각을 짧게. label은 오늘이면 "19:18", 다른 날이면 "9/26 10:07". date는 "9/26", time은 "10:07".
  * 브라우저의 시간대로 보여 준다(시간대를 코드에 박지 않는다).
  */
-export function formatResetShort(iso: string, now: Date = new Date()): { label: string; date: string } {
+export function formatResetShort(iso: string, now: Date = new Date()): { label: string; date: string; time: string } {
   const at = new Date(iso);
   const time = clockFormatter.format(at);
   const date = `${at.getMonth() + 1}/${at.getDate()}`;
   const sameDay = at.toDateString() === now.toDateString();
-  return { label: sameDay ? time : `${date} ${time}`, date };
+  return { label: sameDay ? time : `${date} ${time}`, date, time };
 }
 
 /** "오전 10:14" */

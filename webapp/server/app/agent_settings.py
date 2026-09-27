@@ -26,37 +26,50 @@ from .db import Database, now_iso
 UNSUPPORTED_MESSAGE = "현재 선택한 모델 설정을 사용할 수 없습니다."
 
 # 로이드가 고를 수 있는 모델. claude-code-default = --model을 넘기지 않음(사용자의 Claude Code 기본값).
-_LOID_MODELS = ("claude-code-default", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5")
+_LOID_MODELS = ("claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5", "claude-haiku-4-5")
 # None = --effort를 넘기지 않음(Claude Code 기본값)
 _LOID_REASONING = (None, "low", "medium", "high", "xhigh", "max")
 
 # 서브에이전트(Agent 도구)의 model 값. 화면의 모델 ID → 도구에 넘기는 별칭
 SUBAGENT_ALIAS = {
     "claude-fable-5-1": "fable",
-    "claude-opus-5": "opus",
+    "claude-opus-5-5": "opus",
     "claude-sonnet-5": "sonnet",
     "claude-haiku-4-5": "haiku",
 }
 
 _LOCK_REASON = {"bond": "NotebookLM(nlm CLI)에는 모델 선택이 없습니다."}
 
+# 새 모델이 나와 목록에서 빠진 ID → 이어받을 ID. 저장된 설정을 읽을 때만 옮긴다.
+_RENAMED_MODELS = {"claude-opus-5": "claude-opus-5-5"}
+
 
 class UnsupportedConfigError(ValueError):
     pass
+
+
+def _codex_cache(codex_home: Path | None) -> list[dict]:
+    """Codex CLI가 받아 둔 모델 목록 중 목록에 보이는 것만. 못 읽으면 빈 목록."""
+    try:
+        data = json.loads((codex_home / "models_cache.json").read_text(encoding="utf-8")) if codex_home else {}
+    except (OSError, ValueError):
+        return []
+    return [model for model in (data.get("models", []) if isinstance(data, dict) else [])
+            if isinstance(model, dict) and model.get("visibility") == "list" and model.get("slug")]
+
+
+def codex_labels(codex_home: Path | None) -> dict[str, str]:
+    """모델 ID → Codex가 붙인 표시 이름(예: gpt-6-sol → GPT-6-Sol)."""
+    return {str(model["slug"]): str(model["display_name"]) for model in _codex_cache(codex_home)
+            if isinstance(model.get("display_name"), str)}
 
 
 def codex_models(codex_home: Path | None) -> dict[str, list[str]]:
     """Codex CLI가 받아 둔 모델 목록(목록에 보이는 것만) → 모델별 지원 추론 강도. 못 읽으면 기본값 하나."""
     default = contract.DEFAULT_AGENT_CONFIGS["yor"]
     fallback = {default["modelId"]: [default["reasoningLevel"]]}
-    try:
-        data = json.loads((codex_home / "models_cache.json").read_text(encoding="utf-8")) if codex_home else {}
-    except (OSError, ValueError):
-        return fallback
     models: dict[str, list[str]] = {}
-    for model in data.get("models", []) if isinstance(data, dict) else []:
-        if not isinstance(model, dict) or model.get("visibility") != "list" or not model.get("slug"):
-            continue
+    for model in _codex_cache(codex_home):
         levels = [level.get("effort") if isinstance(level, dict) else level
                   for level in model.get("supported_reasoning_levels") or []]
         levels = [level for level in levels if isinstance(level, str)]
@@ -73,7 +86,8 @@ def options_for(agent_id: str, codex_home: Path | None) -> dict:
     if agent_id == "yor":
         models = codex_models(codex_home)
         levels = sorted({level for values in models.values() for level in values}, key=_level_order)
-        return {"modelIds": list(models), "reasoningLevels": levels, "reasoningByModel": models, "lockedReason": None}
+        return {"modelIds": list(models), "reasoningLevels": levels, "reasoningByModel": models, "lockedReason": None,
+                "modelLabels": codex_labels(codex_home)}
     if agent_id in ("yuri", "anya"):
         return {"modelIds": list(SUBAGENT_ALIAS), "reasoningLevels": [None], "reasoningByModel": None,
                 "lockedReason": None}
@@ -115,7 +129,8 @@ class AgentSettingsService:
         for agent_id, default in contract.DEFAULT_AGENT_CONFIGS.items():
             row = overrides.get(agent_id)
             result[agent_id] = dict(default) if row is None else {
-                "provider": row["provider"], "modelId": row["model_id"], "reasoningLevel": row["reasoning_level"]}
+                "provider": row["provider"], "modelId": _RENAMED_MODELS.get(row["model_id"], row["model_id"]),
+                "reasoningLevel": row["reasoning_level"]}
         return result
 
     def list(self) -> list[dict]:
@@ -125,7 +140,8 @@ class AgentSettingsService:
             "agentId": agent_id,
             "config": effective[agent_id],
             "defaultConfig": default,
-            "overridden": agent_id in overrides,
+            # 기본 배치와 다른지. 마지막 변경 시각(updatedAt)은 되돌린 뒤에도 남는다
+            "overridden": effective[agent_id] != default,
             "updatedAt": overrides[agent_id]["updated_at"] if agent_id in overrides else None,
             **options_for(agent_id, self._codex_home),
         } for agent_id, default in contract.DEFAULT_AGENT_CONFIGS.items()]
@@ -135,10 +151,9 @@ class AgentSettingsService:
             raise KeyError(agent_id)
         if not is_supported(agent_id, config, self._codex_home):
             raise UnsupportedConfigError(UNSUPPORTED_MESSAGE)
-        default = contract.DEFAULT_AGENT_CONFIGS[agent_id]
-        if (config["modelId"], config["reasoningLevel"]) == (default["modelId"], default["reasoningLevel"]):
-            self.reset(agent_id)
-            return
+        self._save(agent_id, config)
+
+    def _save(self, agent_id: str, config: dict) -> None:
         self._db.execute(
             "INSERT INTO agent_overrides VALUES (?, ?, ?, ?, ?) ON CONFLICT(agent_id) DO UPDATE SET"
             " provider = excluded.provider, model_id = excluded.model_id,"
@@ -147,9 +162,10 @@ class AgentSettingsService:
         )
 
     def reset(self, agent_id: str) -> None:
+        """기본 배치로 되돌린다. 되돌린 것도 변경이라 시각을 남긴다."""
         if agent_id not in contract.DEFAULT_AGENT_CONFIGS:
             raise KeyError(agent_id)
-        self._db.execute("DELETE FROM agent_overrides WHERE agent_id = ?", (agent_id,))
+        self._save(agent_id, contract.DEFAULT_AGENT_CONFIGS[agent_id])
 
     def snapshot_json(self) -> str:
         return json.dumps(self.effective(), ensure_ascii=False)

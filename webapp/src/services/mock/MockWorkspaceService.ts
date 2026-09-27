@@ -33,10 +33,10 @@ const STOP_DELAY_MS = 1200;
 
 /** 목업의 모델 선택지 — 백엔드(server/app/agent_settings.py)와 같은 규칙: 로이드만 바꿀 수 있다. */
 const MOCK_LOID_OPTIONS: Pick<AgentSetting, "modelIds" | "reasoningLevels"> = {
-  modelIds: ["claude-code-default", "claude-fable-5-1", "claude-opus-5", "claude-sonnet-5"],
+  modelIds: ["claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5", "claude-haiku-4-5"],
   reasoningLevels: [null, "low", "medium", "high", "xhigh", "max"],
 };
-const MOCK_SUBAGENT_MODELS = ["claude-fable-5-1", "claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"];
+const MOCK_SUBAGENT_MODELS = ["claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5", "claude-haiku-4-5"];
 const MOCK_LOCK_REASON = "NotebookLM(nlm CLI)에는 모델 선택이 없습니다.";
 const MOCK_USAGE_NOTE = "목업 모드에서는 사용량을 확인하지 않습니다(백엔드를 켜면 실제 값만 보여 줍니다).";
 
@@ -276,7 +276,7 @@ export class MockWorkspaceService implements WorkspaceService {
         agentId,
         config: override?.config ?? defaultConfig,
         defaultConfig,
-        overridden: Boolean(override),
+        overridden: Boolean(override) && override?.config.modelId !== defaultConfig.modelId,
         updatedAt: override?.updatedAt ?? null,
         modelIds: loid ? MOCK_LOID_OPTIONS.modelIds : subagent ? MOCK_SUBAGENT_MODELS : [defaultConfig.modelId],
         reasoningLevels: loid ? MOCK_LOID_OPTIONS.reasoningLevels : [defaultConfig.reasoningLevel],
@@ -322,7 +322,6 @@ export class MockWorkspaceService implements WorkspaceService {
     return [
       unavailable("anthropic", "Anthropic · Claude Code"),
       unavailable("openai", "OpenAI · Codex"),
-      unavailable("google", "Google · NotebookLM"),
     ];
   }
 
