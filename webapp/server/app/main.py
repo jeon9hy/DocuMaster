@@ -18,7 +18,8 @@ from .files import FileStore
 from .imports import import_existing_projects
 from .orchestrator import create_adapter
 from .projects import ProjectService
-from .runs import RunManager
+from .retention import prune_run_logs
+from .runs import ACTIVE_STATUSES, RunManager
 
 
 @dataclass
@@ -50,6 +51,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         services = build_services(settings)
         services.runs.recover_on_startup()
+        # 끝난 실행의 오래된 로그만 지운다(응답 대기 중인 실행은 남긴다). DB는 건드리지 않는다
+        active = {row["id"] for row in services.db.query(f"SELECT id FROM runs WHERE status IN {ACTIVE_STATUSES}")}
+        prune_run_logs(settings.log_dir, settings.log_retention_days, active)
         import_existing_projects(services)
         app.state.services = services
         try:

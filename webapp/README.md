@@ -51,6 +51,7 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 | `app/contract.py` · `scanner.py` | 파일 계약 읽기(00~07 → 6단계·담당 에이전트, 05 첫 줄 판정) · 바뀐 것만 이벤트로 |
 | `app/runs.py` · `orchestrator.py` | 한 번에 한 실행 · 실행 예약(다른 프로젝트가 완료·오류로 끝나면 순서대로 시작, 중지로 끝나면 대기) · graceful stop · 응답 후 `--resume` · 재시작 복구 · 오류 분류 |
 | `app/yor_feed.py` | 요르(Codex) 진행을 피드로 — `_yor_call.json`과 `codex exec --json` 이벤트 로그(`_log_NN.jsonl`)를 따라 읽어 중간 보고는 대화, 연 페이지는 도메인, 검색·명령은 건수만. 모르는 이벤트는 건너뜀(옛 텍스트 로그도 읽음) |
+| `app/retention.py` | 끝난 실행의 로그(`.data/logs/run_*`)를 보존 기간(기본 30일, `DOCUMASTER_LOG_RETENTION_DAYS`, 0=끔)이 지나면 백엔드 시작 때 지움. DB·DB 백업·`.data/smoke/`는 건드리지 않음 |
 | `app/fake_orchestrator.py` · `imports.py` | 비용 없는 가짜 로이드 · 기존 작업 읽기 전용 가져오기 |
 
 - **이벤트**: `{schemaVersion, id, projectId, runId, seq, at, type, ...payload}`. `seq`는 프로젝트마다 1부터 증가합니다.

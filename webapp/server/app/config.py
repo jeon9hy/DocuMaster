@@ -33,6 +33,7 @@ class Settings:
     codex_usage_live: bool = True
     """Claude 사용량을 가장 싼 호출(haiku)로 실시간 조회할지(테스트는 끈다). 끄면 statusLine 캐시·실행 로그만"""
     claude_usage_live: bool = True
+    log_retention_days: int = 30  # .data/logs의 끝난 실행 로그 보존 기간. 0이면 지우지 않는다
 
     @property
     def db_path(self) -> Path:
@@ -77,4 +78,5 @@ def load_settings() -> Settings:
         cookie_secure=os.environ.get("DOCUMASTER_COOKIE_SECURE", "") == "1",
         codex_home=Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex"),
         claude_usage_live=os.environ.get("DOCUMASTER_CLAUDE_USAGE_LIVE", "1") != "0",
+        log_retention_days=int(os.environ.get("DOCUMASTER_LOG_RETENTION_DAYS", "30")),
     )
