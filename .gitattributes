@@ -1,0 +1,15 @@
+# 줄바꿈은 LF로 통일한다. 배치 파일만 CRLF(cmd가 LF에서 레이블을 잘못 읽는다).
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 사용자 결과물은 바이트 그대로 둔다(정규화 대상 아님)
+작업/** -text
+최종/** -text
+자료/** -text
+
+*.pdf binary
+*.png binary
+*.jpg binary
+*.pptx binary
+*.db binary
