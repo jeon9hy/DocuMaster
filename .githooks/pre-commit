@@ -1,0 +1,60 @@
+#!/bin/sh
+# DocuMaster 커밋 전 검사 — 스테이징된 파일이 닿는 영역만 돈다(전부 돌면 약 1~2분).
+# 켜기: git config core.hooksPath .githooks  (webapp/start.bat이 자동으로 켠다)
+# 긴급할 때만 건너뛰기: git commit --no-verify
+
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+staged=$(git -c core.quotepath=false diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+fail=0
+# 통과하면 한 줄, 실패하면 마지막 40줄을 보여 준다
+run() {
+  label=$1; shift
+  echo "[pre-commit] $label"
+  if ! out=$("$@" 2>&1); then
+    printf '%s\n' "$out" | tail -40
+    echo "[pre-commit] 실패: $label"
+    fail=1
+  fi
+}
+
+# 백엔드·도구: webapp/server/** 또는 .claude/tools/** (도구 테스트는 server/tests에 있다)
+py_files=$(printf '%s\n' "$staged" | grep -E '^(webapp/server/|\.claude/tools/).*\.py$')
+if printf '%s\n' "$staged" | grep -qE '^(webapp/server/|\.claude/tools/)'; then
+  venv="$root/webapp/server/.venv/Scripts"
+  [ -d "$venv" ] || venv="$root/webapp/server/.venv/bin"
+  if [ -d "$venv" ]; then
+    if [ -n "$py_files" ]; then
+      # 문법 오류·정의 안 된 이름만 막는다(스타일 경고는 막지 않음)
+      # shellcheck disable=SC2086
+      run "ruff (치명 오류만)" "$venv/ruff" check --quiet --select E9,F63,F7,F82 $py_files
+    fi
+    run "백엔드 테스트" sh -c "cd webapp/server && '$venv/python' -m pytest -q"
+  else
+    echo "[pre-commit] 건너뜀: webapp/server/.venv 없음(start.bat을 한 번 실행)"
+  fi
+fi
+
+# 화면: webapp/ 아래 server·문서를 뺀 코드
+web_files=$(printf '%s\n' "$staged" | grep -E '^webapp/' | grep -vE '^webapp/server/' | grep -E '\.(ts|tsx|mjs|js|json)$')
+if [ -n "$web_files" ]; then
+  if [ -d webapp/node_modules ]; then
+    lint_files=$(printf '%s\n' "$web_files" | grep -E '\.(ts|tsx|mjs|js)$' | sed 's#^webapp/##')
+    run "타입 검사" sh -c "cd webapp && npx --no-install tsc --noEmit"
+    if [ -n "$lint_files" ]; then
+      # shellcheck disable=SC2086
+      run "lint(바뀐 파일)" sh -c "cd webapp && npx --no-install eslint --no-warn-ignored $(printf '%s ' $lint_files)"
+    fi
+    run "화면 테스트" sh -c "cd webapp && npm test"
+  else
+    echo "[pre-commit] 건너뜀: webapp/node_modules 없음"
+  fi
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "[pre-commit] 검사 실패 — 커밋을 막았습니다. 고친 뒤 다시 커밋하세요."
+  exit 1
+fi
+exit 0

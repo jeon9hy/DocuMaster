@@ -14,5 +14,6 @@
 - 변경 전후 `git status`를 확인하고 기존 사용자의 변경을 보존한다.
 - **커밋 안 된 코드·UI 변경을 버리지 않는다.** `git restore`·`git checkout -- <경로>`·`git reset --hard`·`git clean`·`git stash`는 사용자가 그 파일을 버리라고 명시했을 때만 쓴다. "작업트리 정리"·"이전 작업 무시"는 버리라는 뜻이 아니다 — 추적 안 되는 임시 파일만 지우고, 수정된 추적 파일은 목록을 보여 주고 묻는다. (2026-09-26 UI 수정이 `git restore`로 사라짐)
 - 코드·UI 변경은 검사를 통과하면 그 세션 안에 `main`에 커밋·푸시한다. 끝난 변경을 작업트리에만 남겨 두지 않는다.
+- 커밋 전 검사는 `.githooks/pre-commit`이 바뀐 영역만 돈다(켜기: `git config core.hooksPath .githooks`, `start.bat`이 자동으로 켬). 막히면 고쳐서 다시 커밋한다 — `--no-verify`는 사용자가 시켰을 때만.
 - 웹앱 변경은 영향 범위에 맞춰 `webapp/README.md`의 테스트·타입 검사·lint·빌드 명령으로 확인한다. 실제 문서 생성 모델을 호출하는 검증은 해당 통합을 변경했을 때만 필요하다.
 - `DOCUMASTER_ORCHESTRATOR=claude`는 기존 실제 실행 설정이며, 현재 웹앱은 `fake`와 `claude`만 지원한다. 실행 엔진 교체가 명시적으로 요청되지 않은 개발 작업에서는 이 계약을 유지한다.

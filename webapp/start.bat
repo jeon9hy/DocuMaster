@@ -15,6 +15,9 @@ if not exist node_modules (
   call npm install || goto :error
 )
 
+rem 커밋 전 검사 훅(.githooks/pre-commit)을 켠다. 이미 켜져 있으면 그대로
+git -C .. config core.hooksPath .githooks >nul 2>&1
+
 rem Owner PIN이 없으면 한 번 정한다(원문은 저장하지 않고 해시만 .data\owner.json에)
 if "%DOCUMASTER_OWNER_PIN_HASH%"=="" if not exist .data\owner.json (
   echo Owner 로그인에 쓸 6자리 PIN을 정합니다.
