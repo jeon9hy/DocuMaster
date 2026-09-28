@@ -114,12 +114,12 @@ It exits with `FAIL` (send back to the owner) or `CHECK` (a human closes it and 
 ## Repository layout
 
 ```
-CLAUDE.md                 Constitution & wiring (loaded every turn — kept under 10 KB)
+CLAUDE.md                 Run-time constitution (loaded every turn — kept under 9 KB)
 .claude/
 ├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec (common) · one rule file per deck type
 ├─ 요르/ 유리/ 아냐/ 로이드/   Role + procedure files, one folder per agent
 ├─ skills/                doc-finish · cross-check · deck-review · notebooklm-handoff
-├─ tools/                 yor (Codex calls) · gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
+├─ tools/                 yor (Codex calls) · stage (상태.md · 기록.md) · gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
 ├─ 환경기록.md             One-line index of environment findings (E-numbers)
 └─ archive/               Retired originals (local only, not read)
 자료/                      User reference material (not committed)
@@ -128,7 +128,7 @@ CLAUDE.md                 Constitution & wiring (loaded every turn — kept unde
 최종/<ID>/                 Outputs that passed every gate — listed in 최종/_manifest.md
 ```
 
-Each rule lives in exactly one file. Size budgets keep the rules short: `CLAUDE.md` 10 KB, procedure and skill files 6 KB each.
+Each rule lives in exactly one file. Size budgets keep the rules short: `CLAUDE.md` 9 KB, procedure and skill files 6 KB each.
 
 ---
 
