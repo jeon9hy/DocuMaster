@@ -171,8 +171,9 @@ export function eventToFeedItem(
         ...base,
         kind: "system",
         tone: "info",
-        title: `${name(event.fromAgentId)} → ${name(event.toAgentId)} 전달 완료`,
-        detail: event.artifactName,
+        agentId: event.fromAgentId,
+        title: `${name(event.fromAgentId)} → ${name(event.toAgentId)} 전달 완료${event.artifactName ? ` · ${event.artifactName}` : ""}`,
+        display: "compact",
       };
 
     case "reference.added":

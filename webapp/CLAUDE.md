@@ -37,3 +37,4 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 ## 현재 상태 (세션 끝에 이 절만 고친다)
 - A~E 완료: fake 전체 경로 · 실제 Claude 실행(09-20 PPT 이전 흐름, 09-26 소형 DOCUMENT) 6단계 완료. 증거는 README 「Phase E 인수인계」.
 - 09-27: 요르는 `yor.py`로만 호출, 진행은 `yor_feed.py`가 로그를 읽어 피드로. Claude 사용량은 haiku 최소 호출로 실시간.
+- 09-28: 커밋 전 훅(`.githooks`) · 대화 정리(단계 구분선·전달문 접기·완료 카드·확인 대기 알림) · 실행 예약(`run_queue`) · 요르 `--json` · 로그 30일 보존.
