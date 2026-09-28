@@ -13,6 +13,7 @@
   [ambiguous]    작업 폴더를 만들기 전에 모드를 묻고 끝낸다(실제 로이드의 모드 판정 질문)
   [autocontinue] 1턴을 사용자 대기가 아닌 「진행 중」 상태로 끝낸다 — 백엔드가 알아서 이어 가야 한다
   [stall]        이어 받은 턴에서 아무 파일도 쓰지 않고 끝낸다(무한 반복 방지 확인)
+  [noverdict]    00 뒤 명령 안전 검사가 판정을 못 낸 도구 결과를 내고 오류로 끝난다(첫 턴만 — 이어 받으면 정상)
 """
 
 from __future__ import annotations
@@ -113,6 +114,13 @@ class FakeLoid:
         if "[fail]" in prompt:
             sys.stderr.write("fake orchestrator: 요청에 [fail]이 있어 오류로 끝냅니다.\n")
             sys.exit(2)
+        if "[noverdict]" in prompt:
+            self.state("진행 중 00·01", mode)
+            emit({"type": "user", "message": {"role": "user", "content": [{
+                "type": "tool_result", "tool_use_id": "toolu_fake", "is_error": True,
+                "content": "The server-side auto mode classifier gave no verdict (error), so auto mode cannot "
+                           "determine the safety of Bash. This is a transient failure of the check."}]}})
+            sys.exit(1)
         self.write("01_research_blueprint.md", """
 # Research Blueprint
 ## 핵심 질문

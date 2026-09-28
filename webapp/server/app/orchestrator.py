@@ -168,6 +168,8 @@ class TurnResult:
     stderr_tail: str = ""
     terminated: bool = False
     extra: dict = field(default_factory=dict)
+    """Claude Code auto 모드의 명령 안전 검사(서버 쪽 분류기)가 판정을 못 낸 도구 호출 수 — 일시 장애 신호"""
+    permission_check_failures: int = 0
 
 
 class OrchestratorAdapter:
@@ -335,6 +337,8 @@ class ProcessTurn:
             except Exception:
                 # UI 이벤트 오류가 오케스트레이터의 stdout 수집을 멈추면 안 된다.
                 log.exception("실시간 대화 이벤트 전달 실패")
+        if message.get("type") == "user" and _has_permission_check_failure(message):
+            self._result.permission_check_failures += 1
         if message.get("type") == "system" and message.get("subtype") == "init":
             self._result.session_id = message.get("session_id")
             self._result.model = message.get("model")
@@ -347,6 +351,20 @@ class ProcessTurn:
 
 
 # --- 오류 분류(지침서 §19) ----------------------------------------------------------
+
+# Claude Code가 도구 결과로 돌려주는 문장(2.1.283 실측). 모델·명령과 상관없는 서버 쪽 일시 장애다.
+_PERMISSION_CHECK_FAILURE = "classifier gave no verdict"
+
+
+def _has_permission_check_failure(message: dict) -> bool:
+    envelope = message.get("message")
+    blocks = envelope.get("content") if isinstance(envelope, dict) else None
+    for block in blocks if isinstance(blocks, list) else []:
+        if isinstance(block, dict) and block.get("type") == "tool_result" and block.get("is_error"):
+            if _PERMISSION_CHECK_FAILURE in json.dumps(block.get("content"), ensure_ascii=False):
+                return True
+    return False
+
 
 _ERROR_RULES = (
     ("claude_auth_required", ("/login", "not logged in", "invalid api key", "authentication_error", "please run `claude")),
@@ -361,11 +379,15 @@ ERROR_MESSAGES = {
     "codex_auth_required": "Codex 로그인이 필요합니다. 터미널에서 `codex login`을 완료한 뒤 다시 시도하세요.",
     "notebooklm_login_required": "NotebookLM 로그인이 필요합니다. 터미널에서 `nlm login`을 완료한 뒤 다시 시도하세요.",
     "usage_limit": "모델 사용량 한도에 걸렸습니다. 한도가 풀린 뒤 「워크플로우 실행」으로 이어서 하세요(모델은 바꾸지 않습니다).",
+    "permission_check_unavailable": ("Claude Code의 명령 안전 검사(auto 모드, Anthropic 서버 쪽)가 응답하지 않아 명령을 실행하지 "
+                                     "못했습니다. 일시 장애입니다 — 잠시 뒤 「워크플로우 실행」으로 이어서 하세요."),
     "agent_process_error": "에이전트 프로세스가 오류로 끝났습니다.",
 }
 
 
 def classify_error(result: TurnResult) -> str:
+    if result.permission_check_failures:
+        return "permission_check_unavailable"
     haystack = f"{result.result_text}\n{result.stderr_tail}".lower()
     for code, needles in _ERROR_RULES:
         if any(needle in haystack for needle in needles):

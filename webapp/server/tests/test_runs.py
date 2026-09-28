@@ -265,3 +265,37 @@ def test_queued_run_can_be_cancelled_and_empty_slot_starts_immediately(client):
     wait_until(lambda: "workflow.stopped" in types_of(client, first))
     started = client.post(f"/api/projects/{second}/queue")
     assert started.status_code == 202 and started.json()["started"] is True
+
+
+def test_permission_check_outage_resumes_once_then_completes(client, monkeypatch):
+    """Claude Code auto 모드 안전 검사(서버 쪽)가 판정을 못 내 턴이 끝나면, 경고 뒤 같은 세션으로 한 번 이어 간다."""
+    import app.runs as runs_module
+    monkeypatch.setattr(runs_module, "PERMISSION_RETRY_SECONDS", 0)
+    project_id = create_project(client, "안전 검사 장애")
+    start(client, project_id, "보고서를 써줘 [noverdict]")
+    prompt = pending_prompt(client, project_id)  # 이어 간 턴이 01을 마치고 기획 확인을 묻는다
+    answer(client, project_id, prompt["promptId"])
+    wait_until(lambda: "workflow.completed" in types_of(client, project_id))
+    events = events_of(client, project_id)
+    warnings = [e["message"] for e in events if e["type"] == "workflow.warning"]
+    assert any("명령 안전 검사" in message and "일시 장애" in message for message in warnings)
+    assert "workflow.failed" not in [e["type"] for e in events]
+
+
+def test_permission_check_outage_twice_fails_with_a_clear_reason(client, monkeypatch):
+    import app.runs as runs_module
+    from app.orchestrator import ProcessTurn
+    monkeypatch.setattr(runs_module, "PERMISSION_RETRY_SECONDS", 0)
+    original_wait = ProcessTurn.wait
+
+    def always_outage(self):
+        result = original_wait(self)
+        result.permission_check_failures = max(result.permission_check_failures, 1)
+        result.exit_code = 1
+        return result
+
+    monkeypatch.setattr(ProcessTurn, "wait", always_outage)
+    project_id = create_project(client, "계속 장애")
+    start(client, project_id, "보고서를 써줘 [noverdict]")
+    failed = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "workflow.failed"), None))
+    assert "명령 안전 검사" in failed["reason"] and "에이전트 프로세스가 오류로" not in failed["reason"]

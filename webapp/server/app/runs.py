@@ -42,6 +42,8 @@ ACTIVE_STATUSES = ("running", "awaiting_input", "stopping")
 RESUME_PROMPT = "이어서 진행해 주세요."
 # 자동 재개했는데 파일·상태가 그대로인 턴이 이만큼 이어지면 복구 불가 오류로 닫는다(끝없이 비용이 나지 않게)
 MAX_STALLED_TURNS = 2
+# 명령 안전 검사(서버 쪽) 일시 장애로 턴이 끝나면 이만큼 기다렸다가 같은 세션으로 한 번만 다시 이어 간다
+PERMISSION_RETRY_SECONDS = 60
 
 
 # 로이드·요르·본드가 쓰는 CLI(CLAUDE.md §1)
@@ -73,6 +75,7 @@ class _Turn:
     stop_baseline: frozenset[str] = frozenset()
     started_at: float = field(default_factory=time.time)
     stalled_turns: int = 0  # 진행 없이 끝난 연속 자동 재개 턴 수
+    permission_retries: int = 0  # 명령 안전 검사 장애로 다시 이어 간 횟수
     fingerprint: tuple = ()
     persisted_worker: tuple[str, str] | None = None
 
@@ -261,8 +264,9 @@ class RunManager:
     # --- 턴 실행 ------------------------------------------------------------------
 
     def _launch(self, run_id: str, project_id: str, prompt: str, resume: bool, progress: Progress,
-                stalled_turns: int = 0) -> None:
-        turn = _Turn(run_id=run_id, project_id=project_id, progress=progress, stalled_turns=stalled_turns)
+                stalled_turns: int = 0, permission_retries: int = 0) -> None:
+        turn = _Turn(run_id=run_id, project_id=project_id, progress=progress, stalled_turns=stalled_turns,
+                     permission_retries=permission_retries)
         with self._lock:
             self._turn = turn
         thread = threading.Thread(target=self._run_turn, args=(turn, prompt, resume), daemon=True,
@@ -395,6 +399,9 @@ class RunManager:
             return
         if result.exit_code != 0 or result.is_error:
             code = classify_error(result)
+            if code == "permission_check_unavailable" and turn.permission_retries < 1:
+                self._retry_after_permission_outage(turn, stage)
+                return
             self._finish(turn.run_id, turn.project_id, "failed", stage,
                          reason=describe_error(code, result), error_code=code)
             return
@@ -420,6 +427,23 @@ class RunManager:
                 self._ask_user(turn, reason, result.result_text)
         else:
             self._continue(turn, scanned, result)
+
+    def _retry_after_permission_outage(self, turn: _Turn, stage: str) -> None:
+        """서버 쪽 일시 장애 — 모델·명령 탓이 아니다. 잠깐 기다렸다가 같은 세션으로 한 번만 이어 간다."""
+        self._events.append(turn.project_id, {
+            "type": "workflow.warning", "stageId": stage,
+            "message": (f"Claude Code의 명령 안전 검사(Anthropic 서버 쪽)가 응답하지 않아 턴이 멈췄습니다. 일시 장애라 "
+                        f"{PERMISSION_RETRY_SECONDS}초 뒤 같은 세션으로 한 번 이어서 합니다."),
+        }, turn.run_id)
+        deadline = time.monotonic() + PERMISSION_RETRY_SECONDS
+        while time.monotonic() < deadline:
+            if turn.stop_requested:
+                self._finish(turn.run_id, turn.project_id, "stopped", stage)
+                return
+            time.sleep(min(1.0, max(0.0, deadline - time.monotonic())))
+        prompt = _with_queued(RESUME_PROMPT, self._projects.take_undelivered_messages(turn.project_id))
+        self._launch(turn.run_id, turn.project_id, prompt, resume=True, progress=turn.progress,
+                     stalled_turns=turn.stalled_turns, permission_retries=turn.permission_retries + 1)
 
     def _continue(self, turn: _Turn, scanned, result: TurnResult) -> None:
         """사람이 개입할 상태가 아닌데 턴이 끝났다 — 같은 세션을 고정 문구로 이어 간다."""
