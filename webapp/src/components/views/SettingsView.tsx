@@ -3,12 +3,13 @@
 import { useCallback, useMemo } from "react";
 import { Bot, Info } from "lucide-react";
 import { useServiceData } from "@/hooks/useServiceData";
+import { useUsage } from "@/hooks/useUsage";
 import { serviceKind, workspaceService } from "@/services";
 import { useIsOwner } from "@/state/WorkspaceProvider";
 import type { AgentModelConfig, AgentSetting, ProviderId, ProviderUsage } from "@/types";
 import { AgentSettingsList } from "../agent/AgentSettings";
 import { AccountPanel } from "../settings/AccountPanel";
-import { loadUsage, UsagePanel } from "../settings/UsagePanel";
+import { UsagePanel } from "../settings/UsagePanel";
 import { Badge } from "../ui/Badge";
 import { Panel } from "../ui/Panel";
 import { ErrorState, LoadingState } from "../ui/States";
@@ -30,10 +31,10 @@ function PanelTitle({ icon: Icon, children }: { icon: typeof Bot; children: stri
 function ModelSettingsPanel() {
   const isOwner = useIsOwner();
   const { state, reload, set } = useServiceData(loadSettings);
-  const usage = useServiceData(loadUsage).state;
+  const usage = useUsage().data;
   const usageByProvider = useMemo(() => {
     const map: Partial<Record<ProviderId, ProviderUsage>> = {};
-    if (usage.status === "success") for (const item of usage.data) map[item.provider] = item;
+    for (const item of usage ?? []) map[item.provider] = item;
     return map;
   }, [usage]);
 

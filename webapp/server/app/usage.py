@@ -4,6 +4,7 @@
   (모델을 부르지 않는다). 계정에는 한도가 여러 개라 `codex` 한도(5시간·주간)만 쓴다. 못 읽으면 확인 불가.
 - Claude Code: Codex 같은 공식 한도 조회 명령이 없다. 대신 Claude가 **응답마다 보내는 rate_limit_event**를 받는다.
   실시간 값은 가장 싼 호출(haiku, 도구·설정·세션 저장 없음, 첫 이벤트를 받으면 바로 끊음)로 읽는다 — 1회 약 $0.002.
+  **실행 중에는** 그 실행 로그에 방금 들어온 값을 쓰고 조회 호출을 하지 않는다.
   그 호출이 실패하면 statusLine 캐시(server/claude_statusline.py → .data/claude_usage.json)와
   웹앱 실행 로그 중 **더 최근 값**을 쓴다. 리셋 시각이 지난 창은 「오래됨」으로 표시한다.
 - NotebookLM: 사용량 인터페이스가 없어 보여 주지 않는다.
@@ -29,6 +30,7 @@ CODEX_TIMEOUT_SECONDS = 15
 CODEX_CACHE_SECONDS = 30  # 화면을 열 때마다 프로세스를 띄우지 않게 잠깐 기억한다
 CLAUDE_TIMEOUT_SECONDS = 20  # 로그인이 풀려 응답이 없으면 화면이 오래 기다리지 않게
 CLAUDE_CACHE_SECONDS = 60  # 실시간 조회는 작은 호출 한 번이라 Codex보다 길게 기억한다
+ACTIVE_LOG_SECONDS = 180  # 실행 로그가 이 안에 쓰였으면 실행 중으로 보고 그 값을 쓴다
 CODEX_LIMIT_ID = "codex"
 FIVE_HOURS, ONE_WEEK = 300, 10080
 
@@ -193,6 +195,45 @@ def _claude_windows(info: dict, now: float) -> list[dict]:
     return windows
 
 
+def _last_rate_limit_info(path: Path) -> dict | None:
+    """로그 파일의 마지막 rate_limit_event 한도 정보."""
+    latest = None
+    with path.open(encoding="utf-8") as lines:
+        for line in lines:
+            if '"rate_limit_event"' not in line:
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            info = event.get("rate_limit_info") if isinstance(event, dict) else None
+            if isinstance(info, dict) and isinstance(info.get("unifiedWindows"), dict):
+                latest = info
+    return latest
+
+
+def claude_usage_from_active_run(log_dir: Path, now: float | None = None) -> dict | None:
+    """진행 중인 실행(최근에 쓰인 로그)의 마지막 한도 값. 실행 중이 아니거나 값이 없으면 None."""
+    now = time.time() if now is None else now
+    try:
+        logs = [path for path in log_dir.glob("run_*.jsonl") if not path.stem.endswith("_telemetry")]
+        path = max(logs, key=lambda item: item.stat().st_mtime, default=None)
+        if path is None or now - path.stat().st_mtime > ACTIVE_LOG_SECONDS:
+            return None
+        info = _last_rate_limit_info(path)
+        modified_at = path.stat().st_mtime
+    except OSError as error:
+        log.warning("실행 로그를 읽지 못했습니다: %s", error)
+        return None
+    windows = _claude_windows(info, now) if info else []
+    if not windows:
+        return None
+    return {"provider": "anthropic", "label": "Anthropic · Claude Code", "available": True,
+            "stale": any(window["expired"] for window in windows), "windows": windows,
+            "observedAt": _iso(modified_at), "source": "진행 중인 실행 로그 (rate_limit_event)",
+            "note": "진행 중인 실행에서 방금 받은 값입니다."}
+
+
 def claude_usage_from_logs(log_dir: Path, now: float | None = None) -> dict:
     """headless Claude 실행의 실제 rate_limit_event를 읽는다. 모델 호출은 하지 않는다."""
     label = "Anthropic · Claude Code"
@@ -305,11 +346,13 @@ def _newer(a: dict, b: dict) -> dict:
 
 def usage_report(claude_cache: Path, codex_live: bool = True, claude_log_dir: Path | None = None,
                  claude_live: bool = False) -> list[dict]:
+    # 실행 중이면 그 로그에 한도 값이 계속 들어온다 — Claude 조회 호출을 하지 않는다
+    running = claude_usage_from_active_run(claude_log_dir) if claude_log_dir is not None else None
     # 두 공급자 조회는 각각 몇 초씩 걸린다 — 동시에 부른다
     with ThreadPoolExecutor(max_workers=2) as pool:
-        live = pool.submit(claude_usage_live) if claude_live else None
+        live = pool.submit(claude_usage_live) if claude_live and running is None else None
         codex = pool.submit(codex_usage) if codex_live else None
-        claude = live.result() if live else None
+        claude = running or (live.result() if live else None)
         openai = codex.result() if codex else _unavailable("openai", "OpenAI · Codex", "Codex 실시간 조회를 끈 상태입니다.")
     if claude is None:
         claude = claude_usage(claude_cache)

@@ -1,16 +1,15 @@
 "use client";
 
-import { Gauge, RefreshCw } from "lucide-react";
-import { useServiceData } from "@/hooks/useServiceData";
-import { workspaceService } from "@/services";
+import { Gauge, Loader2, RefreshCw } from "lucide-react";
+import { useUsage } from "@/hooks/useUsage";
+import { cn } from "@/lib/cn";
+import { formatTime } from "@/lib/format";
 import type { ProviderUsage } from "@/types";
 import { Badge } from "../ui/Badge";
 import { IconButton } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 import { ErrorState, LoadingState } from "../ui/States";
 import { isExhausted, UsageTiles } from "./UsageTiles";
-
-export const loadUsage = () => workspaceService.getUsage();
 
 function StatusBadgeFor({ usage }: { usage: ProviderUsage }) {
   if (!usage.available) return <Badge>확인 불가</Badge>;
@@ -49,27 +48,45 @@ function ProviderUsageRow({ usage }: { usage: ProviderUsage }) {
   );
 }
 
-/** 사용량: 실제로 확인되는 값만 보여 준다. 확인할 수 없으면 「확인 불가」와 이유. */
+/**
+ * 사용량: 실제로 확인되는 값만 보여 준다. 확인할 수 없으면 「확인 불가」와 이유.
+ * 마지막으로 받은 값을 흐리게 먼저 보여 주고, 새 값이 오면 바꾼다.
+ */
 export function UsagePanel() {
-  const { state, reload } = useServiceData(loadUsage);
+  const { data, receivedAt, refreshing, error, reload } = useUsage();
   return (
     <Panel
       title={
         <span className="flex items-center gap-1.5">
           <Gauge className="size-4 text-gray-400" aria-hidden />
           사용량
+          {data && refreshing && (
+            <span className="flex items-center gap-1 text-xs font-normal text-gray-400">
+              <Loader2 className="size-3 animate-spin" aria-hidden />
+              새 값 확인 중{receivedAt && ` · ${formatTime(receivedAt)} 값`}
+            </span>
+          )}
         </span>
       }
-      action={<IconButton icon={RefreshCw} label="사용량 다시 확인" className="size-7" onClick={reload} />}
+      action={
+        <IconButton icon={RefreshCw} label="사용량 다시 확인" className="size-7" onClick={reload} disabled={refreshing} />
+      }
     >
-      {state.status === "loading" && <LoadingState />}
-      {state.status === "error" && <ErrorState message={state.message} onRetry={reload} className="py-6" />}
-      {state.status === "success" && (
-        <ul className="divide-y divide-gray-100">
-          {state.data.map((usage) => (
-            <ProviderUsageRow key={usage.provider} usage={usage} />
-          ))}
-        </ul>
+      {!data && refreshing && <LoadingState />}
+      {!data && !refreshing && error && <ErrorState message={error} onRetry={reload} className="py-6" />}
+      {data && (
+        <>
+          {error && !refreshing && (
+            <p className="mx-2 mb-1 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              새 값을 받지 못해{receivedAt && ` ${formatTime(receivedAt)}에 받은`} 이전 값을 보여 줍니다. ({error})
+            </p>
+          )}
+          <ul className={cn("divide-y divide-gray-100 transition-opacity", refreshing && "opacity-50")} aria-busy={refreshing}>
+            {data.map((usage) => (
+              <ProviderUsageRow key={usage.provider} usage={usage} />
+            ))}
+          </ul>
+        </>
       )}
     </Panel>
   );

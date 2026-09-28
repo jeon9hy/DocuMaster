@@ -144,3 +144,35 @@ def test_claude_live_failure_falls_back_to_newest_record():
     newer = {"available": True, "observedAt": "2026-09-27T12:00:00Z"}
     assert usage_module._newer(older, newer) is newer
     assert usage_module._newer(newer, {"available": False}) is newer
+
+
+def test_active_run_log_is_used_instead_of_a_probe(tmp_path, monkeypatch):
+    import os
+    import time
+
+    import app.usage as usage_module
+    usage_module._claude_cache = None
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    run_log = logs / "run_live.jsonl"
+    run_log.write_text("\n".join([
+        json.dumps({"type": "assistant", "message": {"content": []}}),
+        json.dumps({"type": "rate_limit_event", "rate_limit_info": {"unifiedWindows": {
+            "five_hour": {"utilization": 0.40, "resetsAt": time.time() + 3600},
+            "seven_day": {"utilization": 0.07, "resetsAt": time.time() + 86400}}}}),
+    ]), encoding="utf-8")
+    (logs / "run_live_telemetry.jsonl").write_text("{}", encoding="utf-8")  # 텔레메트리는 보지 않는다
+
+    def probe_must_not_run():
+        raise AssertionError("실행 중에는 조회 호출을 하지 않는다")
+
+    monkeypatch.setattr(usage_module, "_claude_probe", probe_must_not_run)
+    monkeypatch.setattr(usage_module, "claude_usage_live", lambda *a, **k: probe_must_not_run())
+    report = usage_report(tmp_path / "missing.json", codex_live=False, claude_log_dir=logs, claude_live=True)
+    assert report[0]["source"] == "진행 중인 실행 로그 (rate_limit_event)"
+    assert [window["usedPercent"] for window in report[0]["windows"]] == [40.0, 7.0]
+
+    # 로그가 오래되면(실행이 끝남) 실행 중 값으로 보지 않는다
+    old = time.time() - usage_module.ACTIVE_LOG_SECONDS - 60
+    os.utime(run_log, (old, old))
+    assert usage_module.claude_usage_from_active_run(logs) is None
