@@ -1,4 +1,5 @@
 import type { AgentId } from "./agent";
+import type { RunSummary } from "./events";
 import type { UserInputRequest } from "./project";
 
 export type SystemTone = "info" | "success" | "warning" | "error";
@@ -19,7 +20,17 @@ export type FeedItem = FeedItemBase &
     | { kind: "agent"; agentId: AgentId; toAgentId?: AgentId; text: string }
     | { kind: "activity"; agentId: AgentId; label: string }
     | { kind: "user"; text: string }
-    | { kind: "system"; tone: SystemTone; title: string; detail?: string; agentId?: AgentId }
+    | {
+        kind: "system";
+        tone: SystemTone;
+        title: string;
+        detail?: string;
+        agentId?: AgentId;
+        /** divider = 단계 전환(가운데 얇은 선) · compact = 에이전트 작업 시작(작은 글씨). 없으면 기본 줄 */
+        display?: "divider" | "compact";
+        /** 워크플로우 완료 — 결과 요약 카드로 그린다 */
+        summary?: RunSummary;
+      }
     | { kind: "artifact"; artifactId: string; agentId: AgentId }
     | { kind: "input"; request: UserInputRequest }
   );

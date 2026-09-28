@@ -1,4 +1,4 @@
-import type { AgentStatus, ArtifactStatus, RunStatus, StageStatus, SystemTone } from "@/types";
+import type { AgentStatus, ArtifactStatus, RunStatus, StageStatus, SystemTone, ValidationVerdict } from "@/types";
 
 /** 모든 상태 배지의 모양. 색 계열: neutral(회색) · primary(파랑) · success · warning · danger · rest(연보라) */
 export type BadgeVariant = "neutral" | "primary" | "success" | "warning" | "danger" | "rest";
@@ -66,4 +66,11 @@ export const TONE_VARIANT: Record<SystemTone, BadgeVariant> = {
   success: "success",
   warning: "warning",
   error: "danger",
+};
+
+/** 05 판정 배지(완료 카드) */
+export const VERDICT_STATUS: Record<ValidationVerdict, StatusMeta> = {
+  passed: { label: "이상 없음", variant: "success" },
+  conditional: { label: "조건부", variant: "warning" },
+  blocked: { label: "보류", variant: "danger" },
 };

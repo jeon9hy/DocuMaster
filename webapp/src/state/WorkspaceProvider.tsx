@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ViewId } from "@/constants/navigation";
+import { requestNotificationPermission } from "@/lib/attention";
 import { readUrlState, writeUrlState } from "@/lib/urlState";
 import { workspaceService } from "@/services";
 import type {
@@ -141,7 +142,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setView: (view) => dispatch({ type: "view/changed", view }),
       toggleStage: (stageId) => dispatch({ type: "stage/toggled", stageId }),
       selectArtifact: (artifactId) => dispatch({ type: "artifact/selected", artifactId }),
-      runWorkflow: () => mutate(() => workspaceService.runWorkflow(requireProject())),
+      runWorkflow: () => {
+        requestNotificationPermission(); // 클릭 순간에만 물을 수 있다 — 확인 요청·완료를 알리려고
+        return mutate(() => workspaceService.runWorkflow(requireProject()));
+      },
       stopWorkflow: () => mutate(() => workspaceService.stopWorkflow(requireProject())),
       respondToInput: (promptId, answer) =>
         mutate(() => workspaceService.respondToInput(requireProject(), promptId, answer)),

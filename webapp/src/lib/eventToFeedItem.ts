@@ -29,15 +29,17 @@ export function eventToFeedItem(
     case "agent.activity":
       return { ...base, kind: "activity", agentId: event.agentId, label: event.label };
 
+    // 단계 전환은 가운데 얇은 구분선. 이어진 전환(완료 → 시작)은 피드에서 한 줄로 합친다.
     case "workflow.started":
-      return { ...base, kind: "system", tone: "info", title: "워크플로우 실행 시작" };
+      return { ...base, kind: "system", tone: "info", title: "워크플로우 실행 시작", display: "divider" };
 
     case "workflow.stage.started":
       return {
         ...base,
         kind: "system",
         tone: "info",
-        title: `${STAGE_BY_ID[event.stageId].label} 단계 시작`,
+        title: `${STAGE_BY_ID[event.stageId].label} 시작`,
+        display: "divider",
       };
 
     case "workflow.stage.completed":
@@ -45,7 +47,8 @@ export function eventToFeedItem(
         ...base,
         kind: "system",
         tone: "success",
-        title: `${STAGE_BY_ID[event.stageId].label} 단계 완료`,
+        title: `${STAGE_BY_ID[event.stageId].label} 완료`,
+        display: "divider",
       };
 
     case "workflow.warning":
@@ -64,6 +67,7 @@ export function eventToFeedItem(
         tone: "success",
         title: "워크플로우 완료",
         detail: "최종본이 작업물에 추가되었습니다.",
+        ...(event.summary && { summary: event.summary }),
       };
 
     case "workflow.stop.requested":
@@ -136,6 +140,7 @@ export function eventToFeedItem(
         tone: "info",
         agentId: event.agentId,
         title: `${name(event.agentId)} · ${STAGE_BY_ID[event.stageId].label} 작업 시작`,
+        display: "compact",
       };
 
     case "agent.configured":

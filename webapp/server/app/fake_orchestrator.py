@@ -149,7 +149,8 @@ class FakeLoid:
                 self.write("05_verified_research_pack.md", "검증 보류 — 확인 불가\n# Verified Research Pack\n- 판정: blocked")
                 self.state("사용자 승인 대기 — 검증 보류", mode)
                 return "검증 보류 — 확인 불가. 핵심 주장 A의 원문을 열 수 없습니다. 해당 주장을 제거하고 계속할까요, 자료를 추가하시겠어요?"
-            self.write("05_verified_research_pack.md", "검증 통과 — 조건부\n# Verified Research Pack\n- 판정: conditional\n- CAUTION: 주장 A")
+            self.write("05_verified_research_pack.md", "검증 통과 — 조건부\n# Verified Research Pack\n- 판정: conditional\n"
+                       "- APPROVED 3 · CORRECTED 0 · REMOVE 0 · CAUTION 1\n--- 헤더 끝 ---\n- CAUTION: 주장 A")
         elif blocked_requested and not (self.workspace / "05_verified_research_pack_v02.md").exists():
             self.write("05_verified_research_pack_v02.md", "검증 통과 — 조건부\n# Verified Research Pack\n- 판정: conditional (주장 A REMOVE)")
 

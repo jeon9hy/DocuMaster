@@ -24,8 +24,11 @@ function groupProjects(projects: ProjectSummary[]): { label: string; projects: P
   ];
 }
 
-/** 헤더의 프로젝트 전환 드롭다운. 바꾸면 좌·중·우 패널 전체가 그 프로젝트 기준으로 바뀐다. */
-export function ProjectSelector() {
+/**
+ * 헤더의 프로젝트 전환 드롭다운. 바꾸면 좌·중·우 패널 전체가 그 프로젝트 기준으로 바뀐다.
+ * wide = 모바일 헤더 둘째 줄 — 폭을 다 쓰고 높이를 줄인다(이름이 잘리지 않게).
+ */
+export function ProjectSelector({ wide = false }: { wide?: boolean }) {
   const { projects, projectId } = useAppState();
   const { selectProject } = useAppActions();
   const isOwner = useIsOwner();
@@ -43,7 +46,10 @@ export function ProjectSelector() {
             type="button"
             onClick={toggle}
             aria-expanded={open}
-            className="flex h-10 w-full max-w-[280px] items-center gap-2 rounded-lg border border-line bg-white px-3 text-left text-sm hover:bg-gray-50"
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg border border-line bg-white px-3 text-left text-sm hover:bg-gray-50",
+              wide ? "h-9" : "h-10 max-w-[280px]",
+            )}
           >
             <Folder className="size-4 shrink-0 text-gray-500" aria-hidden />
             <span className="min-w-0 flex-1 truncate font-medium text-gray-800">

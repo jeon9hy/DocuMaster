@@ -53,6 +53,11 @@ def test_full_run_with_user_input_then_completion(client, settings):
     verdicts = [e["verdict"] for e in events if e["type"] == "validation.verdict"]
     assert verdicts == ["conditional"]
     assert events[-1]["type"] == "workflow.completed"
+    # 완료 카드: 판정·REMOVE/CAUTION 수·걸린 시간·모델·최종 PDF를 이미 있는 값에서 모은다
+    summary = events[-1]["summary"]
+    assert (summary["verdict"], summary["removeCount"], summary["cautionCount"]) == ("conditional", 0, 1)
+    assert summary["durationSeconds"] >= 0 and summary["models"]["loid"]
+    assert summary["finalArtifactId"]
     assert events[-2] == {**events[-2], "type": "agent.message", "agentId": "loid"}
     assert all(e["runId"] for e in events if e["type"] != "user.message")
 

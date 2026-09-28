@@ -130,6 +130,21 @@ export function buildRunPlan(workspace: ProjectWorkspace): PlannedEvent[] {
     plan.push({ delayMs: DELAY.short, payload: { type: "workflow.stage.completed", stageId: stage.id } });
   }
 
-  plan.push({ delayMs: DELAY.medium, payload: { type: "workflow.completed" } });
+  // 완료 카드: 목업은 비용·시간을 만들지 않는다(실제 값이 아니므로). 판정과 최종 PDF만 연결한다.
+  const finalPdf = plan.findLast(
+    (event) => event.payload.type === "artifact.created" && event.payload.artifact.stageId === "finalReview"
+      && event.payload.artifact.fileType === "pdf",
+  )?.payload;
+  const verdict = plan.findLast((event) => event.payload.type === "validation.verdict")?.payload;
+  plan.push({
+    delayMs: DELAY.medium,
+    payload: {
+      type: "workflow.completed",
+      summary: {
+        verdict: verdict?.type === "validation.verdict" ? verdict.verdict : null,
+        finalArtifactId: finalPdf?.type === "artifact.created" ? finalPdf.artifact.id : null,
+      },
+    },
+  });
   return plan;
 }

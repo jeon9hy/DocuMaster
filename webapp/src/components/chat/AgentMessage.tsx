@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
 import type { AgentId } from "@/types";
 import { AgentAvatar } from "../agent/AgentAvatar";
+import { HandoffMessage } from "./HandoffMessage";
 
 interface AgentMessageProps {
   agentId: AgentId;
@@ -11,8 +12,9 @@ interface AgentMessageProps {
   createdAt: string;
 }
 
-/** LLM 응답 요약이 들어가는 유일한 말풍선 */
+/** LLM 응답 요약이 들어가는 유일한 말풍선. 에이전트끼리 주고받은 전달문은 한 줄로 접는다. */
 export function AgentMessage({ agentId, toAgentId, text, createdAt }: AgentMessageProps) {
+  if (toAgentId) return <HandoffMessage agentId={agentId} toAgentId={toAgentId} text={text} createdAt={createdAt} />;
   const profile = getAgentProfile(agentId);
   return (
     <article className="flex gap-3">
@@ -21,7 +23,6 @@ export function AgentMessage({ agentId, toAgentId, text, createdAt }: AgentMessa
         <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className={cn("text-[15px] font-semibold", profile.accent.text)}>{profile.name}</span>
           <span className="text-xs text-gray-500">{profile.role}</span>
-          {toAgentId && <span className="text-xs text-gray-500">→ {getAgentProfile(toAgentId).name}에게</span>}
           <time className="ml-auto text-xs text-gray-400" dateTime={createdAt}>
             {formatTime(createdAt)}
           </time>

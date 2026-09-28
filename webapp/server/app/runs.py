@@ -14,6 +14,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from . import contract
 from .agent_settings import AgentSettingsService, check_model_calls, load_snapshot, orchestrator_models
@@ -395,10 +396,44 @@ class RunManager:
     def _finish(self, run_id: str, project_id: str, status: str, stage: str,
                 reason: str = "", error_code: str | None = None) -> None:
         self._set_run(run_id, status=status, finished_at=now_iso(), error_code=error_code)
-        payload = {"completed": {"type": "workflow.completed"},
-                   "stopped": {"type": "workflow.stopped", "stageId": stage},
-                   "failed": {"type": "workflow.failed", "stageId": stage, "reason": reason}}[status]
+        if status == "completed":
+            payload = {"type": "workflow.completed"}
+            try:
+                payload["summary"] = self._summary(run_id, project_id)
+            except Exception:  # 요약을 못 만들어도 완료는 알린다
+                log.exception("완료 요약을 만들지 못했습니다")
+        else:
+            payload = {"stopped": {"type": "workflow.stopped", "stageId": stage},
+                       "failed": {"type": "workflow.failed", "stageId": stage, "reason": reason}}[status]
         self._events.append(project_id, payload, run_id)
+
+    def _summary(self, run_id: str, project_id: str) -> dict:
+        """완료 카드에 모을 값 — 이미 DB·파일에 있는 것만 읽는다(모델을 부르지 않는다)."""
+        run = self._db.one("SELECT * FROM runs WHERE id = ?", (run_id,))
+        summary: dict = {"costUsd": run["cost_usd"] if run else None}
+        if run and run["started_at"] and run["finished_at"]:
+            started, finished = (datetime.fromisoformat(value.replace("Z", "+00:00"))
+                                 for value in (run["started_at"], run["finished_at"]))
+            summary["durationSeconds"] = max(0, round((finished - started).total_seconds()))
+        configs = self._run_configs(run_id)
+        summary["models"] = {agent: config.get("modelId") for agent, config in configs.items()
+                             if isinstance(config, dict) and config.get("modelId")}
+        final = self._db.one(
+            # 최종/<ID>/의 파일만 finalReview·primary다(output/ 렌더 결과는 internal)
+            "SELECT id FROM artifacts WHERE project_id = ? AND stage_id = 'finalReview' AND visibility = 'primary'"
+            " AND file_type = 'pdf' ORDER BY updated_at DESC LIMIT 1", (project_id,))
+        summary["finalArtifactId"] = final["id"] if final else None
+        project = self._projects.get(project_id)
+        scanned = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
+        latest_05 = next((found.path for found in scanned.files
+                          if found.number == "05" and found.visibility == "primary"), None)
+        if latest_05:
+            text = latest_05.read_text(encoding="utf-8", errors="replace")
+            verdict = contract.verdict_from_05(text)
+            counts = contract.claim_counts_from_05(text)
+            summary.update(verdict=verdict[0] if verdict else None,
+                           removeCount=counts.get("remove"), cautionCount=counts.get("caution"))
+        return summary
 
     def _record_turn(self, run_id: str, result: TurnResult) -> None:
         cost = result.extra.get("total_cost_usd")

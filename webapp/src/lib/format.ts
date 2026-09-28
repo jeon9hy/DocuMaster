@@ -88,3 +88,14 @@ export function formatBytes(bytes: number): string {
   }
   return `${value.toFixed(1)}${units[unit]}`;
 }
+
+/** 1762 → "29분 22초" · 3900 → "1시간 5분" · 40 → "40초" */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const rest = total % 60;
+  if (hours) return minutes ? `${hours}시간 ${minutes}분` : `${hours}시간`;
+  if (minutes) return rest ? `${minutes}분 ${rest}초` : `${minutes}분`;
+  return `${rest}초`;
+}

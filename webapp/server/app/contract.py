@@ -90,6 +90,15 @@ def verdict_from_05(text: str) -> tuple[str, str] | None:
     return (verdict, first_line) if verdict else None
 
 
+_CLAIM_COUNT = re.compile(r"\b(APPROVED|CORRECTED|REMOVE|CAUTION)\s+(\d+)\b")
+
+
+def claim_counts_from_05(text: str) -> dict[str, int]:
+    """05 헤더의 `APPROVED n · CORRECTED n · REMOVE n · CAUTION n` 줄. 없는 항목은 빠진다."""
+    header = text.split("--- 헤더 끝 ---", 1)[0][:3000]
+    return {name.lower(): int(count) for name, count in _CLAIM_COUNT.findall(header)}
+
+
 def status_line(state_md: str) -> str:
     """상태.md의 `상태:` 줄(CLAUDE.md §6 — 첫 3줄에 둔다)."""
     for line in state_md.splitlines()[:5]:

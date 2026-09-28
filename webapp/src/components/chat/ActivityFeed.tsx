@@ -4,13 +4,14 @@ import { memo, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, CalendarDays, ChevronDown, ChevronRight, MessagesSquare } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { useStickToBottom } from "@/hooks/useStickToBottom";
-import { dayKey, formatFullDate } from "@/lib/format";
+import { dayKey, formatFullDate, formatTime } from "@/lib/format";
 import { useAppActions, useIsOwner } from "@/state/WorkspaceProvider";
 import type { AgentId, Artifact, FeedItem } from "@/types";
 import { EmptyState } from "../ui/States";
 import { ActionCard } from "./ActionCard";
 import { AgentMessage } from "./AgentMessage";
 import { ArtifactCard } from "./ArtifactCard";
+import { RunSummaryCard } from "./RunSummaryCard";
 import { SystemEvent } from "./SystemEvent";
 import { UserMessage } from "./UserMessage";
 
@@ -46,8 +47,19 @@ const FeedRow = memo(function FeedRow({
     case "user":
       return <UserMessage text={item.text} createdAt={item.createdAt} />;
     case "system":
+      if (item.summary)
+        return (
+          <RunSummaryCard
+            projectId={projectId}
+            summary={item.summary}
+            finalArtifact={artifact}
+            createdAt={item.createdAt}
+            onSelectArtifact={onSelectArtifact}
+          />
+        );
       return (
         <SystemEvent
+          compact={item.display === "compact"}
           tone={item.tone}
           title={item.title}
           detail={item.detail}
@@ -84,21 +96,41 @@ function DateDivider({ iso }: { iso: string }) {
   );
 }
 
+/** 단계 전환: 가운데 얇은 선 한 줄. 이어진 전환은 「요구사항 완료 → 기획 시작」처럼 합친다. */
+function StageDivider({ items }: { items: FeedItem[] }) {
+  const last = items[items.length - 1];
+  const titles = items.map((item) => (item.kind === "system" ? item.title : "")).filter(Boolean);
+  return (
+    <li className="flex items-center gap-3 text-xs text-gray-500" role="separator">
+      <span className="h-px flex-1 bg-gray-200" aria-hidden />
+      <span className="max-w-[80%] text-center">
+        {titles.join(" → ")} · <time dateTime={last.createdAt}>{formatTime(last.createdAt)}</time>
+      </span>
+      <span className="h-px flex-1 bg-gray-200" aria-hidden />
+    </li>
+  );
+}
+
 function firstCreatedAt(block: FeedBlock): string {
   return block.kind === "item" ? block.item.createdAt : block.items[0].createdAt;
 }
 
-/** 연속된 세부 활동(importance: "detail")은 한 묶음으로 접는다. */
+/** 연속된 세부 활동(importance: "detail")은 한 묶음으로 접고, 이어진 단계 전환은 한 줄로 합친다. */
 type FeedBlock =
   | { kind: "item"; item: FeedItem }
   | { kind: "details"; key: string; items: FeedItem[] }
+  | { kind: "dividers"; key: string; items: FeedItem[] }
   | { kind: "activities"; key: string; agentId: AgentId; items: FeedItem[] };
 
 function groupFeed(feed: FeedItem[]): FeedBlock[] {
   const blocks: FeedBlock[] = [];
   for (const item of feed) {
     const last = blocks.at(-1);
-    if (item.kind === "activity") {
+    if (item.kind === "system" && item.display === "divider") {
+      if (last?.kind === "dividers") last.items.push(item);
+      else blocks.push({ kind: "dividers", key: item.id, items: [item] });
+    }
+    else if (item.kind === "activity") {
       if (last?.kind === "activities" && last.agentId === item.agentId) last.items.push(item);
       else blocks.push({ kind: "activities", key: item.id, agentId: item.agentId, items: [item] });
     }
@@ -151,7 +183,13 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
       <FeedRow
         projectId={projectId}
         item={item}
-        artifact={item.kind === "artifact" ? artifactById.get(item.artifactId) : undefined}
+        artifact={
+          item.kind === "artifact"
+            ? artifactById.get(item.artifactId)
+            : item.kind === "system" && item.summary?.finalArtifactId
+              ? artifactById.get(item.summary.finalArtifactId)
+              : undefined
+        }
         inputPending={item.kind === "input" && pendingPromptIds.includes(item.request.promptId)}
         onSelectArtifact={selectArtifact}
         onRespond={respondToInput}
@@ -163,6 +201,8 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
   const renderBlock = (block: FeedBlock) =>
     block.kind === "item" ? (
       renderRow(block.item)
+    ) : block.kind === "dividers" ? (
+      <StageDivider key={block.key} items={block.items} />
     ) : block.kind === "activities" ? (
       <li key={block.key} className="ml-[52px] text-[13px] text-gray-500">
         <span className="font-medium">{getAgentProfile(block.agentId).name} · 작업 기록</span>

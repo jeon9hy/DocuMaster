@@ -5,7 +5,7 @@ function getModelOption(modelId: string): ModelOption | undefined {
   return MODEL_OPTIONS.find((model) => model.id === modelId);
 }
 
-export function getModelLabel(config: AgentModelConfig): string {
+export function getModelLabel(config: Pick<AgentModelConfig, "modelId">): string {
   return getModelOption(config.modelId)?.label ?? config.modelId;
 }
 

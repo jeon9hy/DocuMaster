@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type ReactElement, type ReactNode } from "react";
 import type { MobileTab } from "@/constants/navigation";
+import { useAttentionSignals } from "@/hooks/useAttentionSignals";
 import { cn } from "@/lib/cn";
 import { useAppActions, useAppState, useIsOwner, useWorkspace } from "@/state/WorkspaceProvider";
 import { FolderPlus, Plus } from "lucide-react";
@@ -63,6 +64,7 @@ export function AppShell() {
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>("chat");
+  useAttentionSignals(workspace);
 
   const openLeft = useCallback(() => setLeftOpen(true), []);
   const closeLeft = useCallback(() => setLeftOpen(false), []);

@@ -7,6 +7,18 @@ import type { WorkflowStageId } from "./workflow";
 /** 05 판정(CLAUDE.md §5). 첫 줄로 정해진다. */
 export type ValidationVerdict = "passed" | "conditional" | "blocked";
 
+/** 완료 카드에 모으는 값. 백엔드가 DB·파일에 이미 있는 값만 채운다 — 모르는 값은 빠지거나 null. */
+export interface RunSummary {
+  durationSeconds?: number;
+  costUsd?: number | null;
+  verdict?: ValidationVerdict | null;
+  removeCount?: number | null;
+  cautionCount?: number | null;
+  /** 실행 시작 때 고정한 에이전트별 모델 ID */
+  models?: Partial<Record<AgentId, string>>;
+  finalArtifactId?: string | null;
+}
+
 /**
  * 오케스트레이터 → UI 이벤트. 화면의 모든 변화는 이 이벤트로만 일어난다.
  * 백엔드(webapp/server)도 같은 모양으로 보낸다 — 타입을 바꾸면 server/app/events.py도 맞춘다.
@@ -16,7 +28,7 @@ export type WorkflowEventPayload =
   | { type: "workflow.stage.started"; stageId: WorkflowStageId }
   | { type: "workflow.stage.completed"; stageId: WorkflowStageId }
   | { type: "workflow.warning"; stageId: WorkflowStageId; message: string }
-  | { type: "workflow.completed" }
+  | { type: "workflow.completed"; summary?: RunSummary }
   /** 사용자가 중지를 요청함 — 현재 단계가 끝나면 멈춘다(graceful stop) */
   | { type: "workflow.stop.requested" }
   | { type: "workflow.stopped"; stageId: WorkflowStageId }
