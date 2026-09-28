@@ -14,6 +14,8 @@
   * 세션 ID는 `_yor_sessions.json`에 남기고 resume은 그 ID로만 한다(`--last` 금지, E-007).
   * 한 작업에 요르 호출은 하나씩이다. 진행 중이면 새로 시작하지 않고 `wait`을 안내한다.
   * 종료 코드·출력 파일·헤더·실제 모델을 함께 본다(E-030). 마지막 줄이 `요르 <종류>: OK|FAIL …`.
+  * Codex는 `--json`으로 부른다 — 기계용 이벤트는 `_log_NN.jsonl`(웹앱 피드가 읽는다), 사람용 오류·경고는 `_log_NN.txt`.
+    실제 모델·강도·샌드박스는 Codex가 남기는 세션 기록(`$CODEX_HOME/sessions/**/rollout-*-<세션>.jsonl`의 turn_context)에서 읽는다.
 종료 코드: 0 OK · 1 호출·산출 실패 · 2 입력·설정 오류 · 3 모델 불일치 · 75 아직 진행 중(wait을 다시)
 """
 from __future__ import annotations
@@ -231,9 +233,80 @@ def rotate(path: Path) -> None:
 
 
 def log_header(log: str) -> dict:
+    """옛 사람용 출력의 머리(`model: …`). --json 호출에서는 보통 비어 있다."""
     get = lambda key: (re.search(rf"^{key}:\s*(\S+)", log, re.M) or [None, None])[1]  # noqa: E731
     return {"model": get("model"), "effort": get("reasoning effort"), "session": get("session id"),
             "sandbox": get("sandbox")}
+
+
+def json_events(path: Path) -> list[dict]:
+    events = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return events
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict):
+            events.append(event)
+    return events
+
+
+def codex_home() -> Path:
+    return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+
+
+def rollout_for(session: str | None, since: float) -> Path | None:
+    """세션 기록 파일. 세션 ID를 모르면 이번 호출 뒤에 생긴 codex_exec 기록 중 이 저장소 것(가장 새것)."""
+    sessions = codex_home() / "sessions"
+    if session:
+        found = sorted(sessions.glob(f"**/rollout-*-{session}.jsonl"))
+        return found[-1] if found else None
+    candidates = []
+    for path in sessions.glob("**/rollout-*.jsonl"):
+        try:
+            if path.stat().st_mtime < since - 5:
+                continue
+            with path.open(encoding="utf-8") as handle:
+                meta = json.loads(handle.readline()).get("payload", {})
+        except (OSError, ValueError, AttributeError):
+            continue
+        if meta.get("originator") == "codex_exec" and Path(str(meta.get("cwd"))).resolve() == ROOT:
+            candidates.append((path.stat().st_mtime, path))
+    return max(candidates)[1] if candidates else None
+
+
+def actual_call(events_log: Path, text_log: Path, since: float) -> dict:
+    """실제 세션·모델·강도·샌드박스. JSON 이벤트 → 세션 기록 → 옛 머리 순으로 채운다(모르는 값은 None)."""
+    got = log_header(text_log.read_text(encoding="utf-8", errors="replace") if text_log.exists() else "")
+    for event in json_events(events_log):
+        if event.get("type") == "thread.started" and event.get("thread_id"):
+            got["session"] = str(event["thread_id"])
+            break
+    rollout = rollout_for(got["session"], since)
+    if rollout is None:
+        return got
+    for event in json_events(rollout):
+        payload = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+        if event.get("type") == "session_meta" and not got["session"]:
+            got["session"] = payload.get("id") or payload.get("session_id")
+        if event.get("type") == "turn_context":  # 마지막 턴 값(resume이면 이번 호출)
+            sandbox = payload.get("sandbox_policy")
+            got.update(model=payload.get("model") or got["model"], effort=payload.get("effort") or got["effort"],
+                       sandbox=(sandbox.get("type") if isinstance(sandbox, dict) else sandbox) or got["sandbox"])
+    return got
+
+
+def failure_tail(events_log: Path, text_log: Path) -> str:
+    for event in reversed(json_events(events_log)):
+        if event.get("type") in ("turn.failed", "error"):
+            error = event.get("error") if isinstance(event.get("error"), dict) else event
+            return str(error.get("message") or "")
+    text = text_log.read_text(encoding="utf-8", errors="replace") if text_log.exists() else ""
+    return next((line for line in reversed(text.splitlines()) if line.strip()), "")
 
 
 def start(opts: argparse.Namespace) -> int:
@@ -261,9 +334,10 @@ def start(opts: argparse.Namespace) -> int:
     stdin_path = job.base / f"_stdin_{kind}.md"
     stdin_path.write_text(prompt, encoding="utf-8")
     out, log = job.base / spec["out"], job.base / spec["log"]
-    for path in (log, out) if not spec["header"] else (log,):
+    events_log = log.with_suffix(".jsonl")
+    for path in (log, events_log, out) if not spec["header"] else (log, events_log):
         rotate(path)  # raw(_raw_04 등)는 재시도 때 덮어쓰지 않는다. 산출물(02·06·07)은 codex가 덮어쓴다
-    command = codex_command() + ["exec"] + (["resume", session_id] if session_id else [])
+    command = codex_command() + ["exec"] + (["resume", session_id] if session_id else []) + ["--json"]
     command += ["-m", want["model"], "-c", f"model_reasoning_effort={want['effort']}", "--skip-git-repo-check"]
     # resume에는 -C·-s가 없고 샌드박스를 잇지 않는다(실측 workspace-write, E-007) — 설정 덮어쓰기로 읽기 전용을 건다
     command += ["-C", str(ROOT), "-s", "read-only"] if not session_id else ["-c", 'sandbox_mode="read-only"']
@@ -274,10 +348,11 @@ def start(opts: argparse.Namespace) -> int:
     command += ["-o", str(out), "-"]
 
     started = time.time()
-    with stdin_path.open("rb") as stdin, log.open("wb") as log_file:
-        process = subprocess.Popen(command, cwd=ROOT, stdin=stdin, stdout=log_file, stderr=subprocess.STDOUT)
+    with stdin_path.open("rb") as stdin, log.open("wb") as log_file, events_log.open("wb") as events_file:
+        process = subprocess.Popen(command, cwd=ROOT, stdin=stdin, stdout=events_file, stderr=log_file)
         job.write_json(job.state_file, {"status": RUNNING, "kind": kind, "pid": os.getpid(), "codex_pid": process.pid,
-                                        "started_at": now(), "log": job.rel(log), "out": job.rel(out)})
+                                        "started_at": now(), "log": job.rel(log), "events": job.rel(events_log),
+                                        "out": job.rel(out)})
         print(f"요르 {spec['label']} 시작 · {want['model']}/{want['effort']} · 로그 {job.rel(log)} — 끝날 때까지 기다린다", flush=True)
         try:
             code = process.wait(timeout=CALL_TIMEOUT)
@@ -285,7 +360,7 @@ def start(opts: argparse.Namespace) -> int:
             kill_tree(process)
             code = None
     summary, exit_code = finish(job, kind, spec, opts, code, want, session_key if how == "new" else None,
-                                out, log, time.time() - started)
+                                out, log, time.time() - started, started)
     job.write_json(job.state_file, {"status": "done", "kind": kind, "exit": exit_code, "summary": summary,
                                     "finished_at": now()})
     print(summary)
@@ -293,16 +368,15 @@ def start(opts: argparse.Namespace) -> int:
 
 
 def finish(job: Job, kind: str, spec: dict, opts, code: int | None, want: dict, new_session: str | None,
-           out: Path, log: Path, seconds: float) -> tuple[str, int]:
-    text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
-    got = log_header(text)
+           out: Path, log: Path, seconds: float, started: float) -> tuple[str, int]:
+    events_log = log.with_suffix(".jsonl")
+    got = actual_call(events_log, log, started)
     notes, exit_code = [], 0
     if code is None:
         notes.append(f"{CALL_TIMEOUT // 60}분 안에 끝나지 않아 중단")
         exit_code = 1
     elif code != 0:
-        tail = next((line for line in reversed(text.splitlines()) if line.strip()), "")
-        notes.append(f"종료 코드 {code} — {tail[:160]}")
+        notes.append(f"종료 코드 {code} — {failure_tail(events_log, log)[:160]}")
         exit_code = 1
     body = out.read_text(encoding="utf-8", errors="replace") if out.exists() else ""
     if not body.strip():

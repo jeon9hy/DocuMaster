@@ -21,14 +21,30 @@ out = args[args.index("-o") + 1]
 model = os.environ.get("FAKE_ACTUAL_MODEL") or args[args.index("-m") + 1]
 effort = next(a.split("=", 1)[1] for a in args if a.startswith("model_reasoning_effort="))
 session = args[args.index("resume") + 1] if "resume" in args else "sess-" + str(len(prompt))
-sandbox = "read-only" if "read-only" in args or 'sandbox_mode="read-only"' in args else "workspace-write [workdir]"
-print("OpenAI Codex (fake)\n--------\nmodel: %s\nsandbox: %s\nreasoning effort: %s\nsession id: %s\n--------"
-      % (model, sandbox, effort, session))
+sandbox = "read-only" if "read-only" in args or 'sandbox_mode="read-only"' in args else "workspace-write"
+# --json: 기계용 이벤트는 stdout, 모델·강도·샌드박스는 세션 기록(rollout)에만 있다(실제 codex 0.154와 같은 모양)
+assert "--json" in args
+if not os.environ.get("FAKE_NO_THREAD_EVENT"):
+    print(json.dumps({"type": "thread.started", "thread_id": session}))
+print(json.dumps({"type": "turn.started"}))
+print(json.dumps({"type": "item.completed", "item": {"id": "i1", "type": "agent_message", "text": "진행 보고"}}))
+day = os.path.join(os.environ["CODEX_HOME"], "sessions", "2026", "09", "28")
+os.makedirs(day, exist_ok=True)
+with open(os.path.join(day, "rollout-2026-09-28T10-00-00-%s.jsonl" % session), "a", encoding="utf-8") as rollout:
+    rollout.write(json.dumps({"type": "session_meta", "payload": {"id": session, "cwd": os.getcwd(),
+                                                                  "originator": "codex_exec"}}) + "\n")
+    rollout.write(json.dumps({"type": "turn_context", "payload": {"model": model, "effort": effort,
+                                                                  "sandbox_policy": {"type": sandbox}}}) + "\n")
 with open(os.environ["FAKE_ARGS_LOG"], "a", encoding="utf-8") as log:
     log.write(json.dumps({"args": args, "prompt": prompt}, ensure_ascii=False) + "\n")
 with open(out, "w", encoding="utf-8") as handle:
     handle.write(os.environ.get("FAKE_OUTPUT", "# Research Pack\n- 작업 ID\n--- 헤더 끝 ---\n본문\n"))
-sys.exit(int(os.environ.get("FAKE_EXIT", "0")))
+code = int(os.environ.get("FAKE_EXIT", "0"))
+if code:
+    print(json.dumps({"type": "turn.failed", "error": {"message": "가짜 실패"}}))
+else:
+    print(json.dumps({"type": "turn.completed", "usage": {}}))
+sys.exit(code)
 '''
 
 
@@ -44,6 +60,7 @@ def env(tmp_path):
     models.write_text(json.dumps({"yor": {"model": "gpt-test", "effort": "medium"}}), encoding="utf-8")
     values = {**os.environ, "DOCUMASTER_WORK_ROOT": str(tmp_path), "DOCUMASTER_CODEX": json.dumps([sys.executable, str(fake)]),
               "DOCUMASTER_AGENT_MODELS": str(models), "FAKE_ARGS_LOG": str(tmp_path / "calls.jsonl"),
+              "CODEX_HOME": str(tmp_path / "codex_home"),
               "PYTHONIOENCODING": "utf-8"}
     return tmp_path, ws, values
 
@@ -145,3 +162,21 @@ def test_wait_reports_finished_call(env):
     run(values, "research")
     result = run(values, "wait")
     assert result.returncode == 0 and "요르 research: OK" in result.stdout
+
+
+def test_json_events_go_to_their_own_log_and_session_falls_back_to_rollout(env):
+    root, _, values = env
+    result = run(values, "research", FAKE_NO_THREAD_EVENT="1")  # thread.started가 없어도 세션 기록에서 찾는다
+    assert result.returncode == 0, result.stdout
+    assert "실제 gpt-test/medium" in result.stdout
+    base = root / "작업" / ID
+    assert json.loads((base / "_yor_sessions.json").read_text(encoding="utf-8"))["research"].startswith("sess-")
+    events = [json.loads(line) for line in (base / "_log_02.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert events[-1]["type"] == "turn.completed"
+    assert json.loads((base / "_yor_call.json").read_text(encoding="utf-8"))["status"] == "done"
+
+
+def test_failed_turn_reports_the_event_message(env):
+    _, _, values = env
+    result = run(values, "research", FAKE_EXIT="1")
+    assert result.returncode == 1 and "가짜 실패" in result.stdout
