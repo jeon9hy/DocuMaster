@@ -70,6 +70,18 @@ export function eventToFeedItem(
         ...(event.summary && { summary: event.summary }),
       };
 
+    case "workflow.queued":
+      return {
+        ...base,
+        kind: "system",
+        tone: "info",
+        title: "실행 예약됨",
+        detail: "다른 프로젝트의 실행이 끝나면(완료·오류) 자동으로 시작합니다.",
+      };
+
+    case "workflow.queue.cancelled":
+      return { ...base, kind: "system", tone: "info", title: "실행 예약 취소", detail: event.reason };
+
     case "workflow.stop.requested":
       return {
         ...base,

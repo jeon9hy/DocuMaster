@@ -3,6 +3,7 @@ import { MockWorkspaceService } from "./mock/MockWorkspaceService";
 import type { WorkspaceService } from "./WorkspaceService";
 
 export type { WorkspaceService } from "./WorkspaceService";
+export { ServiceError } from "./WorkspaceService";
 
 /**
  * 앱 전체가 쓰는 서비스 하나.

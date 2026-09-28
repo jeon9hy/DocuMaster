@@ -55,6 +55,8 @@ export interface ProjectWorkspace {
   references: Reference[];
   artifacts: Artifact[];
   pendingInputs: UserInputRequest[];
+  /** 실행 예약됨(다른 프로젝트가 끝나면 시작). 없으면 false */
+  queued?: boolean;
   /** 이 상태에 반영된 마지막 이벤트 번호. 이어 받기(replay)와 중복 제거에 쓴다. */
   lastEventSeq: number;
 }

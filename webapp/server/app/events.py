@@ -25,6 +25,8 @@ EVENT_TYPES = frozenset(
         "workflow.stop.requested",
         "workflow.stopped",
         "workflow.failed",
+        "workflow.queued",
+        "workflow.queue.cancelled",
         "project.mode.decided",
         "validation.verdict",
         "user.input.required",

@@ -9,9 +9,16 @@ function setAgentStatus(agents: Agent[], match: (agent: Agent) => boolean, statu
 /** 이벤트 하나를 받아 새 워크스페이스를 돌려준다(원본은 바꾸지 않는다). */
 function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): ProjectWorkspace {
   switch (event.type) {
+    case "workflow.queued":
+      return { ...workspace, queued: true };
+
+    case "workflow.queue.cancelled":
+      return { ...workspace, queued: false };
+
     case "workflow.started":
       return {
         ...workspace,
+        queued: false,
         runStatus: "running",
         agents: setAgentStatus(workspace.agents, () => true, "idle"),
       };

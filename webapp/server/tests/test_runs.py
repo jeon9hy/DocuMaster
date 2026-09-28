@@ -227,3 +227,41 @@ def test_cumulative_claude_cost_is_not_added_twice(client, settings):
     row = services.db.one("SELECT cost_usd, actual_model FROM runs WHERE id = ?", (run_id,))
     assert row["cost_usd"] == 3.0
     assert row["actual_model"] == "claude-opus-5-5"
+
+
+def test_second_project_is_queued_and_starts_after_the_first_completes(client):
+    first = create_project(client, "먼저")
+    second = create_project(client, "나중")
+    start(client, first, "첫 보고서를 써줘")
+    prompt = pending_prompt(client, first)  # 첫 실행이 응답을 기다린다 = 아직 자리를 차지한다
+
+    assert client.post(f"/api/projects/{second}/messages", json={"text": "둘째 보고서"}).status_code == 201
+    busy = client.post(f"/api/projects/{second}/runs")
+    assert busy.status_code == 409 and busy.json()["detail"]["code"] == "busy"
+    queued = client.post(f"/api/projects/{second}/queue")
+    assert queued.status_code == 202 and queued.json() == {"started": False, "position": 1}
+    assert client.post(f"/api/projects/{second}/queue").status_code == 409  # 두 번 예약하지 않는다
+    assert types_of(client, second)[-1] == "workflow.queued"
+
+    answer(client, first, prompt["promptId"])
+    wait_until(lambda: "workflow.completed" in types_of(client, first))
+    wait_until(lambda: "workflow.started" in types_of(client, second))  # 앞 실행이 끝나자 예약이 시작됐다
+    pending_prompt(client, second)
+    assert client.delete(f"/api/projects/{second}/queue").status_code == 409  # 이미 시작해 예약이 없다
+
+
+def test_queued_run_can_be_cancelled_and_empty_slot_starts_immediately(client):
+    first = create_project(client, "먼저")
+    second = create_project(client, "나중")
+    start(client, first, "첫 보고서를 써줘")
+    pending_prompt(client, first)
+    client.post(f"/api/projects/{second}/messages", json={"text": "둘째 보고서"})
+    assert client.post(f"/api/projects/{second}/queue").status_code == 202
+    assert client.delete(f"/api/projects/{second}/queue").status_code == 204
+    assert types_of(client, second)[-1] == "workflow.queue.cancelled"
+
+    # 중지로 끝나면 예약은 기다린다(여기선 예약이 없으니 아무 일도 없다). 빈 자리에 예약하면 바로 시작한다
+    assert client.post(f"/api/projects/{first}/runs/current/stop").status_code == 202
+    wait_until(lambda: "workflow.stopped" in types_of(client, first))
+    started = client.post(f"/api/projects/{second}/queue")
+    assert started.status_code == 202 and started.json()["started"] is True

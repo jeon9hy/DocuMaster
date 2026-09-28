@@ -46,7 +46,11 @@ export interface WorkspaceService {
   /** afterSeq보다 뒤의 이벤트만 받는다(스냅샷과 구독 사이에 생긴 이벤트도 빠지지 않는다). */
   subscribe(projectId: string, afterSeq: number, handlers: SubscribeHandlers): Unsubscribe;
 
+  /** 다른 프로젝트가 실행 중이면 code "busy"인 ServiceError로 실패한다 — 그때 queueWorkflow를 제안한다 */
   runWorkflow(projectId: string): Promise<void>;
+  /** 앞 실행이 끝나면 시작하도록 예약한다(비어 있으면 바로 시작) */
+  queueWorkflow(projectId: string): Promise<void>;
+  cancelQueuedWorkflow(projectId: string): Promise<void>;
   /** 현재 단계가 끝난 뒤 멈춘다(graceful stop). */
   stopWorkflow(projectId: string): Promise<void>;
   respondToInput(projectId: string, promptId: string, answer: string): Promise<void>;
@@ -73,4 +77,15 @@ export interface WorkspaceService {
   getUsage(): Promise<ProviderUsage[]>;
   /** 도구 설치 상태. 백엔드가 없으면(목업) null */
   getHealth(): Promise<SystemHealth | null>;
+}
+
+/** 백엔드가 준 이유(message)와 종류(code: "busy" · "conflict" …). 화면은 code로 다음 동작을 고른다. */
+export class ServiceError extends Error {
+  readonly code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = "ServiceError";
+    this.code = code;
+  }
 }

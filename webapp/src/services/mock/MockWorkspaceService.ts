@@ -143,6 +143,13 @@ export class MockWorkspaceService implements WorkspaceService {
     this.schedule(projectId, buildRunPlan(store.workspace));
   }
 
+  // 목업은 프로젝트마다 따로 돌아 자리 다툼이 없다 — 예약은 곧 실행이다
+  queueWorkflow(projectId: string): Promise<void> {
+    return this.runWorkflow(projectId);
+  }
+
+  async cancelQueuedWorkflow(): Promise<void> {}
+
   async stopWorkflow(projectId: string): Promise<void> {
     const store = this.getStore(projectId);
     if (!["running", "awaitingInput"].includes(store.workspace.runStatus)) return;

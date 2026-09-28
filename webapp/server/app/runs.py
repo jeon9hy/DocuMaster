@@ -1,6 +1,8 @@
-"""RunManager — 실행 시작 · 중복 방지 · graceful stop · 사용자 응답 후 재개 · 재시작 복구.
+"""RunManager — 실행 시작 · 중복 방지 · 실행 예약(대기열) · graceful stop · 사용자 응답 후 재개 · 재시작 복구.
 
-한 번에 한 프로젝트의 한 실행만 허용한다(지침서 §22 Phase D). 병렬 실행은 하지 않는다.
+한 번에 한 프로젝트의 한 실행만 허용한다(지침서 §22 Phase D). 병렬 실행은 하지 않는다 — 토큰 한도를 두 실행이 나눠 쓰면
+둘 다 느려지고 중간에 막힌다. 대신 다른 프로젝트가 돌고 있으면 **예약**해 두고, 앞 실행이 완료·오류로 끝나면 예약 순서대로
+시작한다. 중지(사용자·백엔드 재시작)로 끝나면 예약은 기다린다 — 사용자가 멈춘 뒤 다른 실행이 저절로 시작되지 않게.
 실행 상태는 DB에 두고, 메모리에는 지금 돌고 있는 프로세스 하나만 든다 —
 백엔드가 다시 켜져도 '응답 대기' 실행은 그대로 이어서 답할 수 있다.
 """
@@ -48,6 +50,10 @@ TOOL_COMMANDS = {"claude": "claude", "codex": "codex", "nlm": "nlm"}
 
 class ConflictError(RuntimeError):
     pass
+
+
+class BusyError(ConflictError):
+    """다른 프로젝트가 실행 중 — 화면이 「끝나면 시작」 예약을 제안한다."""
 
 
 def _with_queued(text: str, queued: list[str]) -> str:
@@ -109,18 +115,15 @@ class RunManager:
     def start(self, project_id: str) -> str:
         with self._lock:
             project = self._projects.get(project_id)
-            self._projects.require_writable(project)
+            self._check_startable(project)
             active = self.active_run()
             if active:
                 if active["project_id"] == project_id:
                     raise ConflictError("이 프로젝트는 이미 실행 중이거나 응답을 기다리고 있습니다.")
-                raise ConflictError("다른 프로젝트가 실행 중입니다. 한 번에 하나만 실행할 수 있습니다.")
+                raise BusyError("다른 프로젝트가 실행 중입니다. 한 번에 하나만 실행할 수 있습니다.")
+            self._drop_from_queue(project_id)
             first_turn = project["session_id"] is None
-            if first_turn and not self._projects.has_undelivered_messages(project_id):
-                raise InvalidRequestError("먼저 작업 요청을 입력해 주세요. 요청 문장이 로이드에게 그대로 전달됩니다.")
             result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
-            if result.finished:
-                raise InvalidRequestError("이미 완료된 작업입니다.")
 
             run_id = f"run_{uuid.uuid4().hex[:12]}"
             self._db.execute(
@@ -132,6 +135,65 @@ class RunManager:
             prompt = self._compose_prompt(project, first_turn, self._projects.take_undelivered_messages(project_id))
             self._launch(run_id, project_id, prompt, resume=not first_turn, progress=Progress.resume_from(result))
             return run_id
+
+    def _check_startable(self, project: dict) -> None:
+        self._projects.require_writable(project)
+        if project["session_id"] is None and not self._projects.has_undelivered_messages(project["id"]):
+            raise InvalidRequestError("먼저 작업 요청을 입력해 주세요. 요청 문장이 로이드에게 그대로 전달됩니다.")
+        result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
+        if result.finished:
+            raise InvalidRequestError("이미 완료된 작업입니다.")
+
+    # --- 예약(대기열) ----------------------------------------------------------------
+
+    def enqueue(self, project_id: str) -> dict:
+        """앞 실행이 끝나면 시작하도록 예약한다. 비어 있으면 바로 시작한다."""
+        with self._lock:
+            project = self._projects.get(project_id)
+            self._check_startable(project)
+            active = self.active_run()
+            if not active:
+                return {"started": True, "runId": self.start(project_id)}
+            if active["project_id"] == project_id:
+                raise ConflictError("이 프로젝트는 이미 실행 중이거나 응답을 기다리고 있습니다.")
+            if self._db.one("SELECT 1 FROM run_queue WHERE project_id = ?", (project_id,)):
+                raise ConflictError("이미 예약되어 있습니다.")
+            self._db.execute("INSERT INTO run_queue (project_id, queued_at) VALUES (?, ?)", (project_id, now_iso()))
+            self._events.append(project_id, {"type": "workflow.queued"})
+            return {"started": False, "position": self._queue_position(project_id)}
+
+    def cancel_queued(self, project_id: str, reason: str | None = None) -> None:
+        with self._lock:
+            if not self._drop_from_queue(project_id, reason):
+                raise ConflictError("예약된 실행이 없습니다.")
+
+    def _drop_from_queue(self, project_id: str, reason: str | None = None) -> bool:
+        if not self._db.one("SELECT 1 FROM run_queue WHERE project_id = ?", (project_id,)):
+            return False
+        self._db.execute("DELETE FROM run_queue WHERE project_id = ?", (project_id,))
+        payload = {"type": "workflow.queue.cancelled"}
+        if reason:
+            payload["reason"] = reason
+        self._events.append(project_id, payload)
+        return True
+
+    def _queue_position(self, project_id: str) -> int:
+        rows = self._db.query("SELECT project_id FROM run_queue ORDER BY queued_at")
+        return next((index + 1 for index, row in enumerate(rows) if row["project_id"] == project_id), 0)
+
+    def _start_next_queued(self) -> None:
+        """앞 실행이 끝났다 — 예약 순서대로 하나를 시작한다. 시작할 수 없는 예약은 이유와 함께 지운다."""
+        with self._lock:
+            if self.active_run():
+                return
+            for row in self._db.query("SELECT project_id FROM run_queue ORDER BY queued_at"):
+                project_id = row["project_id"]
+                try:
+                    self.start(project_id)
+                    return
+                except (NotFoundError, InvalidRequestError, ConflictError) as error:
+                    if not self._drop_from_queue(project_id, f"예약한 실행을 시작하지 못했습니다: {error}"):
+                        self._db.execute("DELETE FROM run_queue WHERE project_id = ?", (project_id,))
 
     def _compose_prompt(self, project: dict, first_turn: bool, messages: list[str]) -> str:
         """사용자가 CLI에 칠 문장과 같게 만든다: 요청 원문 + (정했다면) 형식 + 참고자료 경로.
@@ -406,6 +468,9 @@ class RunManager:
             payload = {"stopped": {"type": "workflow.stopped", "stageId": stage},
                        "failed": {"type": "workflow.failed", "stageId": stage, "reason": reason}}[status]
         self._events.append(project_id, payload, run_id)
+        if status in ("completed", "failed"):
+            # 이 스레드는 끝난 실행의 감시 스레드다 — 다음 실행은 자기 스레드에서 돈다(_launch)
+            self._start_next_queued()
 
     def _summary(self, run_id: str, project_id: str) -> dict:
         """완료 카드에 모을 값 — 이미 DB·파일에 있는 것만 읽는다(모델을 부르지 않는다)."""

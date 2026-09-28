@@ -33,6 +33,8 @@ export interface AppActions {
   toggleStage(stageId: WorkflowStageId): void;
   selectArtifact(artifactId: string): void;
   runWorkflow(): Promise<void>;
+  queueWorkflow(): Promise<void>;
+  cancelQueuedWorkflow(): Promise<void>;
   stopWorkflow(): Promise<void>;
   respondToInput(promptId: string, answer: string): Promise<void>;
   sendMessage(text: string, mentionedAgentId?: AgentId): Promise<void>;
@@ -146,6 +148,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         requestNotificationPermission(); // 클릭 순간에만 물을 수 있다 — 확인 요청·완료를 알리려고
         return mutate(() => workspaceService.runWorkflow(requireProject()));
       },
+      queueWorkflow: () => {
+        requestNotificationPermission();
+        return mutate(() => workspaceService.queueWorkflow(requireProject()));
+      },
+      cancelQueuedWorkflow: () => mutate(() => workspaceService.cancelQueuedWorkflow(requireProject())),
       stopWorkflow: () => mutate(() => workspaceService.stopWorkflow(requireProject())),
       respondToInput: (promptId, answer) =>
         mutate(() => workspaceService.respondToInput(requireProject(), promptId, answer)),

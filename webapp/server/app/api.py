@@ -13,7 +13,7 @@ from .agent_settings import UnsupportedConfigError
 from .auth import AVATAR_MAX_BYTES, SESSION_COOKIE, SESSION_DAYS, AuthError
 from .files import UnsafePathError, UploadTooLargeError
 from .projects import InvalidRequestError, NotFoundError, ProjectDeleteError
-from .runs import ConflictError
+from .runs import BusyError, ConflictError
 from .usage import usage_report
 
 router = APIRouter(prefix="/api")
@@ -79,6 +79,8 @@ def _guard(action):
         return action()
     except NotFoundError as error:
         raise _error(404, "not_found", str(error)) from error
+    except BusyError as error:
+        raise _error(409, "busy", str(error)) from error
     except ConflictError as error:
         raise _error(409, "conflict", str(error)) from error
     except UploadTooLargeError as error:
@@ -120,6 +122,10 @@ def delete_project(project_id: str, request: Request):
     if services.runs.active_run(project_id):
         raise _error(409, "conflict", "실행 중인 프로젝트는 삭제할 수 없습니다. 먼저 중지하세요.")
     _guard(lambda: services.projects.delete(project_id))
+    try:
+        services.runs.cancel_queued(project_id)
+    except ConflictError:
+        pass  # 예약이 없었다
 
 
 @router.get("/projects/{project_id}/workspace")
@@ -133,6 +139,17 @@ def get_workspace(project_id: str, request: Request):
 @router.post("/projects/{project_id}/runs", status_code=202, dependencies=OWNER)
 def start_run(project_id: str, request: Request):
     return {"runId": _guard(lambda: _services(request).runs.start(project_id))}
+
+
+@router.post("/projects/{project_id}/queue", status_code=202, dependencies=OWNER)
+def queue_run(project_id: str, request: Request):
+    """다른 프로젝트가 실행 중이면 끝난 뒤 시작하도록 예약한다(비어 있으면 바로 시작)."""
+    return _guard(lambda: _services(request).runs.enqueue(project_id))
+
+
+@router.delete("/projects/{project_id}/queue", status_code=204, dependencies=OWNER)
+def cancel_queued_run(project_id: str, request: Request):
+    _guard(lambda: _services(request).runs.cancel_queued(project_id))
 
 
 @router.post("/projects/{project_id}/runs/{run_id}/stop", status_code=202, dependencies=OWNER)

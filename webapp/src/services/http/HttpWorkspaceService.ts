@@ -14,7 +14,7 @@ import type {
   SystemHealth,
   WorkflowEvent,
 } from "@/types";
-import type { SubscribeHandlers, Unsubscribe, WorkspaceService } from "../WorkspaceService";
+import { ServiceError, type SubscribeHandlers, type Unsubscribe, type WorkspaceService } from "../WorkspaceService";
 
 const BACKEND_UNAVAILABLE =
   "로컬 백엔드에 연결할 수 없습니다. webapp/start.bat(또는 webapp/server)을 실행했는지 확인하세요.";
@@ -130,6 +130,14 @@ export class HttpWorkspaceService implements WorkspaceService {
     await this.request(`/api/projects/${projectId}/runs`, { method: "POST" });
   }
 
+  async queueWorkflow(projectId: string): Promise<void> {
+    await this.request(`/api/projects/${projectId}/queue`, { method: "POST" });
+  }
+
+  async cancelQueuedWorkflow(projectId: string): Promise<void> {
+    await this.request(`/api/projects/${projectId}/queue`, { method: "DELETE" });
+  }
+
   async stopWorkflow(projectId: string): Promise<void> {
     await this.request(`/api/projects/${projectId}/runs/current/stop`, { method: "POST" });
   }
@@ -233,7 +241,10 @@ export class HttpWorkspaceService implements WorkspaceService {
     if (!response.ok) {
       const detail = await response.json().catch(() => null);
       const message = detail?.detail?.message ?? detail?.detail;
-      throw new Error(typeof message === "string" ? message : `요청이 실패했습니다 (HTTP ${response.status}).`);
+      throw new ServiceError(
+        typeof message === "string" ? message : `요청이 실패했습니다 (HTTP ${response.status}).`,
+        typeof detail?.detail?.code === "string" ? detail.detail.code : undefined,
+      );
     }
     return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
   }

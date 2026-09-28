@@ -32,6 +32,7 @@ export function ChatView() {
       <PromptInput
         teamIds={workspace.agents.map((agent) => agent.id)}
         runStatus={workspace.runStatus}
+        queued={workspace.queued ?? false}
         isComplete={isWorkflowComplete(workspace.stageStatus)}
         readOnly={workspace.project.readOnly}
       />

@@ -33,6 +33,10 @@ export type WorkflowEventPayload =
   | { type: "workflow.stop.requested" }
   | { type: "workflow.stopped"; stageId: WorkflowStageId }
   | { type: "workflow.failed"; stageId: WorkflowStageId; reason: string }
+  /** 다른 프로젝트가 실행 중이라 예약함 — 앞 실행이 완료·오류로 끝나면 시작한다 */
+  | { type: "workflow.queued" }
+  /** 예약 취소(사용자 · 시작할 수 없게 됨). 예약이 실제로 시작되면 이 이벤트 없이 workflow.started가 온다 */
+  | { type: "workflow.queue.cancelled"; reason?: string }
   | { type: "project.mode.decided"; mode: ProjectMode }
   | { type: "validation.verdict"; verdict: ValidationVerdict; firstLine: string }
   | { type: "user.input.required"; request: UserInputRequest }

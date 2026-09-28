@@ -149,6 +149,12 @@ CREATE TABLE IF NOT EXISTS user_messages (
   created_at    TEXT NOT NULL,
   delivered_at  TEXT
 );
+
+-- 실행 예약(대기열). 한 번에 한 실행이라, 다른 프로젝트가 돌고 있을 때 「끝나면 시작」을 걸어 둔다.
+CREATE TABLE IF NOT EXISTS run_queue (
+  project_id    TEXT PRIMARY KEY REFERENCES projects(id),
+  queued_at     TEXT NOT NULL
+);
 """
 
 
