@@ -25,7 +25,11 @@ BASES = {
     "00": "00_user_brief", "05": "05_verified_research_pack", "06": "06_detailed_plan",
     "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
 }
-# 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §3) · 강도 후보(E-021)
+# 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §3) · 강도 후보(E-021) · DOC 본문에 들어온 검수의 말(E-057)
+TRACE_WORDS = re.compile(
+    r"확인되지 않|확인하지 못|찾지 못|확보하지 못|이 (보고서|지침서|문서|글)(는|은|에서|가|의)|"
+    r"읽으면 안|읽는 것이|읽을 수는? 없|일반화할 수|확대(하지 않|할 수 없)|것이 안전하다|"
+    r"근거이지|근거일 뿐|까지만 말|다른 주장이다|가장 정직한|한 줄로 (요약|정리)|유의해야")
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
 VAGUE_WORDS = re.compile(r"적절히|적당히|알아서|필요시|필요하면|등등|재량껏")
 STRONG_WORDS = re.compile(r"때문이다|때문에|덕분|결정적|입증|증명|반드시|확실히|분명히|모든 |누구나|최고의|압도적")
@@ -458,6 +462,10 @@ def main() -> int:
         check_doc_sources(target)
         check_caution(target, t05, strict=False)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
+        body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+        check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
+        check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
+                    skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07":
         check_state_bookkeeping(read(ws.parent / "상태.md"))
 
