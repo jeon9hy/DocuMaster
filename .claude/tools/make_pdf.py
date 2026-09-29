@@ -60,8 +60,9 @@ def print_pdf(html_path, pdf_path):
 def label_font():
     dirs = [r"C:\Windows\Fonts",
             os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "Windows", "Fonts")]
-    for d in dirs:
-        for name in ("Pretendard-Regular.ttf", "Pretendard-Regular.otf", "malgun.ttf"):
+    # 이름을 바깥 루프로 — 맑은고딕(13MB)을 Pretendard보다 먼저 집으면 통째로 임베드된다(E-061)
+    for name in ("Pretendard-Regular.ttf", "Pretendard-Regular.otf", "malgun.ttf"):
+        for d in dirs:
             p = os.path.join(d, name)
             if os.path.exists(p):
                 return p
@@ -85,8 +86,12 @@ def stamp_pages(pdf_path, label="", skip_first=False):
             kw = {"fontname": "pret", "fontfile": font} if font else {"fontname": "korea"}
             page.insert_text((40, h - 26), label[:40], fontsize=7.5,
                              color=(0.55, 0.55, 0.58), **kw)
+    try:
+        doc.subset_fonts()  # 라벨 폰트를 쓴 글자만 남긴다(fontTools 필요 — 없으면 통째로 남는다)
+    except Exception as e:
+        print("참고: 폰트 서브셋 생략 —", type(e).__name__)
     tmp = pdf_path + ".tmp"
-    doc.save(tmp)
+    doc.save(tmp, garbage=3, deflate=True)
     doc.close()
     os.replace(tmp, pdf_path)
     return n

@@ -30,10 +30,10 @@
 │          본보기/ 글쓰기 본보기 PDF(git 제외 · 실행 중 읽지 않음 — 기법만 문서규격 §2에)
 ├─ 요르/   역할.md · 조사.md(02) · 검증응답.md(04) · 세부기획.md(06, PPT) · 비주얼_발표.md(07, PPT)
 ├─ 유리/   검증.md(역할 포함, 03·05)
-├─ 아냐/   문서작성.md(역할 포함, 07) — 00·05·문서규격만 받는다(01~04·PPT 기획·로그 금지)
+├─ 아냐/   문서작성.md(역할 포함, 07) — 00·05 §2·§5·문서규격만 받는다(05 §1·§3·§4, 01~04·로그 금지)
 ├─ 로이드/ 실행.md(필요한 절만) · 기획.md(01) · 상태파일.md
 ├─ skills/ doc-finish · cross-check · deck-review · notebooklm-handoff (로이드 전용)
-├─ tools/  yor(요르 호출) · stage(상태.md·기록.md) · gate_check(PPT 06·07 / DOC 07) · md2html · make_pdf · apply_patch · nlm_pipeline
+├─ tools/  yor(요르 호출) · stage(상태.md·기록.md) · gate_check(05 / PPT 06·07 / DOC 07) · md2html · make_pdf · apply_patch · nlm_pipeline
 ├─ 환경기록.md  E-번호 한 줄 색인
 └─ archive/    옛 원문. 읽지 않는다
 ```

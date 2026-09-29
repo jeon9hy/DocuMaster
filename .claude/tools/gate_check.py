@@ -1,7 +1,9 @@
-"""PPT 06·07 / DOC 07 게이트 — 사실 재유입과 형식 위반을 사람이 읽기 전에 걸러 낸다.
+"""05 / PPT 06·07 / DOC 07 게이트 — 사실 재유입과 형식 위반을 사람이 읽기 전에 걸러 낸다.
 
 사용:
-    python .claude/tools/gate_check.py <작업ID> 06|07 [--file <대상 경로>]
+    python .claude/tools/gate_check.py <작업ID> 05|06|07 [--file <대상 경로>]
+
+05는 아냐가 읽는 §2·§5만 잰다 — §2의 금지·미확인·절 참조는 원고의 해명 문장이 된다(E-060).
 
 대상은 workspace에서 가장 높은 버전(_v02, _v03 …)을 자동으로 고른다. 모드는 대상 헤더에서 읽는다.
 판정:
@@ -27,9 +29,23 @@ BASES = {
 }
 # 형식 이름(E-026) · 판단을 넘기는 말(세부기획 §3) · 강도 후보(E-021) · DOC 본문에 들어온 검수의 말(E-057)
 TRACE_WORDS = re.compile(
-    r"확인되지 않|확인하지 못|찾지 못|찾을 수 없|근거는? 없|확보하지 못|이 (보고서|지침서|가이드|문서|글)(는|은|에서|가|의)|"
-    r"읽으면 안|읽는 것이|읽을 수는? 없|일반화할 수|확대(하지 않|할 수 없)|것이 안전하다|"
+    r"이 (보고서|지침서|가이드|문서|글)(는|은|에서|가|의)|것이 안전하다|"
     r"근거이지|근거일 뿐|까지만 말|다른 주장이다|가장 정직한|한 줄로 (요약|정리)|유의해야")
+# 독자가 하지 않은 오해를 막는 해명 문장(E-057·E-060) — 한계를 모은 `::: note` 한 곳 밖이면 FAIL
+HEDGE_WORDS = re.compile(
+    r"(단정|말|판단|비교|평균|해석|특정|추정|일반화|확대|결론)(할|하기|해|내기|짓기)? ?수(는|도|가)? ?없|"
+    r"(단정하|판단하|보|말하|결론짓|평가하)기(는|가|도)? (어렵|이르)|"
+    r"(읽어|해석해|봐|보아|써|받아들여)서는 안|로 (읽어야|읽는다|읽을)|읽는 것이|(다르게|달리) 읽힌|읽으면 안|"
+    r"인과(관계|분석|적)?(은|는|가|이|로)? (아니|볼 수)|(뜻|의미|말)(은|이) 아니|"
+    r"(설명|추정|특정|언급|확인)하지 (않았|못)|(특정|확인)되지 않|찾지 못|찾을 수 없|확보하지 못|"
+    r"담기지 않|다루지 (못|않)|근거는? 없")
+# 장마다 같은 틀로 닫는 관전 권유 — 3회 이상이면 CHECK
+WATCH_WORDS = re.compile(r"보는 것이 (좋|필요)|지켜볼|주시할|볼 (대목|지점)|눈여겨")
+# 05 §2(아냐가 읽는 사실)에 들어가면 안 되는 것 — 집필 금지·미확인 꼬리·절/파일 참조·에이전트 이름
+DIRECTIVE_WORDS = re.compile(
+    r"쓰지 않|쓸 수 없|쓰지 말|묶지 않|내지 않는다|금지|불가(?!피)|미확인|확인되지 않|추정되지 않|열리지 않|"
+    r"위 CAUTION|§\s?\d|(?<![\d.\-])0[1-4](?![\d.%\-]) ?(§|을|를|와|과|의|에)|요르|로이드|아냐|"
+    r"유리(가|는|의|에게)? ?(확인|질의|판정|직접)")
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
 VAGUE_WORDS = re.compile(r"적절히|적당히|알아서|필요시|필요하면|등등|재량껏")
 STRONG_WORDS = re.compile(r"때문이다|때문에|덕분|결정적|입증|증명|반드시|확실히|분명히|모든 |누구나|최고의|압도적")
@@ -223,6 +239,75 @@ def check_doc_sources(target: str) -> None:
         report("CHECK", "출처", "본문·비주얼에 `[Snn]` citation이 없다")
     elif not duplicate and not missing and not unused:
         report("OK", "출처", f"citation {len(cited)}건과 출처 행이 양방향 대응")
+    lines = [l for l in match.group(1).splitlines() if re.match(r"\s*S\d{2,3}\s*\|", l)]
+    no_link = [l.split("|")[0].strip() for l in lines if not re.search(r"https?://|p\.\s*\d|쪽|시트", l)]
+    unknown = [l.split("|")[0].strip() for l in lines if re.search(r"\|\s*미상\s*\|", l)]
+    if no_link:
+        report("CHECK", "출처", f"링크·위치 없는 출처 {len(no_link)}건 — 05 §5에 URL이 있는지 본다: " + ", ".join(no_link[:12]))
+    if unknown:
+        report("CHECK", "출처", f"날짜 미상 {len(unknown)}건: " + ", ".join(unknown[:12]))
+
+
+def check_hedges(target: str) -> None:
+    """해명 문장은 한계를 모은 `::: note` 한 곳에만 둔다(문서규격 §2)."""
+    body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+    out, notes, in_note, note_no = [], set(), False, 0
+    for i, line in enumerate(body.splitlines(), 1):
+        if re.match(r"^:::\s*note\b", line):
+            in_note, note_no = True, note_no + 1
+            continue
+        if in_note and re.match(r"^:::\s*$", line):
+            in_note = False
+            continue
+        if re.match(r"^\s*(title|subtitle):", line):
+            continue
+        m = HEDGE_WORDS.search(line)
+        if m and in_note:
+            notes.add(note_no)
+        elif m:
+            out.append(f"{i}행 「{m.group(0)}」 {line.strip()[:60]}")
+    for h in out[:15]:
+        report("FAIL", "해명 문장", h + " — 문장을 지우거나 조건을 라벨로")
+    if len(out) > 15:
+        report("FAIL", "해명 문장", f"… 외 {len(out) - 15}건")
+    if len(notes) > 1:
+        report("FAIL", "해명 문장", f"한계가 note {len(notes)}곳에 흩어져 있다 — 한 곳으로")
+    if not out and len(notes) <= 1:
+        report("OK", "해명 문장", "note 밖 해명 문장 없음")
+    watch = WATCH_WORDS.findall(body)
+    if len(watch) >= 3:
+        report("CHECK", "관전 권유", f"`지켜보라`류 {len(watch)}회 — 시사점이 해석 없이 관전 권유로 끝나지 않는지(문서규격 §1)")
+
+
+def check_05(t05: str) -> None:
+    """아냐가 읽는 05 §2·§5가 원고에 그대로 옮겨도 되는 긍정문인지 잰다."""
+    sec = lambda n: (re.search(rf"^## {n}\.[^\n]*\n(.*?)(?=^## \d\.|\Z)", t05, re.S | re.M) or [None, ""])[1]
+    s2, s5 = sec(2), sec(5)
+    if not s2.strip():
+        report("FAIL", "05 §2", "`## 2.` 절이 없다")
+    hits = []
+    for i, line in enumerate(s2.splitlines(), 1):
+        m = DIRECTIVE_WORDS.search(line)
+        if m:
+            hits.append(f"§2 {i}행 「{m.group(0)}」 {line.strip()[:60]}")
+    for h in hits[:15]:
+        report("FAIL", "05 §2", h + " — 긍정문으로 바꾸거나 §4로")
+    if len(hits) > 15:
+        report("FAIL", "05 §2", f"… 외 {len(hits) - 15}건")
+    if s2.strip() and not hits:
+        report("OK", "05 §2", "금지·미확인·참조 없음")
+    ids = sorted(set(re.findall(r"S(\d{2,3})", s2)))
+    rows = {m[0]: m[1] for m in re.findall(r"^\s*-?\s*S(\d{2,3})\s*\|(.*)$", s5, re.M)}
+    missing = [f"S{i}" for i in ids if i not in rows]
+    no_link = [f"S{i}" for i, r in rows.items() if not re.search(r"https?://|자료/|p\.\s*\d|쪽", r)]
+    if re.search(r"02|04", s5) and re.search(r"따른다|참조|참고", s5):
+        report("FAIL", "05 §5", "02·04를 가리킨다 — 05는 혼자 읽혀야 한다")
+    if missing:
+        report("FAIL", "05 §5", "§2 근거 ID의 출처 행 없음(`- S01 | 자료명 | 주체 | 날짜 | URL`): " + ", ".join(missing[:15]))
+    if no_link:
+        report("FAIL", "05 §5", "URL·위치 없는 출처 행: " + ", ".join(no_link[:15]))
+    if ids and not missing and not no_link:
+        report("OK", "05 §5", f"§2 근거 {len(ids)}건 모두 출처 행·URL 있음")
 
 
 def slides(text: str) -> list[tuple[int, str]]:
@@ -399,7 +484,7 @@ def main() -> int:
         i = args.index("--file")
         file_arg = args[i + 1]
         del args[i:i + 2]
-    if len(args) != 2 or args[1].lower() not in {"06", "07"}:
+    if len(args) != 2 or args[1].lower() not in {"05", "06", "07"}:
         print(__doc__)
         return 2
     job, stage = args[0], args[1].lower()
@@ -412,6 +497,11 @@ def main() -> int:
     t00, t05, t06 = read(f["00"]), read(f["05"]), read(f["06"])
     mode_match = re.search(r"모드\s*:\s*(DOCUMENT|PRESENTATION)", t00.split("--- 헤더 끝 ---")[0])
     ppt = mode_match[1] == "PRESENTATION" if mode_match else bool(slides(t06))
+    if stage == "05":
+        p05 = (Path(file_arg) if Path(file_arg).is_absolute() else ROOT / file_arg) if file_arg else f["05"]
+        print(f"# gate_check · {job} · 05 · 아냐가 읽는 §2·§5\n대상 {p05.name}\n")
+        check_05(read(p05))
+        return summarize()
 
     if stage == "06":
         if not ppt:
@@ -464,11 +554,16 @@ def main() -> int:
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
         body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
         check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
+        check_hedges(target)
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07":
         check_state_bookkeeping(read(ws.parent / "상태.md"))
 
+    return summarize()
+
+
+def summarize() -> int:
     order = {"FAIL": 0, "CHECK": 1, "OK": 2}
     for level, name, msg in sorted(results, key=lambda r: order[r[0]]):
         print(f"{level:5} [{name}] {msg}")

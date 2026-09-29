@@ -199,6 +199,13 @@ svg.chart { width: 100%%; height: auto; display: block; font-family: "Pretendard
                font-variant-numeric: tabular-nums; }
 .timeline .e { font-weight: 600; }
 .timeline .d { font-size: 9pt; color: var(--ink-2); line-height: 1.55; }
+.timeline.across { display: grid; column-gap: 10pt; }
+.timeline.across li { padding: 16pt 0 0 0; }
+.timeline.across li::before { left: 0; right: -10pt; top: 3.5pt; bottom: auto; width: auto; height: 0.8pt; }
+.timeline.across li:last-child::before { display: block; right: 0; }
+.timeline.across li::after { top: 0; }
+.timeline.across .e { font-size: 9.6pt; line-height: 1.45; margin-top: 2pt; }
+.timeline.across .d { font-size: 8.4pt; line-height: 1.45; margin-top: 2pt; }
 
 /* 흐름도 */
 .flow { display: flex; align-items: stretch; margin: 14pt 0 16pt; page-break-inside: avoid; }
@@ -220,6 +227,16 @@ RE_SRC = re.compile(r"^(자료|출처|주)\s*[:：]")
 
 BASE_DIR = "."
 WARNINGS: list[str] = []
+# 화면 번호는 sources 행 순서대로 1, 2, 3 … — S07·S10이 빠져도 독자에게 번호가 건너뛰어 보이지 않게
+SOURCE_NO: dict[str, int] = {}
+
+
+def number_sources(md):
+    m = re.search(r"^:::\s*sources\b[^\n]*\n(.*?)^:::\s*$", md, re.S | re.M)
+    ids = re.findall(r"^\s*S(\d{2,3})\s*\|", m.group(1), re.M) if m else []
+    SOURCE_NO.clear()
+    for sid in ids:
+        SOURCE_NO.setdefault(sid, len(SOURCE_NO) + 1)
 
 
 def inline(text):
@@ -236,7 +253,7 @@ def inline(text):
     out = RE_EM.sub(r"<em>\1</em>", out)
     out = RE_LINK.sub(r'<a href="\2">\1</a>', out)
     out = RE_CITATIONS.sub(lambda m: '<sup class="cite">%s</sup>' % ",".join(
-        '<a href="#source-S%s">%d</a>' % (n, int(n)) for n in RE_CITATION.findall(m.group(0))), out)
+        '<a href="#source-S%s">%d</a>' % (n, SOURCE_NO.get(n, int(n))) for n in RE_CITATION.findall(m.group(0))), out)
     for i, s in enumerate(kept):
         out = out.replace("\x00%d\x00" % i, s)
     return out
@@ -505,7 +522,9 @@ def render_timeline(body):
         t, e, d = (c + ["", "", ""])[:3]
         items.append('<li><div class="t">%s</div><div class="e">%s</div>%s</li>'
                      % (inline(t), inline(e), '<div class="d">%s</div>' % inline(d) if d else ""))
-    return '<ul class="timeline">%s</ul>' % "".join(items)
+    # 5개 이하는 가로로 — 세로 목록은 쪽 절반을 비우고 통째로 다음 쪽으로 밀린다
+    across = ' across" style="grid-template-columns:repeat(%d,1fr)' % len(items) if 2 <= len(items) <= 5 else ""
+    return '<ul class="timeline%s">%s</ul>' % (across, "".join(items))
 
 
 def render_flow(body):
@@ -558,7 +577,7 @@ def render_block(kind, title, body, accent):
             meta = " · ".join(cell for cell in cells[1:] if cell)
             rows.append('<div class="source-row" id="source-%s"><div class="source-no">%d</div>'
                         '<div class="source-meta">%s</div></div>'
-                        % (source_id, int(source_id[1:]), inline(meta)))
+                        % (source_id, SOURCE_NO.get(source_id[1:], int(source_id[1:])), inline(meta)))
         if not rows:
             WARNINGS.append("sources 블록에 올바른 출처 행이 없다")
         return '<section class="sources"><h2>%s</h2>%s</section>' % (
@@ -789,6 +808,7 @@ def main():
         # 짧은 메모는 front matter만으로 제목을 주기도 한다. 표지가 없으면 본문 제목을 자동 표시한다.
         md = "# " + meta["title"] + "\n\n" + md.lstrip()
 
+    number_sources(md)
     body = (cover_html(meta) if cover else "") + convert(md, accent)
     doc = ('<!doctype html>\n<html lang="ko"><head><meta charset="utf-8">'
            '<meta name="doc-cover" content="%d">'
