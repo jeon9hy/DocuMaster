@@ -31,7 +31,7 @@ python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --label "$ID" --cont
 문제가 없으면 `# Review\n\nSTATUS: PASS`, 있으면 `STATUS: REVISE`와 `[FACT|LOGIC|INTERNAL|DUP]` 이슈만 최대 8개 남긴다.
 
 ## 3. Render Gate — 모아보기 먼저, 확대는 의심 쪽만
-`contact.png` 한 장으로 전 쪽의 흐름을 본다: 표지와 accent · 과도한 공백/밀집 · 쪽 끝에 홀로 남은 제목 · 비주얼과 본문의 균형. 비주얼의 장별 할당량은 검사하지 않는다.
+`contact.png` 한 장으로 전 쪽의 흐름을 본다: 표지와 accent · 과도한 공백/밀집 · 쪽 끝에 홀로 남은 제목 · 비주얼과 본문의 균형 · 사진이 쪽 높이의 1/3을 넘거나 한 쪽에 두 장 이상(문서규격 §4). 비주얼의 장별 할당량은 검사하지 않는다.
 00에 정확한 쪽수 제약이 있으면 PDF 쪽수와 대조한다. 다르면 Render Gate 실패다. 표·차트·`자료:`·한정·출처가 있는 쪽과 모아보기에서 걸린 쪽만 확대해서 본다:
 ```bash
 python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --only-images --pages 3,7   # $O/p03.png · p07.png

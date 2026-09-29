@@ -11,6 +11,7 @@
   front matter  맨 위 `---` 블록: title · subtitle · kind · date · org · accent · accent2 ·
                 cover(true/false) · cover_image · cover_credit
   ![캡션](경로 "크레디트")   그림 — 원고 파일 기준 상대경로. PDF 안에 넣어 굽는다
+                            끝에 {narrow}(작게)·{wide}(전폭, 도식·지도용)를 붙일 수 있다. 기본은 본문 폭 68%
   ```chart       막대(bar)·세로막대(column)·선(line) 차트 → SVG
   ```timeline    시점 | 사건 | 부연
   ```flow        단계 | 부연   (가로 흐름도)
@@ -172,8 +173,14 @@ blockquote p:last-child { margin-bottom: 0; }
 
 /* 그림 */
 figure { margin: 14pt 0 14pt; page-break-inside: avoid; }
+/* 사진 크기(문서규격 §4): 기본 68%%·80mm, narrow 46%%·60mm, wide 전폭·110mm */
+figure.photo { width: 68%%; margin-left: auto; margin-right: auto; }
+figure.photo.narrow { width: 46%%; }
+figure.photo.wide { width: 100%%; }
 figure img { width: 100%%; display: block; }
-figure.narrow img { width: 62%%; }
+figure.photo img { height: auto; max-height: 80mm; object-fit: contain; }
+figure.photo.narrow img { max-height: 60mm; }
+figure.photo.wide img { max-height: 110mm; }
 figcaption { font-size: 8.6pt; color: var(--ink-2); margin-top: 6pt; line-height: 1.5; }
 figcaption .credit { color: var(--muted); }
 .chart-title { font-size: 10pt; font-weight: 700; margin-bottom: 1pt; }
@@ -208,7 +215,7 @@ RE_EM = re.compile(r"(?<![\*\w])\*([^\*\n]+)\*(?!\*)")
 RE_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\)\s]+)\)")
 RE_CITATION = re.compile(r"\[S(\d{2,3})\]")
 RE_CITATIONS = re.compile(r"(?:\[S\d{2,3}\])+")  # 붙어 있는 인용 묶음 → 위첨자 하나에 쉼표로
-RE_IMG = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(\{narrow\})?$')
+RE_IMG = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(?:\{(narrow|wide)\})?$')
 RE_SRC = re.compile(r"^(자료|출처|주)\s*[:：]")
 
 BASE_DIR = "."
@@ -287,13 +294,13 @@ def embed(path):
         return "data:%s;base64,%s" % (mime, base64.b64encode(f.read()).decode())
 
 
-def figure(cap, path, credit, narrow):
+def figure(cap, path, credit, size):
     src = embed(path)
     if not src:
         return '<p class="src">[그림 누락: %s]</p>' % html.escape(path)
     cred = ' <span class="credit">%s</span>' % inline(credit) if credit else ""
     return ('<figure%s><img src="%s" alt="%s"><figcaption>%s%s</figcaption></figure>'
-            % (' class="narrow"' if narrow else "", src, html.escape(cap), inline(cap), cred))
+            % (' class="photo%s"' % (" " + size if size else ""), src, html.escape(cap), inline(cap), cred))
 
 
 # ── 차트 (정적 SVG) ─────────────────────────────────────────────────────────
@@ -623,7 +630,7 @@ def convert(md, accent=DEFAULT_ACCENT):
         m = RE_IMG.match(s)
         if m:
             close_lists()
-            out.append(figure(m.group(1), m.group(2), m.group(3), bool(m.group(4))))
+            out.append(figure(m.group(1), m.group(2), m.group(3), m.group(4)))
             i += 1
             continue
 

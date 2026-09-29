@@ -55,7 +55,7 @@ CALLS = {
                  "web": True, "out": "workspace/02_research_pack.md", "log": "_log_02.txt",
                  "note": "_입력_조사.md", "header": True},
     "answer": {"label": "검증 응답 04", "rules": ["요르/검증응답.md"], "session": ("research", "resume"),
-               "inline": ["03_verification_questions"], "web": True, "out": "_raw_04.md", "log": "_log_04.txt",
+               "inline": ["03_verification_questions", "02_research_pack"], "web": True, "out": "_raw_04.md", "log": "_log_04.txt",
                "note": "_입력_응답.md", "header": False},
     "plan": {"label": "PPT 세부 기획 06", "rules": ["요르/역할.md", "요르/세부기획.md", "공통/발표규격.md"],
              "session": ("plan", "new"), "inline": ["00_user_brief", "05_verified_research_pack"], "web": False,
@@ -207,13 +207,19 @@ def build_prompt(job: Job, kind: str, spec: dict, opts: argparse.Namespace) -> s
               f"결과는 마지막 응답 본문으로만 낸다 — 파일 쓰기를 시도하지 않는다(로이드가 `{spec['out']}`에 저장한다)."]
     if kind == "patch":
         header.append(PATCH_FORMAT)
+    if kind in ("answer", "patch") and not opts.retry:
+        # OLD는 기억이 아니라 붙인 원문에서 복사해야 적용된다(E-058: 기억으로 쓴 OLD가 어긋나 02 v02가 안 나왔다)
+        header.append("PATCH의 OLD는 아래에 붙인 고칠 대상 원문에서 글자 그대로 복사한다. 기억으로 다시 쓰지 않는다.")
     parts.append("\n".join(header))
     note = job.base / spec["note"]
     if note.is_file():
         parts.append(f"## 로이드의 지시 ({spec['note']})\n" + note.read_text(encoding="utf-8"))
     elif spec.get("note_required"):
         raise Stop(2, f"작업/{job.id}/{spec['note']}가 없다 — 지시(채택 결정·고칠 항목)를 먼저 쓴다")
-    for base in [] if opts.retry else spec["inline"]:
+    inline = list(spec["inline"])
+    if kind == "patch" and opts.target:
+        inline.append(re.sub(r"(_v\d+)?\.md$", "", Path(opts.target).name))
+    for base in [] if opts.retry else inline:
         path = latest(job.ws, base)
         if not path:
             raise Stop(2, f"입력이 없다: workspace/{base}.md")
