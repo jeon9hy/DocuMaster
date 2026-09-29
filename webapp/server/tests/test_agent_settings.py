@@ -23,7 +23,7 @@ def by_agent(rows: list[dict]) -> dict[str, dict]:
 def test_defaults_match_claude_md_placement(client):
     rows = by_agent(client.get("/api/settings/agents").json())
     assert rows["yor"]["config"] == {"provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "xhigh"}
-    assert rows["yuri"]["config"]["modelId"] == "claude-sonnet-5"
+    assert rows["yuri"]["config"]["modelId"] == "claude-sonnet-5-5"
     assert rows["anya"]["config"]["modelId"] == "claude-opus-5-5"
     assert rows["loid"]["config"]["modelId"] == "claude-code-default"
     assert all(not row["overridden"] for row in rows.values())
@@ -45,6 +45,8 @@ def test_owner_can_change_loid_and_reset(client):
 def test_saved_old_model_id_moves_to_its_successor(client):
     client.app.state.services.agent_settings._save("anya", {"provider": "anthropic", "modelId": "claude-opus-5", "reasoningLevel": None})
     assert by_agent(client.get("/api/settings/agents").json())["anya"]["config"]["modelId"] == "claude-opus-5-5"
+    client.app.state.services.agent_settings._save("yuri", {"provider": "anthropic", "modelId": "claude-sonnet-5", "reasoningLevel": None})
+    assert by_agent(client.get("/api/settings/agents").json())["yuri"]["config"]["modelId"] == "claude-sonnet-5-5"
 
 
 def test_unsupported_settings_are_refused_not_substituted(client):
@@ -139,7 +141,7 @@ def test_models_file_is_written_for_the_orchestrator(client, settings):
 
 def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     expected = orchestrator_models({"yor": {"modelId": "gpt-6-astra", "reasoningLevel": "high"},
-                                    "yuri": {"modelId": "claude-sonnet-5"}, "anya": {"modelId": "claude-opus-5-5"}})
+                                    "yuri": {"modelId": "claude-sonnet-5-5"}, "anya": {"modelId": "claude-opus-5-5"}})
 
     def tool(name: str, data: dict) -> str:
         return json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": name, "input": data}]}})

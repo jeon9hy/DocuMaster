@@ -26,7 +26,7 @@ from .db import Database, now_iso
 UNSUPPORTED_MESSAGE = "현재 선택한 모델 설정을 사용할 수 없습니다."
 
 # 로이드가 고를 수 있는 모델. claude-code-default = --model을 넘기지 않음(사용자의 Claude Code 기본값).
-_LOID_MODELS = ("claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5", "claude-haiku-4-5")
+_LOID_MODELS = ("claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5")
 # None = --effort를 넘기지 않음(Claude Code 기본값)
 _LOID_REASONING = (None, "low", "medium", "high", "xhigh", "max")
 
@@ -34,14 +34,14 @@ _LOID_REASONING = (None, "low", "medium", "high", "xhigh", "max")
 SUBAGENT_ALIAS = {
     "claude-fable-5-1": "fable",
     "claude-opus-5-5": "opus",
-    "claude-sonnet-5": "sonnet",
+    "claude-sonnet-5-5": "sonnet",
     "claude-haiku-4-5": "haiku",
 }
 
 _LOCK_REASON = {"bond": "NotebookLM(nlm CLI)에는 모델 선택이 없습니다."}
 
 # 새 모델이 나와 목록에서 빠진 ID → 이어받을 ID. 저장된 설정을 읽을 때만 옮긴다.
-_RENAMED_MODELS = {"claude-opus-5": "claude-opus-5-5"}
+_RENAMED_MODELS = {"claude-opus-5": "claude-opus-5-5", "claude-sonnet-5": "claude-sonnet-5-5"}
 
 
 class UnsupportedConfigError(ValueError):

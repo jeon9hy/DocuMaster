@@ -37,7 +37,7 @@ export const MODEL_OPTIONS: readonly ModelOption[] = [
   { id: "claude-code-default", label: "Claude Code 기본값", provider: "anthropic" },
   { id: "claude-fable-5-1", label: "Claude Fable 5.1", provider: "anthropic" },
   { id: "claude-opus-5-5", label: "Claude Opus 5.5", provider: "anthropic" },
-  { id: "claude-sonnet-5", label: "Claude Sonnet 5", provider: "anthropic" },
+  { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", provider: "anthropic" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", provider: "anthropic" },
   // Codex: 실제 선택지는 백엔드가 ~/.codex/models_cache.json에서 읽는다. 여기는 표시 이름만.
   { id: "gpt-6-astra", label: "GPT-6 Astra", provider: "openai" },

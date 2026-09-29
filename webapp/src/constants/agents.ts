@@ -52,7 +52,7 @@ export const AGENT_PROFILES = {
     role: "독립 검증",
     description: "요르의 조사를 독립적으로 검증합니다. 틀릴 위험이 큰 주장을 골라 따져 묻고, 출처 원문을 직접 열어 확인합니다.",
     accent: { text: "text-indigo-700", soft: "bg-indigo-50", dot: "bg-indigo-500" },
-    defaultConfig: { provider: "anthropic", modelId: "claude-sonnet-5", reasoningLevel: null },
+    defaultConfig: { provider: "anthropic", modelId: "claude-sonnet-5-5", reasoningLevel: null },
   },
   anya: {
     name: "아냐",
