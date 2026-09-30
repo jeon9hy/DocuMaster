@@ -39,6 +39,12 @@ HEDGE_WORDS = re.compile(
     r"인과(관계|분석|적)?(은|는|가|이|로)? (아니|볼 수)|(뜻|의미|말)(은|이) 아니|"
     r"(설명|추정|특정|언급|확인)하지 (않았|못)|(특정|확인)되지 않|찾지 못|찾을 수 없|확보하지 못|"
     r"담기지 않|다루지 (못|않)|근거는? 없|(데|는) 한계가 있")
+# 조사·작성 과정이 주어이거나 읽기 지도인 문장(문서규격 §2) — 이야기 속 인물이 주어일 때만 유지
+PROCESS_WORDS = re.compile(
+    r"(확인|특정|확보|파악|검증)하지 못|찾지 못|찾을 수 없었|열람(했|한 |해 )|"
+    r"확인한 (범위|자료|공고|결과|바|것)|(만|까지) 확인했|판단하지 않았|"
+    r"이 (보고서|가이드|지침서|문서|글)(가|에서|는|은|의) ?(정리|나눈|분류|권하|다루|판단)|"
+    r"(조심해서|주의해서|신중히) 읽|로 읽(어야|어서는|으면 안)|읽으면 안|가장 정직한")
 # 장마다 같은 틀로 닫는 관전 권유 — 3회 이상이면 CHECK
 WATCH_WORDS = re.compile(r"보는 것이 (좋|필요)|지켜볼|주시할|볼 (대목|지점)|눈여겨")
 # 05 §2 검토 후보 — 집필 지시·미확인 꼬리·내부 참조(주제의 실제 조건과 문맥으로 구별)
@@ -316,7 +322,7 @@ def check_doc_sources(target: str) -> None:
 def check_hedges(target: str) -> None:
     """단어만으로 필요한 설명을 삭제하지 않는다(문서규격 §2·E-063)."""
     body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
-    out, notes, in_note, note_no = [], set(), False, 0
+    out, process, notes, in_note, note_no = [], [], set(), False, 0
     for i, line in enumerate(body.splitlines(), 1):
         if re.match(r"^:::\s*note\b", line):
             in_note, note_no = True, note_no + 1
@@ -326,18 +332,26 @@ def check_hedges(target: str) -> None:
             continue
         if re.match(r"^\s*(title|subtitle):", line):
             continue
+        p = None if in_note else PROCESS_WORDS.search(line)
+        if p:
+            process.append(f"{i}행 「{p.group(0)}」 {line.strip()[:60]}")
+            continue
         m = HEDGE_WORDS.search(line)
         if m and in_note:
             notes.add(note_no)
         elif m:
             out.append(f"{i}행 「{m.group(0)}」 {line.strip()[:60]}")
+    for h in process[:15]:
+        report("CHECK", "조사 시점", h + " — 고친다: 대상을 주어로·범위 라벨로·독자 한계로(이야기 속 인물이 주어일 때만 유지)")
+    if len(process) > 15:
+        report("CHECK", "조사 시점", f"… 외 {len(process) - 15}건")
     for h in out[:15]:
-        report("CHECK", "해명 문장", h + " — 검수 해명인지 필요한 개념·조건 설명인지 문맥 확인")
+        report("CHECK", "해명 문장", h + " — 문서규격 §2 주어 기준: 오해 방지는 범위·라벨로, 대상의 조건·행동 지시는 보존")
     if len(out) > 15:
         report("CHECK", "해명 문장", f"… 외 {len(out) - 15}건")
     if len(notes) > 1:
         report("CHECK", "해명 문장", f"note {len(notes)}곳 — 문서 전체의 자료 한계인지 개별 행동 조건인지 확인")
-    if not out and len(notes) <= 1:
+    if not out and not process and len(notes) <= 1:
         report("OK", "해명 문장", "note 밖 해명 문장 없음")
     watch = WATCH_WORDS.findall(body)
     if len(watch) >= 3:
