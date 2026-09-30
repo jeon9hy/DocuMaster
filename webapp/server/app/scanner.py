@@ -71,6 +71,14 @@ def workspace_dir(work_root: Path, workspace_id: str) -> Path:
     return work_root / "작업" / workspace_id
 
 
+def final_dirs(work_root: Path, workspace_id: str) -> list[Path]:
+    """최종본이 놓이는 곳 — 글 유형 폴더 아래(최종/<유형>/<ID>)와 옛 평면 배치(최종/<ID>)."""
+    final_root = work_root / "최종"
+    found = [path for path in (final_root / workspace_id, *final_root.glob(f"*/{workspace_id}"))
+             if path.is_dir()]
+    return found
+
+
 def scan(work_root: Path, workspace_id: str | None, mode: str) -> ScanResult:
     result = ScanResult()
     if not workspace_id:
@@ -112,7 +120,7 @@ def scan(work_root: Path, workspace_id: str | None, mode: str) -> ScanResult:
     for path in sorted((base / "output").glob("*")):
         if path.is_file():
             result.files.append(FoundFile(path, "finalReview", "loid", "internal", 1, "렌더 결과"))
-    for path in sorted((work_root / "최종" / workspace_id).glob("*")):
+    for path in sorted(p for folder in final_dirs(work_root, workspace_id) for p in folder.glob("*")):
         if path.is_file():
             result.files.append(FoundFile(path, "finalReview", "loid", "primary", 1, "최종본"))
     return result

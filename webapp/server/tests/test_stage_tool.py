@@ -57,11 +57,19 @@ def test_init_done_log_and_finish(tmp_path, stage):
     assert read(tmp_path, "상태.md").splitlines()[1] == "상태: 진행 중 03 검증질문"
 
     run("set", "--id", ID, "--session", "아냐 에이전트=def456", "--session", "실제 모델=gpt(확인)")
-    run("finish", "--id", ID, "--final", f"최종/{ID}/{ID}.pdf", "--manifest", f"{ID}.pdf (DOCUMENT · 4쪽)")
+    run("finish", "--id", ID, "--final", f"최종/분석/{ID}/{ID}.pdf", "--manifest", f"{ID}.pdf (DOCUMENT · 4쪽)")
     lines = read(tmp_path, "상태.md").splitlines()
-    assert lines[1] == "상태: 완료" and lines[2] == f"다음에 할 일: 없음 — 최종/{ID}/{ID}.pdf"
+    assert lines[1] == "상태: 완료" and lines[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{ID}.pdf"
     manifest = (tmp_path / "최종" / "_manifest.md").read_text(encoding="utf-8")
-    assert manifest == f"- {TODAY} · `{ID}` · {ID}.pdf (DOCUMENT · 4쪽)\n"
+    assert manifest == f"- {TODAY} · [분석] `{ID}` · {ID}.pdf (DOCUMENT · 4쪽)\n"
+
+
+def test_manifest_kind_reads_only_the_type_folder(stage):
+    """최종/<유형>/<ID>/<파일>에서만 유형을 읽는다 — 옛 평면 경로의 ID를 유형으로 읽지 않는다."""
+    assert stage.manifest_kind(f"최종/분석/{ID}/{ID}.pdf") == "분석"
+    assert stage.manifest_kind(f"최종/발표/{ID}/{ID}_슬라이드.pdf") == "발표"
+    assert stage.manifest_kind(f"최종/{ID}/{ID}.pdf") == ""
+    assert stage.manifest_kind(f"작업/{ID}/output/{ID}.pdf") == ""
 
 
 def test_reads_an_existing_real_layout(tmp_path, stage):

@@ -15,6 +15,7 @@ from .config import Settings
 from .db import Database, now_iso
 from .events import EventStore
 from .files import FileStore, UnsafePathError, reference_kind_of
+from . import scanner
 
 REFERENCE_KIND_LABEL = {"pdf": "PDF", "image": "이미지", "url": "웹 링크", "text": "텍스트",
                         "markdown": "Markdown", "file": "파일"}
@@ -110,7 +111,8 @@ class ProjectService:
             claimed = self._db.one(
                 "SELECT 1 FROM projects WHERE work_root = ? AND workspace_id = ?", (work_root, candidate)
             )
-            if not claimed and not (root / "작업" / candidate).exists() and not (root / "최종" / candidate).exists():
+            taken = (root / "작업" / candidate).exists() or scanner.final_dirs(root, candidate)
+            if not claimed and not taken:
                 return candidate
         return f"{base}_{project_id[2:]}"
 
@@ -123,9 +125,10 @@ class ProjectService:
             if Path(workspace_id).name != workspace_id or "/" in workspace_id or "\\" in workspace_id:
                 raise UnsafePathError("잘못된 작업 폴더 이름입니다.")
             root = self.work_root(project)
-            for folder in ("작업", "최종"):
-                parent = self._files.ensure_allowed(root / folder)
-                target = self._files.ensure_allowed(parent / workspace_id)
+            # 최종본은 글 유형 폴더 아래에 있을 수 있다(최종/<유형>/<ID>) — 찾은 곳만 지운다.
+            for target in (root / "작업" / workspace_id, *scanner.final_dirs(root, workspace_id)):
+                parent = self._files.ensure_allowed(target.parent)
+                target = self._files.ensure_allowed(target)
                 if target.parent != parent:
                     raise UnsafePathError("프로젝트 폴더 밖은 삭제할 수 없습니다.")
                 targets.append(target)
