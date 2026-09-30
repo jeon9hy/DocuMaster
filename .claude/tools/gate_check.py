@@ -3,7 +3,7 @@
 사용:
     python .claude/tools/gate_check.py <작업ID> 05|06|07 [--file <대상 경로>]
 
-05는 아냐가 읽는 §2·§5만 잰다 — §2의 금지·미확인·절 참조는 원고의 해명 문장이 된다(E-060).
+05는 §2·§5의 구조·출처와 집필 지시 유출 후보를 잰다. 주제의 정의·조건은 문맥으로 구별한다(E-063).
 
 대상은 workspace에서 가장 높은 버전(_v02, _v03 …)을 자동으로 고른다. 모드는 대상 헤더에서 읽는다.
 판정:
@@ -31,7 +31,7 @@ BASES = {
 TRACE_WORDS = re.compile(
     r"이 (보고서|지침서|가이드|문서|글)(는|은|에서|가|의)|것이 안전하다|"
     r"근거이지|근거일 뿐|까지만 말|다른 주장이다|가장 정직한|한 줄로 (요약|정리)|유의해야")
-# 독자가 하지 않은 오해를 막는 해명 문장(E-057·E-060) — 한계를 모은 `::: note` 한 곳 밖이면 FAIL
+# 표현 후보(E-063): 개념 구분·절차 조건일 수 있으므로 문맥 검토로 닫는다.
 HEDGE_WORDS = re.compile(
     r"(단정|말|판단|비교|평균|해석|특정|추정|일반화|확대|결론)(할|하기|해|내기|짓기)? ?수(는|도|가)? ?없|"
     r"(단정하|판단하|보|말하|결론짓|평가하)기(는|가|도)? (어렵|이르)|"
@@ -41,11 +41,11 @@ HEDGE_WORDS = re.compile(
     r"담기지 않|다루지 (못|않)|근거는? 없|(데|는) 한계가 있")
 # 장마다 같은 틀로 닫는 관전 권유 — 3회 이상이면 CHECK
 WATCH_WORDS = re.compile(r"보는 것이 (좋|필요)|지켜볼|주시할|볼 (대목|지점)|눈여겨")
-# 05 §2(아냐가 읽는 사실)에 들어가면 안 되는 것 — 집필 금지·미확인 꼬리·절/파일 참조·에이전트 이름
+# 05 §2 검토 후보 — 집필 지시·미확인 꼬리·내부 참조(주제의 실제 조건과 문맥으로 구별)
 DIRECTIVE_WORDS = re.compile(
     r"쓰지 않|쓸 수 없|쓰지 말|묶지 않|내지 않는다|금지|불가(?!피)|미확인|확인되지 않|추정되지 않|열리지 않|"
     r"한계가 있|(뜻|의미|것)(은|이) 아니|일반화(하|할|는)|"
-    r"위 CAUTION|§\s?\d|(?<![\d.\-])0[1-4](?![\d.%\-]) ?(§|을|를|와|과|의|에)|요르|로이드|아냐|"
+    r"위 CAUTION|§\s?\d|(?<![A-Za-z\d.\-])0[1-4](?![\d.%\-]) ?(§|을|를|와|과|의|에)|요르|로이드|아냐|"
     r"유리(가|는|의|에게)? ?(확인|질의|판정|직접)")
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
 VAGUE_WORDS = re.compile(r"적절히|적당히|알아서|필요시|필요하면|등등|재량껏")
@@ -53,6 +53,9 @@ STRONG_WORDS = re.compile(r"때문이다|때문에|덕분|결정적|입증|증�
 LAYOUT = re.compile(r"\b[xy]\s*=|\d\s*(px|pt)\b|너비|화면의 (약 )?\d|영역")  # 좌표·크기 줄은 수치 검사에서 뺀다
 # 덱 유형별 (제목, 화면 문구) 한 줄 한도(공백 제외) — 공통/발표_<유형>.md §3과 같게 유지
 DECK_CAPS = {"스토리": (10, 16), "학술": (24, 40), "브리핑": (24, 40)}
+# 공통/글유형.md의 00·07 계약. 구조·문체의 품질은 doc-finish에서 문맥으로 판정한다.
+DOC_PURPOSES = ("현황·기록", "설명·해설", "분석", "평가·비평", "제안·설득", "안내·절차", "서사·소개")
+DOC_STYLES = ("단정", "부드러움")
 
 
 def deck_line(kind: str) -> str:
@@ -160,7 +163,7 @@ def check_numbers(target: str, allowed: set[str], skip_layout: bool) -> None:
         report("CHECK", "수치", f"05에 없는 {k} — {line}")
 
 
-def check_remove(target: str, t05: str) -> None:
+def check_remove(target: str, t05: str, strict: bool = True) -> None:
     items = remove_items(t05)
     if not items:
         if declared_count(t05, "REMOVE") == 0:
@@ -176,7 +179,7 @@ def check_remove(target: str, t05: str) -> None:
                     continue
                 hit = True
                 handled = re.search(r"REMOVE|않는다|않았다|넣지|쓰지|만들지|금지|삭제", line)
-                report("CHECK" if handled else "FAIL", "REMOVE",
+                report("CHECK" if handled or not strict else "FAIL", "REMOVE",
                        f"{i} — " + ("처리 언급으로 보인다: " if handled else "다시 나온다: ") + line.strip()[:70])
     if not hit:
         report("OK", "REMOVE", f"REMOVE {len(items)}건의 근거 ID 재등장 없음")
@@ -201,6 +204,58 @@ def check_caution(target: str, t05: str, strict: bool) -> None:
                + " / ".join(l[:25] for l, _ in missing))
     if not missing:
         report("OK", "CAUTION", f"{len(items)}건 전부 글자 그대로 있다")
+
+
+def check_doc_type(t00: str, target: str, job_dir: Path) -> None:
+    """목적과 편집 계약을 각각 확인한다. 기존 결과물은 옛 type으로 호환한다."""
+    header = t00.split("--- 헤더 끝 ---")[0]
+    fm = re.match(r"\A\ufeff?---\s*\n(.*?)\n---(?:\s*\n|\Z)", target, re.S)
+    meta = fm[1] if fm else ""
+
+    def value(text: str, key: str, brief: bool = False) -> str:
+        prefix = r"(?:^| / )[ \t]*(?:-[ \t]*)?" if brief else r"^[ \t]*"
+        match = re.search(prefix + re.escape(key) + r":[ \t]*([^\n]*)", text, re.M)
+        raw = match[1].strip() if match else ""
+        return (raw.split()[0] if brief and raw else raw).strip("\"'")
+
+    kind = value(meta, "type")
+    purpose = value(header, "글 유형", True)
+    new_contract = bool(re.search(r"글 유형\s*:", header) or kind == "글"
+                        or re.search(r"^(purpose|style):", meta, re.M))
+    if new_contract:
+        if kind != "글":
+            report("FAIL", "글 유형", "새 계약의 07은 `type: 글`이어야 한다")
+        for label, expected, actual, allowed in (
+            ("글 유형", purpose, value(meta, "purpose"), DOC_PURPOSES),
+            ("편집", value(header, "편집", True), value(meta, "style"), DOC_STYLES),
+        ):
+            if expected not in allowed:
+                report("FAIL", label, f"00의 값이 없거나 잘못됐다: {expected or '(없음)'}")
+            if actual not in allowed:
+                report("FAIL", label, f"07의 값이 없거나 잘못됐다: {actual or '(없음)'}")
+            elif expected in allowed and expected != actual:
+                report("FAIL", label, f"00은 {expected}, 07은 {actual}")
+            elif expected == actual:
+                report("OK", label, actual)
+        report("CHECK", "목적 충족", "선택한 글 유형의 완료 기준·00의 독자 도달점을 doc-finish에서 위치별 확인")
+    else:
+        legacy = value(header, "문서 유형", True)
+        if legacy in ("보고서", "읽을거리"):
+            report("OK" if kind == legacy else "FAIL", "문서 유형", f"이전 계약: 00 {legacy} / 07 {kind or '(없음)'}")
+        else:
+            report("CHECK", "글 유형", "이전 작업의 유형 없음 — 이어 집필할 때 로이드가 00에 글 유형을 보완")
+    listing = job_dir / "references" / "images.md"
+    figs = re.findall(r"!\[[^\]]*\]\(([^)\s]+)", target)
+    if listing.exists() and figs:
+        rows: dict[str, str] = {}  # 경로 → 상태(사용|제외|실패: …)
+        for m in re.finditer(r"^\|\s*(I\d{2})\s*\|\s*([^|]*?)\s*\|(?:[^|]*\|){3}\s*([^|]*?)\s*\|", listing.read_text(encoding="utf-8"), re.M):
+            rows[m[2]] = m[3]
+        bad = [p for p in figs if p in rows and rows[p] != "사용"]
+        unlisted = [p for p in figs if "sources/images/" in p and p not in rows]
+        if bad:
+            report("FAIL", "그림", "제외·실패로 표시된 그림을 썼다: " + ", ".join(bad))
+        if unlisted:
+            report("FAIL", "그림", "이미지 목록에 없는 그림: " + ", ".join(unlisted))
 
 
 def check_corrected(t05: str) -> None:
@@ -259,7 +314,7 @@ def check_doc_sources(target: str) -> None:
 
 
 def check_hedges(target: str) -> None:
-    """해명 문장은 한계를 모은 `::: note` 한 곳에만 둔다(문서규격 §2)."""
+    """단어만으로 필요한 설명을 삭제하지 않는다(문서규격 §2·E-063)."""
     body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
     out, notes, in_note, note_no = [], set(), False, 0
     for i, line in enumerate(body.splitlines(), 1):
@@ -277,20 +332,20 @@ def check_hedges(target: str) -> None:
         elif m:
             out.append(f"{i}행 「{m.group(0)}」 {line.strip()[:60]}")
     for h in out[:15]:
-        report("FAIL", "해명 문장", h + " — 문장을 지우거나 조건을 라벨로")
+        report("CHECK", "해명 문장", h + " — 검수 해명인지 필요한 개념·조건 설명인지 문맥 확인")
     if len(out) > 15:
-        report("FAIL", "해명 문장", f"… 외 {len(out) - 15}건")
+        report("CHECK", "해명 문장", f"… 외 {len(out) - 15}건")
     if len(notes) > 1:
-        report("FAIL", "해명 문장", f"한계가 note {len(notes)}곳에 흩어져 있다 — 한 곳으로")
+        report("CHECK", "해명 문장", f"note {len(notes)}곳 — 문서 전체의 자료 한계인지 개별 행동 조건인지 확인")
     if not out and len(notes) <= 1:
         report("OK", "해명 문장", "note 밖 해명 문장 없음")
     watch = WATCH_WORDS.findall(body)
     if len(watch) >= 3:
-        report("CHECK", "관전 권유", f"`지켜보라`류 {len(watch)}회 — 시사점이 해석 없이 관전 권유로 끝나지 않는지(문서규격 §1)")
+        report("CHECK", "관전 권유", f"`지켜보라`류 {len(watch)}회 — 00의 목적에 필요한 관찰인지 반복 권유인지 확인")
 
 
 def check_05(t05: str) -> None:
-    """아냐가 읽는 05 §2·§5가 원고에 그대로 옮겨도 되는 긍정문인지 잰다."""
+    """05의 구조·출처를 검사하고, §2 표현은 집필 지시인지 실제 주제인지 검토한다."""
     sec = lambda n: (re.search(rf"^## {n}\.[^\n]*\n(.*?)(?=^## \d\.|\Z)", t05, re.S | re.M) or [None, ""])[1]
     s2, s5 = sec(2), sec(5)
     if not s2.strip():
@@ -301,9 +356,9 @@ def check_05(t05: str) -> None:
         if m:
             hits.append(f"§2 {i}행 「{m.group(0)}」 {line.strip()[:60]}")
     for h in hits[:15]:
-        report("FAIL", "05 §2", h + " — 긍정문으로 바꾸거나 §4로")
+        report("CHECK", "05 §2", h + " — 검수 지시는 §4로, 주제의 정의·법적 금지·행동 조건은 보존")
     if len(hits) > 15:
-        report("FAIL", "05 §2", f"… 외 {len(hits) - 15}건")
+        report("CHECK", "05 §2", f"… 외 {len(hits) - 15}건")
     if s2.strip() and not hits:
         report("OK", "05 §2", "금지·미확인·참조 없음")
     # 아냐는 §1을 못 본다 — CORRECTED·CAUTION 값이 §1 표에만 있으면 원고에서 사라진다
@@ -553,7 +608,7 @@ def main() -> int:
 
     allowed = base_numbers(t00, t05, t06) if ppt and stage == "07" else base_numbers(t00, t05)
     check_numbers(target, allowed, skip_layout=ppt)
-    check_remove(target, t05)
+    check_remove(target, t05, strict=ppt)
 
     if stage == "06":
         check_caution(target, t05, strict=not ppt)
@@ -569,6 +624,7 @@ def main() -> int:
         check_words(screen, STRONG_WORDS, "CHECK", "강도", "화면 문구의 강도 후보")
     else:
         check_doc_sources(target)
+        check_doc_type(t00, target, ws.parent)
         check_caution(target, t05, strict=False)
         check_corrected(t05)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")

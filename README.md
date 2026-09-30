@@ -12,7 +12,7 @@ You ask for a report or a deck in plain language. DocuMaster plans the research,
 
 | Mode | When | Output | Quality target |
 | --- | --- | --- | --- |
-| **DOCUMENT** | Reports, analyses, proposals, submissions | `최종/<ID>/<ID>.pdf` | **Final, ready to submit.** No quality step is skipped |
+| **DOCUMENT** | Factual writing: status, explanation, analysis, criticism, proposals, instructions, profiles | `최종/<ID>/<ID>.pdf` | **Final, ready to submit.** No quality step is skipped |
 | **PRESENTATION** | Decks, talks, slides | `최종/<ID>/` slide PDF + presentation pack | **A strong first draft.** Final design is done separately. Deck type (story · briefing · academic) has its own rule file, and only that one is loaded per job |
 
 ---
@@ -59,9 +59,29 @@ flowchart TD
 - **`05` is the single source of truth for facts, and (in presentations) `06` is the single source of truth for structure.** After `05` nobody reads the raw research, and nobody adds a fact.
 - **Yor is called through one tool, `.claude/tools/yor.py`.** It re-reads the model snapshot for every call, inlines the input files into the prompt (Codex cannot open files under a Korean path), keeps the session IDs, forces read-only, and checks the exit code, the output header and the model Codex actually ran. Loid never assembles a `codex` command by hand.
 - **Document structure and visuals are one writing decision.** Anya selects only visuals that clarify a comparison, trend or process; presentations retain a separate detailed-plan step.
-- **LOCKED vs FLEX.** Facts, numbers, structure, CAUTION placement and claim strength are LOCKED. Only phrasing marked `(FLEX)` is up to the writer. Claim strength may only ever be lowered.
+- **LOCKED vs FLEX.** Verified facts, numbers, conditions and evidential strength are preserved. Presentation structure is also locked after `06`; document structure remains Anya’s decision within the brief’s purpose and requirements.
 - **A conclusion is never stronger than its evidence.** Turning a before/after comparison into a cause, or a recommendation into a proven result, is an error even when every number is right.
 - **`[Unverified]` is a normal output.** A search snippet is not a verified source. Nobody fakes a URL, a paper, a statistic or a NotebookLM run.
+
+### Writing — one common standard, seven purposes
+
+Documents share `.claude/공통/문서규격.md`. Loid selects one purpose using `.claude/공통/글유형.md`, then passes only the matching `글_<이름>.md` to the writer and reviewer:
+
+| Purpose | A successful reader can… |
+| --- | --- |
+| 현황·기록 | Find the current state, timing and changes |
+| 설명·해설 | Explain a concept and how it works |
+| 분석 | Understand a supported explanation of a difference or change |
+| 평가·비평 | Trace a judgment to its criteria and observations |
+| 제안·설득 | Assess a claim or choice, alternatives and trade-offs |
+| 안내·절차 | Complete the task and check the outcome |
+| 서사·소개 | Understand a concrete subject or event in context |
+
+The brief records `글 유형`, `독자 도달점`, `완료 기준`, optional secondary purposes, and `편집: 단정|부드러움`. The research plan requests the material needed for that purpose. The writer uses `type: 글`, matching `purpose`, and matching `style` in front matter. Tone, layout and document format are independent of purpose. There is no mandatory recommendation or “implications” section for every document.
+
+Legacy `type: 보고서|읽을거리` files still render and validate against their original brief. Continuing an old job requires Loid to select its purpose before new writing; old output is not rewritten automatically. Reference texts and adopted techniques are recorded in [.claude/유지보수/글쓰기_본보기.md](.claude/유지보수/글쓰기_본보기.md), which is not loaded during generation.
+
+Regression checks (temporary fixtures only, no model calls): `python -m unittest discover -s .claude/tools/tests -v`.
 
 ### Deck types — story, briefing, academic
 

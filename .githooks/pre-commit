@@ -32,6 +32,7 @@ if printf '%s\n' "$staged" | grep -qE '^(webapp/server/|\.claude/tools/)'; then
       run "ruff (치명 오류만)" "$venv/ruff" check --quiet --select E9,F63,F7,F82 $py_files
     fi
     run "백엔드 테스트" sh -c "cd webapp/server && '$venv/python' -m pytest -q"
+    run "글 유형·렌더 호환 테스트" "$venv/python" -m unittest discover -s .claude/tools/tests -q
   else
     echo "[pre-commit] 건너뜀: webapp/server/.venv 없음(start.bat을 한 번 실행)"
   fi

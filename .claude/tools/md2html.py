@@ -7,8 +7,8 @@
       --- 수평선 / **굵게** *기울임* `코드` [링크](url) / ``` 코드블록 ``` /
       <!-- pagebreak --> 페이지 나눔
 
-편집 디자인 문법 (E-027 — 문서도 디자인을 한다. 전체 설명은 `아냐/문서작성.md` §2):
-  front matter  맨 위 `---` 블록: title · subtitle · kind · date · org · accent · accent2 ·
+편집 디자인 문법 (전체 설명은 `공통/문서규격.md` §5):
+  front matter  맨 위 `---` 블록: title · subtitle · type · purpose · style · kind · date · org · accent · accent2 ·
                 cover(true/false) · cover_image · cover_credit
   ![캡션](경로 "크레디트")   그림 — 원고 파일 기준 상대경로. PDF 안에 넣어 굽는다
                             끝에 {narrow}(작게)·{wide}(전폭, 도식·지도용)를 붙일 수 있다. 기본은 본문 폭 68%
@@ -166,6 +166,24 @@ blockquote p:last-child { margin-bottom: 0; }
 .pull .q::before { content: "\\201C"; display: block; font-size: 30pt; line-height: .9;
                    color: var(--accent); }
 .pull .by { font-size: 8.5pt; color: var(--muted); margin-top: 6pt; }
+
+/* style: 부드러움 (이전 type: 읽을거리도 호환) — 글의 목적과 별개인 편집 */
+body.read { font-size: 10.8pt; line-height: 1.92; }
+.read .cover.solid { background: color-mix(in srgb, var(--accent) 15%%, white); color: var(--ink); }
+.read .cover.solid .kind, .read .cover.solid .meta { color: var(--accent-deep); }
+.read .cover.solid .rule { background: var(--accent); height: 4pt; border-radius: 2pt; }
+.read .cover.solid .subtitle { color: var(--ink-2); }
+.read .cover.solid .meta { border-top: 0.6pt solid color-mix(in srgb, var(--accent) 35%%, white); }
+.read .cover h1.title { color: var(--accent-deep); }
+.read h2 .no { display: none; }
+.read h2.chapter { border-top: 0; padding-top: 4pt; color: var(--accent-deep); }
+.read h2.chapter::before { content: ""; display: block; width: 26pt; height: 4pt; border-radius: 2pt;
+                           background: var(--accent); margin-bottom: 9pt; }
+.read figure.photo img { border-radius: 10pt; }
+.read .pull { background: var(--accent-soft); border-radius: 12pt; padding: 14pt 18pt 12pt; }
+.read .note { border-radius: 8pt; }
+.read sup.cite { font-size: 6.5pt; }
+.read sup.cite a { font-weight: 400; color: var(--muted); }
 
 /* 출처 — 본문에 붙어 쪽 끝에서 잘리지 않게 항상 새 쪽에서 시작한다 */
 .sources { break-before: page; page-break-before: always; padding-top: 10pt; border-top: 1.2pt solid var(--ink); }
@@ -778,14 +796,15 @@ def convert(md, accent=DEFAULT_ACCENT):
 
 
 def front_matter(md):
-    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", md.replace("\r\n", "\n"), re.S)
+    md = md.lstrip("\ufeff").replace("\r\n", "\n")
+    m = re.match(r"^---\s*\n(.*?)\n---(?:\s*\n|$)", md, re.S)
     if not m:
         return {}, md
     meta = {}
     for line in m.group(1).split("\n"):
         kv = re.match(r"^(\w+)\s*:\s*(.*)$", line.strip())
         if kv:
-            meta[kv.group(1)] = kv.group(2).strip().strip('"')
+            meta[kv.group(1)] = kv.group(2).strip().strip('\"\'')
     return meta, md.replace("\r\n", "\n")[m.end():]
 
 
@@ -814,7 +833,8 @@ def main():
     if "--title" in sys.argv:
         title = sys.argv[sys.argv.index("--title") + 1]
     BASE_DIR = os.path.dirname(os.path.abspath(args[0]))
-    md = open(args[0], encoding="utf-8").read()
+    with open(args[0], encoding="utf-8") as source:
+        md = source.read()
     meta, md = front_matter(md)
 
     accent = meta.get("accent", "")
@@ -844,13 +864,21 @@ def main():
         md = "# " + meta["title"] + "\n\n" + md.lstrip()
 
     number_sources(md)
+    doc_type = meta.get("type", "글")
+    if doc_type not in ("글", "보고서", "읽을거리"):
+        WARNINGS.append("알 수 없는 type: %s — 편집 설정으로 굽는다" % doc_type)
+    style = meta.get("style", "부드러움" if doc_type == "읽을거리" else "단정")
+    if style not in ("단정", "부드러움"):
+        WARNINGS.append("style 은 단정|부드러움 — %s 는 단정으로 굽는다" % style)
     body = (cover_html(meta) if cover else "") + convert(md, accent)
     doc = ('<!doctype html>\n<html lang="ko"><head><meta charset="utf-8">'
            '<meta name="doc-cover" content="%d">'
-           "<title>%s</title><style>%s</style></head><body>\n%s\n</body></html>\n"
+           "<title>%s</title><style>%s</style></head><body%s>\n%s\n</body></html>\n"
            % (1 if cover else 0, html.escape(title),
-              CSS % {"accent": accent, "accent2": accent2}, body))
-    open(args[1], "w", encoding="utf-8").write(doc)
+              CSS % {"accent": accent, "accent2": accent2},
+              ' class="read"' if style == "부드러움" else "", body))
+    with open(args[1], "w", encoding="utf-8") as output:
+        output.write(doc)
     print("HTML 생성:", args[1], "| 제목:", title, "|", len(doc), "바이트",
           "| 표지" if cover else "", "| accent", accent)
     for w in WARNINGS:
