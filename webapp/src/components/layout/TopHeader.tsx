@@ -27,7 +27,7 @@ export function TopHeader({ onOpenLeft, onOpenRight }: TopHeaderProps) {
       <div className="flex h-14 items-center gap-3 px-3 md:h-16 md:px-5">
         <IconButton icon={Menu} label="메뉴 열기" onClick={onOpenLeft} className="lg:hidden" />
         <BrandLogo onHome={() => setView("home")} />
-        <div className="ml-6 hidden min-w-0 flex-none basis-[280px] md:block">
+        <div className="ml-6 hidden min-w-0 flex-none basis-[326px] md:block">
           <ProjectSelector />
         </div>
 
