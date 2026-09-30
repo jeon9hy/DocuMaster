@@ -319,6 +319,15 @@ def check_doc_sources(target: str) -> None:
         report("CHECK", "출처", f"날짜 미상 {len(unknown)}건: " + ", ".join(unknown[:12]))
 
 
+def ends_with_note(body: str) -> bool:
+    """마지막 블록이 note인가 — 독자 한계는 걸린 자리에 두고 끝에 모으지 않는다(문서규격 §2)."""
+    starts = list(re.finditer(r"^:::\s*note\b[^\n]*\n", body, re.M))
+    if not starts:
+        return False
+    closing = re.search(r"^:::\s*$", body[starts[-1].end():], re.M)
+    return bool(closing) and not body[starts[-1].end() + closing.end():].strip()
+
+
 def check_hedges(target: str) -> None:
     """단어만으로 필요한 설명을 삭제하지 않는다(문서규격 §2·E-063)."""
     body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
@@ -349,9 +358,11 @@ def check_hedges(target: str) -> None:
         report("CHECK", "해명 문장", h + " — 문서규격 §2 주어 기준: 오해 방지는 범위·라벨로, 대상의 조건·행동 지시는 보존")
     if len(out) > 15:
         report("CHECK", "해명 문장", f"… 외 {len(out) - 15}건")
-    if len(notes) > 1:
-        report("CHECK", "해명 문장", f"note {len(notes)}곳 — 문서 전체의 자료 한계인지 개별 행동 조건인지 확인")
-    if not out and not process and len(notes) <= 1:
+    if len(notes) > 2:
+        report("CHECK", "해명 문장", f"note {len(notes)}곳 — 독자 한계(≤2개)를 넘는다. 개별 행동 조건인지 확인")
+    if ends_with_note(body):
+        report("CHECK", "끝 note", "문서 끝에 note가 모여 있다 — 공백이 걸린 본문 자리로 옮기거나 도입부 끝으로")
+    if not out and not process and len(notes) <= 2 and not ends_with_note(body):
         report("OK", "해명 문장", "note 밖 해명 문장 없음")
     watch = WATCH_WORDS.findall(body)
     if len(watch) >= 3:

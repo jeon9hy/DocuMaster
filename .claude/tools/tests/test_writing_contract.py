@@ -168,15 +168,20 @@ class WritingContractTests(unittest.TestCase):
 
     def test_research_process_voice_is_flagged_separately(self):
         gate.check_hedges("민간 배점은 확인하지 못했다.\n아래 표는 이 가이드가 정리한 전망이다.\n"
-                          "이 수치는 조심해서 읽어야 한다.\n::: note\n이 글에 담지 못한 정보: 민간 배점\n:::")
+                          "이 수치는 조심해서 읽어야 한다.\n::: note\n민간 배점은 이 표에 없다.\n:::")
         process = [r for r in gate.results if r[1] == "조사 시점"]
         self.assertEqual(len(process), 3)
         self.assertFalse(self.failures())
 
     def test_reader_actions_and_note_are_not_process_voice(self):
         gate.check_hedges("기록물은 열람실에서 열람한다.\n접수 뒤 문자로 결과를 확인한다.\n"
-                          "::: note\n이 글에 담지 못한 정보: 신입 초봉 비교\n:::")
+                          "::: note\n신입 초봉 비교는 이 표에 없다.\n:::")
         self.assertFalse([r for r in gate.results if r[1] == "조사 시점"])
+
+    def test_note_collected_at_document_end_is_flagged(self):
+        self.assertTrue(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n"))
+        self.assertFalse(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n\n이어지는 본문이다.\n"))
+        self.assertFalse(gate.ends_with_note("본문만 있다.\n"))
 
     def test_every_registered_purpose_has_a_loadable_profile(self):
         index = (ROOT / ".claude/공통/글유형.md").read_text(encoding="utf-8")
