@@ -178,6 +178,26 @@ class WritingContractTests(unittest.TestCase):
                           "::: note\n신입 초봉 비교는 이 표에 없다.\n:::")
         self.assertFalse([r for r in gate.results if r[1] == "조사 시점"])
 
+    def test_same_ending_three_times_in_a_row_is_flagged(self):
+        gate.check_endings("세계는 현실과 닮은 환상 세계라고 알려져 있어요.\n"
+                           "주민들은 일해서 번 돈으로 물건을 사고 있어요.\n"
+                           "그 옆에는 갑자기 나타나는 괴물도 있어요.\n")
+        self.assertIn("3연속", " ".join(r[2] for r in gate.results if r[1] == "어미"))
+
+    def test_polite_style_without_varied_endings_is_flagged(self):
+        plain = "작고 둥근 인물들이 풀을 뽑아 돈을 버는 이야기예요.\n\n"
+        varied = "작고 둥근 인물들이 풀을 뽑아 돈을 버는 이야기거든요.\n\n"
+        gate.check_endings(plain * 30)
+        self.assertTrue([r for r in gate.results if r[1] == "어미" and "평서 어미만" in r[2]])
+        gate.results.clear()
+        gate.check_endings(plain * 20 + varied * 10)
+        self.assertFalse([r for r in gate.results if r[1] == "어미" and "평서 어미만" in r[2]])
+
+    def test_short_documents_are_not_judged_on_ending_share(self):
+        gate.check_endings("치이카와는 나가노가 그린 만화로 알려져 있어요.\n\n"
+                           "단행본과 애니메이션으로도 이어진 작품이에요.\n")
+        self.assertFalse([r for r in gate.results if r[1] == "어미" and "쏠렸다" in r[2]])
+
     def test_note_collected_at_document_end_is_flagged(self):
         self.assertTrue(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n"))
         self.assertFalse(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n\n이어지는 본문이다.\n"))

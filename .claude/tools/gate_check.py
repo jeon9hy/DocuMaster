@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 try:
@@ -317,6 +318,72 @@ def check_doc_sources(target: str) -> None:
         report("CHECK", "출처", f"링크·위치 없는 출처 {len(no_link)}건 — 05 §5에 URL이 있는지 본다: " + ", ".join(no_link[:12]))
     if unknown:
         report("CHECK", "출처", f"날짜 미상 {len(unknown)}건: " + ", ".join(unknown[:12]))
+
+
+def sentences_of(paragraph: str) -> list[str]:
+    """문단에서 본문 문장만 — 표·제목·블록·코드 줄은 뺀다."""
+    out = []
+    for line in paragraph.splitlines():
+        line = re.sub(r"\[S\d+\]", "", line).strip()
+        if not line or line.startswith(("|", "#", ":::", "---", "```", "!", "<!--")):
+            continue
+        out += [s.strip() for s in re.findall(r"[^.!?]+[.!?]", line) if len(s.strip()) > 14]
+    return out
+
+
+def ending_of(sentence: str) -> str:
+    """종결어미 자리 — 문장부호를 떼고 끝 세 글자."""
+    return re.sub(r"[.!?»」』)\]\"']+$", "", sentence).strip()[-3:]
+
+
+VARIED_ENDINGS = ("거든요", "잖아요", "는데요", "던데요", "군요", "네요", "까요", "나요", "고요", "답니다", "죠")
+
+
+def ending_family(sentence: str) -> str:
+    """해요체의 변화형 이름, 아니면 `평서` — 한 변화형만 반복하는 것도 버릇이다."""
+    return next((suffix for suffix in VARIED_ENDINGS if sentence.endswith(suffix)), "평서")
+
+
+def check_endings(target: str) -> None:
+    """어미를 굴린다 — 같은 어미 3연속·한 어미 쏠림·해요체의 변화형 부족(문서규격 §2)."""
+    body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+    body = re.sub(r"```.*?```", "", body, flags=re.S)
+    all_sentences, runs = [], []
+    for paragraph in re.split(r"\n\s*\n", body):
+        sentences = sentences_of(paragraph)
+        all_sentences += sentences
+        endings = [ending_of(s) for s in sentences]
+        for i in range(len(endings) - 2):
+            if endings[i] == endings[i + 1] == endings[i + 2]:
+                runs.append(f"「{endings[i]}」 {sentences[i][:34]}…")
+    for hit in runs[:8]:
+        report("CHECK", "어미", hit + " — 같은 어미 3연속. 어미를 바꾸거나 연결어미로 묶는다")
+    total = len(all_sentences)
+    if total < 25:
+        if not runs:
+            report("OK", "어미", f"같은 어미 3연속 없음(문장 {total}개 — 쏠림은 세지 않는다)")
+        return
+    bare = [re.sub(r"[.!?»」』)\]]+$", "", s).strip() for s in all_sentences]
+    counts = Counter(ending[-3:] for ending in bare)
+    (top, top_n), = counts.most_common(1)
+    top3 = sum(n for _, n in counts.most_common(3))
+    if top_n * 100 // total >= 12:
+        report("CHECK", "어미", f"「{top}」가 {top_n}/{total}문장({top_n * 100 // total}%) — 한 어미에 쏠렸다")
+    if top3 * 100 // total >= 28:
+        report("CHECK", "어미", f"상위 3개 어미가 {top3 * 100 // total}% — 어미 폭이 좁다")
+    polite = sum(1 for s in bare if s.endswith("요"))
+    if polite * 100 // total >= 60:
+        families = Counter(ending_family(s) for s in bare)
+        varied = total - families["평서"]
+        if varied * 100 // total < 5:
+            report("CHECK", "어미", f"해요체인데 `~죠·~거든요·~네요`류가 {varied}/{total}문장"
+                                   f"({varied * 100 // total}%) — 평서 어미만 반복된다")
+        for name, count in families.most_common():
+            if name != "평서" and count * 100 // total >= 12:
+                report("CHECK", "어미", f"`~{name}`가 {count}/{total}문장({count * 100 // total}%)"
+                                       f" — 변화형 하나가 새 버릇이 됐다")
+    if not runs and top_n * 100 // total < 12 and top3 * 100 // total < 28:
+        report("OK", "어미", f"어미 쏠림 없음(최빈 {top_n * 100 // total}% · 상위3 {top3 * 100 // total}%)")
 
 
 def ends_with_note(body: str) -> bool:
@@ -656,6 +723,7 @@ def main() -> int:
         body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
         check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
         check_hedges(target)
+        check_endings(target)
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07":
