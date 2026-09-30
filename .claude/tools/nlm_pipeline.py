@@ -14,7 +14,7 @@
   * 업로드 대상은 발표팩(07, 요르가 쓰고 로이드가 검수한다)과 명시된 자료뿐이다. `00`~`06` 는 **코드가 거부한다**
     (중간 파일을 올리면 NotebookLM이 REMOVE된 주장을 되살린다).
   * 생성은 비동기다. 호출은 시작만 시킨다. `run` 은 완료까지 폴링한다.
-  * 검사를 통과하지 못한 것을 `최종/<ID>/` 로 올리지 않는다. 이관은 `promote` 로 분리돼 있다.
+  * 검사를 통과하지 못한 것을 `최종/발표/<ID>/` 로 올리지 않는다. 이관은 `promote` 로 분리돼 있다.
   * 실패를 성공으로 적지 않는다. 모든 단계 결과가 `_nlm_run.json` 에 그대로 남는다.
 """
 
@@ -936,7 +936,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--slides-pptx", action="store_true", help="슬라이드를 pptx로도 받는다")
     s.set_defaults(func=cmd_resume)
 
-    m = sub.add_parser("promote", help="검사 통과분을 최종/<ID>/ 로")
+    m = sub.add_parser("promote", help="검사 통과분을 최종/발표/<ID>/ 로")
     m.add_argument("--id", required=True)
     m.add_argument("--force", action="store_true", help="보류 항목을 직접 확인해 닫았을 때만")
     m.set_defaults(func=cmd_promote)

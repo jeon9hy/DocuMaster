@@ -58,7 +58,7 @@ revise는 원문을 다시 읽지 않는다. 없던 사실을 넣으라고 시�
 ```bash
 python .claude/tools/nlm_pipeline.py promote --id "$ID"   # 검사 미통과면 보류된다. 직접 닫았을 때만 --force
 ```
-`최종/<ID>/`에 `<ID>_슬라이드.pdf`와 `<ID>_발표팩.md`(최종 디자인 세션의 지시서)가 들어가고, `최종/_manifest.md`에 한 줄이 붙는다.
+`최종/발표/<ID>/`에 `<ID>_슬라이드.pdf`와 `<ID>_발표팩.md`(최종 디자인 세션의 지시서)가 들어가고, `최종/_manifest.md`에 한 줄이 붙는다.
 보고: 경로(자동/수동) · 노트북 URL · 올린 자료 · 슬라이드 수 · NotebookLM이 더하거나 빠뜨린 것 · 고친 장 · REMOVE·CAUTION · 남은 수동 작업.
 
 ## 5. 수동 경로

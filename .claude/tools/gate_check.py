@@ -178,16 +178,22 @@ def check_remove(target: str, t05: str, strict: bool = True) -> None:
         else:
             report("CHECK", "REMOVE", "05에서 REMOVE 표를 못 읽었다 — 05 §1 형식 확인")
         return
-    hit = False
+    hit, seen = False, set()
     for label, ids in items:
         for i in ids:
-            for line in target.splitlines():
-                if not re.search(rf"\b{i}\b", line):
-                    continue
-                hit = True
-                handled = re.search(r"REMOVE|않는다|않았다|넣지|쓰지|만들지|금지|삭제", line)
-                report("CHECK" if handled or not strict else "FAIL", "REMOVE",
-                       f"{i} — " + ("처리 언급으로 보인다: " if handled else "다시 나온다: ") + line.strip()[:70])
+            if i in seen:  # 여러 REMOVE 항목이 같은 근거를 쓰면 한 번만 알린다
+                continue
+            seen.add(i)
+            # 근거 ID 하나가 살아남은 주장도 받치면 줄마다 걸린다 — 건수와 예시 한 줄로 모은다.
+            found = [line.strip() for line in target.splitlines() if re.search(rf"\b{i}\b", line)]
+            if not found:
+                continue
+            hit = True
+            handled = all(re.search(r"REMOVE|않는다|않았다|넣지|쓰지|만들지|금지|삭제", line) for line in found)
+            more = f" (외 {len(found) - 1}곳)" if len(found) > 1 else ""
+            report("CHECK" if handled or not strict else "FAIL", "REMOVE",
+                   f"{i} {len(found)}곳 — " + ("처리 언급으로 보인다: " if handled else "다시 나온다: ")
+                   + found[0][:70] + more)
     if not hit:
         report("OK", "REMOVE", f"REMOVE {len(items)}건의 근거 ID 재등장 없음")
     report("CHECK", "REMOVE", "표현만 바꾼 부활은 읽어서 본다: " + " / ".join(l[:30] for l, _ in items))
@@ -320,6 +326,10 @@ def check_doc_sources(target: str) -> None:
         report("CHECK", "출처", f"날짜 미상 {len(unknown)}건: " + ", ".join(unknown[:12]))
 
 
+# 문장 끝 — 뒤가 공백이나 줄 끝일 때만. `12.5%`의 소수점과 URL 안의 점은 끝이 아니다.
+SENTENCE_END = re.compile(r"(?<=\S)[.!?]+(?=\s|$)")
+
+
 def sentences_of(paragraph: str) -> list[str]:
     """문단에서 본문 문장만 — 표·제목·블록·코드 줄은 뺀다."""
     out = []
@@ -327,7 +337,13 @@ def sentences_of(paragraph: str) -> list[str]:
         line = re.sub(r"\[S\d+\]", "", line).strip()
         if not line or line.startswith(("|", "#", ":::", "---", "```", "!", "<!--")):
             continue
-        out += [s.strip() for s in re.findall(r"[^.!?]+[.!?]", line) if len(s.strip()) > 14]
+        line = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", line)  # 링크는 보이는 글자만 센다
+        start = 0
+        for end in SENTENCE_END.finditer(line):
+            sentence = line[start:end.end()].strip()
+            if len(sentence) > 14:
+                out.append(sentence)
+            start = end.end()
     return out
 
 

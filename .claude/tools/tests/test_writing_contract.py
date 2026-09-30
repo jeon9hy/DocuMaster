@@ -178,6 +178,24 @@ class WritingContractTests(unittest.TestCase):
                           "::: note\n신입 초봉 비교는 이 표에 없다.\n:::")
         self.assertFalse([r for r in gate.results if r[1] == "조사 시점"])
 
+    def test_removed_source_reused_many_times_reports_once(self):
+        """근거 ID 하나가 살아남은 주장도 받치면 줄마다 걸린다 — 건수로 모아 한 번만 알린다."""
+        t05 = ("### REMOVE\n| 항목(근거 ID) | 삭제 사유 | 영향 |\n| --- | --- | --- |\n"
+               "| 시험 결과가 엇갈린다는 서술(S06) | 원문에 없다 | 없음 |\n"
+               "| 실종 위험 서술(S06) | 원문에 없다 | 없음 |\n\n## 2. 검증된 사실\n")
+        target = "".join(f"{n}번째 문장이며 같은 자료를 근거로 든다.[S06]\n" for n in range(9))
+        gate.check_remove(target, t05, strict=False)
+        hits = [r for r in gate.results if r[1] == "REMOVE" and "S06" in r[2] and "곳" in r[2]]
+        self.assertEqual(len(hits), 1)
+        self.assertIn("9곳", hits[0][2])
+
+    def test_decimals_and_links_do_not_split_sentences(self):
+        got = gate.sentences_of("MFN 관세가 12.5% 미만인 제품에 추가관세를 매긴다. "
+                                "자세한 조건은 [고시 원문](https://example.com/a.b.c)에 적혀 있다.\n")
+        self.assertEqual(len(got), 2)
+        self.assertTrue(got[0].startswith("MFN 관세가 12.5%"))
+        self.assertNotIn("https", got[1])
+
     def test_same_ending_three_times_in_a_row_is_flagged(self):
         gate.check_endings("세계는 현실과 닮은 환상 세계라고 알려져 있어요.\n"
                            "주민들은 일해서 번 돈으로 물건을 사고 있어요.\n"

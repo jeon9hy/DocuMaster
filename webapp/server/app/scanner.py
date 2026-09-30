@@ -1,6 +1,6 @@
 """작업 폴더를 읽어 작업물 메타데이터와 단계 진행을 이벤트로 바꾼다.
 
-CLI 출력 문자열을 파싱하지 않는다. 계약된 파일(00~07 · 상태.md · 최종/<ID>)만 본다(지침서 §16).
+CLI 출력 문자열을 파싱하지 않는다. 계약된 파일(00~07 · 상태.md · 최종/<유형>/<ID>)만 본다(지침서 §16).
 """
 
 from __future__ import annotations
@@ -74,9 +74,11 @@ def workspace_dir(work_root: Path, workspace_id: str) -> Path:
 def final_dirs(work_root: Path, workspace_id: str) -> list[Path]:
     """최종본이 놓이는 곳 — 글 유형 폴더 아래(최종/<유형>/<ID>)와 옛 평면 배치(최종/<ID>)."""
     final_root = work_root / "최종"
-    found = [path for path in (final_root / workspace_id, *final_root.glob(f"*/{workspace_id}"))
-             if path.is_dir()]
-    return found
+    if not final_root.is_dir():
+        return []
+    # glob 대신 순회한다 — 작업 폴더 이름에 glob 특수문자가 들어와도 안전하다.
+    nested = (kind / workspace_id for kind in final_root.iterdir() if kind.is_dir())
+    return [path for path in (final_root / workspace_id, *nested) if path.is_dir()]
 
 
 def scan(work_root: Path, workspace_id: str | None, mode: str) -> ScanResult:

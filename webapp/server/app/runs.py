@@ -508,7 +508,7 @@ class RunManager:
         summary["models"] = {agent: config.get("modelId") for agent, config in configs.items()
                              if isinstance(config, dict) and config.get("modelId")}
         final = self._db.one(
-            # 최종/<ID>/의 파일만 finalReview·primary다(output/ 렌더 결과는 internal)
+            # 최종/<유형>/<ID>/의 파일만 finalReview·primary다(output/ 렌더 결과는 internal)
             "SELECT id FROM artifacts WHERE project_id = ? AND stage_id = 'finalReview' AND visibility = 'primary'"
             " AND file_type = 'pdf' ORDER BY updated_at DESC LIMIT 1", (project_id,))
         summary["finalArtifactId"] = final["id"] if final else None
