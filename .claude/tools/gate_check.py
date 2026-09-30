@@ -203,6 +203,15 @@ def check_caution(target: str, t05: str, strict: bool) -> None:
         report("OK", "CAUTION", f"{len(items)}건 전부 글자 그대로 있다")
 
 
+def check_corrected(t05: str) -> None:
+    """아냐는 05 §1을 못 본다 — 수정된 값·조건(범위)이 최종본에 살아 있는지 로이드가 하나씩 대조한다(E-060)."""
+    tab = section_table(t05, "CORRECTED")
+    items = [r[0] for r in tab[1:] if r and r[0]] if tab else []
+    if items:
+        report("CHECK", "CORRECTED", "수정된 값과 범위가 최종본에 그대로인지 05 §1과 대조한다: "
+               + " / ".join(l[:25] for l in items))
+
+
 def check_state_bookkeeping(state: str) -> None:
     """완료 게이트 전에 실제 호출 ID 대신 자리표시자가 남았는지 검사한다."""
     line = next((line for line in state.splitlines() if line.startswith("## 세션")), "")
@@ -555,11 +564,13 @@ def main() -> int:
     elif ppt:
         check_pack(target, t06, t00)
         check_caution(target, t05, strict=False)
+        check_corrected(t05)
         screen = "\n".join(field(b, k) for _, b in slides(target) for k in ("제목", "화면 문구", "한정"))
         check_words(screen, STRONG_WORDS, "CHECK", "강도", "화면 문구의 강도 후보")
     else:
         check_doc_sources(target)
         check_caution(target, t05, strict=False)
+        check_corrected(t05)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
         body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
         check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
