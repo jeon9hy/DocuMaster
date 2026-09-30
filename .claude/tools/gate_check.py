@@ -38,12 +38,13 @@ HEDGE_WORDS = re.compile(
     r"(읽어|해석해|봐|보아|써|받아들여)서는 안|로 (읽어야|읽는다|읽을)|읽는 것이|(다르게|달리) 읽힌|읽으면 안|"
     r"인과(관계|분석|적)?(은|는|가|이|로)? (아니|볼 수)|(뜻|의미|말)(은|이) 아니|"
     r"(설명|추정|특정|언급|확인)하지 (않았|못)|(특정|확인)되지 않|찾지 못|찾을 수 없|확보하지 못|"
-    r"담기지 않|다루지 (못|않)|근거는? 없")
+    r"담기지 않|다루지 (못|않)|근거는? 없|(데|는) 한계가 있")
 # 장마다 같은 틀로 닫는 관전 권유 — 3회 이상이면 CHECK
 WATCH_WORDS = re.compile(r"보는 것이 (좋|필요)|지켜볼|주시할|볼 (대목|지점)|눈여겨")
 # 05 §2(아냐가 읽는 사실)에 들어가면 안 되는 것 — 집필 금지·미확인 꼬리·절/파일 참조·에이전트 이름
 DIRECTIVE_WORDS = re.compile(
     r"쓰지 않|쓸 수 없|쓰지 말|묶지 않|내지 않는다|금지|불가(?!피)|미확인|확인되지 않|추정되지 않|열리지 않|"
+    r"한계가 있|(뜻|의미|것)(은|이) 아니|일반화(하|할|는)|"
     r"위 CAUTION|§\s?\d|(?<![\d.\-])0[1-4](?![\d.%\-]) ?(§|을|를|와|과|의|에)|요르|로이드|아냐|"
     r"유리(가|는|의|에게)? ?(확인|질의|판정|직접)")
 FORMAT_WORDS = re.compile(r"차트|그래프|카드|타임라인|인포그래픽|막대|도넛|파이 ?그래프|아이콘|레이아웃|(?:^|(?<=\s))표(?=[로를에는가와]|\s|$)")
@@ -296,6 +297,14 @@ def check_05(t05: str) -> None:
         report("FAIL", "05 §2", f"… 외 {len(hits) - 15}건")
     if s2.strip() and not hits:
         report("OK", "05 §2", "금지·미확인·참조 없음")
+    # 아냐는 §1을 못 본다 — CORRECTED·CAUTION 값이 §1 표에만 있으면 원고에서 사라진다
+    s1 = sec(1)
+    part = lambda name: (re.search(rf"^###\s*{name}\b(.*?)(?=^###|\Z)", s1, re.S | re.M) or [None, ""])[1]
+    removed = set(re.findall(r"S(\d{2,3})", part("REMOVE")))
+    kept = set(re.findall(r"S(\d{2,3})", part("CORRECTED") + part("CAUTION"))) - removed
+    lost = sorted(f"S{i}" for i in kept if not re.search(rf"S{i}(?!\d)", s2))
+    if lost:
+        report("FAIL", "05 §2", "CORRECTED·CAUTION인데 §2에 없는 근거(아냐는 §1을 안 읽는다): " + ", ".join(lost))
     ids = sorted(set(re.findall(r"S(\d{2,3})", s2)))
     rows = {m[0]: m[1] for m in re.findall(r"^\s*-?\s*S(\d{2,3})\s*\|(.*)$", s5, re.M)}
     missing = [f"S{i}" for i in ids if i not in rows]
