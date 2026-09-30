@@ -18,7 +18,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from . import contract
+from . import contract, git_sync
 from .agent_settings import AgentSettingsService, check_model_calls, load_snapshot, orchestrator_models
 from .config import Settings
 from .db import Database, now_iso
@@ -492,9 +492,31 @@ class RunManager:
             payload = {"stopped": {"type": "workflow.stopped", "stageId": stage},
                        "failed": {"type": "workflow.failed", "stageId": stage, "reason": reason}}[status]
         self._events.append(project_id, payload, run_id)
+        if status == "completed":
+            self._sync_to_git(run_id, project_id)
         if status in ("completed", "failed"):
             # 이 스레드는 끝난 실행의 감시 스레드다 — 다음 실행은 자기 스레드에서 돈다(_launch)
             self._start_next_queued()
+
+    def _sync_to_git(self, run_id: str, project_id: str) -> None:
+        """완료된 프로젝트의 작업·최종 파일과 manifest만 커밋·푸시한다. 실패는 대화에 경고로만 남긴다."""
+        project = self._projects.get(project_id)
+        root, workspace_id = self._projects.work_root(project), project.get("workspace_id")
+        if not workspace_id or not git_sync.enabled(self._settings, root):
+            return
+
+        def sync() -> None:
+            try:
+                git_sync.commit_paths(self._settings.repo_root, git_sync.project_paths(root, workspace_id),
+                                      f"docs(final): {workspace_id} 완료", push=True)
+            except Exception as error:
+                log.exception("완료본을 Git에 반영하지 못했습니다: %s", workspace_id)
+                self._events.append(project_id, {
+                    "type": "workflow.warning", "stageId": "finalReview",
+                    "message": f"완료본을 GitHub에 올리지 못했습니다. 파일은 로컬에 있습니다. ({str(error)[:200]})",
+                }, run_id)
+
+        threading.Thread(target=sync, name=f"git-sync-{project_id}", daemon=True).start()
 
     def _summary(self, run_id: str, project_id: str) -> dict:
         """완료 카드에 모을 값 — 이미 DB·파일에 있는 것만 읽는다(모델을 부르지 않는다)."""

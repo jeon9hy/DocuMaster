@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import shutil
+import threading
 import unicodedata
 import uuid
 from datetime import date
@@ -15,7 +17,9 @@ from .config import Settings
 from .db import Database, now_iso
 from .events import EventStore
 from .files import FileStore, UnsafePathError, reference_kind_of
-from . import scanner
+from . import git_sync, scanner
+
+log = logging.getLogger(__name__)
 
 REFERENCE_KIND_LABEL = {"pdf": "PDF", "image": "이미지", "url": "웹 링크", "text": "텍스트",
                         "markdown": "Markdown", "file": "파일"}
@@ -121,6 +125,9 @@ class ProjectService:
         project = self.get(project_id)
         targets = [self._reference_dir(project)]
         workspace_id = project.get("workspace_id")
+        git_paths: list[Path] = []
+        if workspace_id and git_sync.enabled(self._settings, self.work_root(project)):
+            git_paths = git_sync.project_paths(self.work_root(project), workspace_id)
         if workspace_id:
             if Path(workspace_id).name != workspace_id or "/" in workspace_id or "\\" in workspace_id:
                 raise UnsafePathError("잘못된 작업 폴더 이름입니다.")
@@ -150,6 +157,17 @@ class ProjectService:
 
         self._db.execute("UPDATE projects SET deleted_at = ?, updated_at = ? WHERE id = ?",
                          (now_iso(), now_iso(), project_id))
+        if git_paths:
+            git_sync.drop_manifest_entry(self.work_root(project), workspace_id)
+            threading.Thread(target=self._commit_deletion, name=f"git-delete-{project_id}",
+                             args=(git_paths, workspace_id), daemon=True).start()
+
+    def _commit_deletion(self, paths: list[Path], workspace_id: str) -> None:
+        """삭제만 커밋한다 — 푸시는 다음 완료 때 함께 나간다(실수로 지웠으면 이 커밋을 되돌린다)."""
+        try:
+            git_sync.commit_paths(self._settings.repo_root, paths, f"chore: 웹앱에서 {workspace_id} 삭제", push=False)
+        except Exception:
+            log.exception("삭제를 Git에 커밋하지 못했습니다: %s", workspace_id)
 
     def snapshot(self, project_id: str) -> dict:
         """이벤트 전체 + lastEventSeq. 프론트엔드가 같은 reducer로 상태를 만든다."""

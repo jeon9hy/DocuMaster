@@ -34,6 +34,8 @@ class Settings:
     """Claude 사용량을 가장 싼 호출(haiku)로 실시간 조회할지(테스트는 끈다). 끄면 statusLine 캐시·실행 로그만"""
     claude_usage_live: bool = True
     log_retention_days: int = 30  # .data/logs의 끝난 실행 로그 보존 기간. 0이면 지우지 않는다
+    """완료 때 그 프로젝트 경로만 커밋·푸시, 삭제 때 커밋만(git_sync.py). 실제 저장소(claude)에서만 돈다"""
+    git_sync: bool = True
 
     @property
     def db_path(self) -> Path:
@@ -79,4 +81,5 @@ def load_settings() -> Settings:
         codex_home=Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex"),
         claude_usage_live=os.environ.get("DOCUMASTER_CLAUDE_USAGE_LIVE", "1") != "0",
         log_retention_days=int(os.environ.get("DOCUMASTER_LOG_RETENTION_DAYS", "30")),
+        git_sync=os.environ.get("DOCUMASTER_GIT_SYNC", "1") != "0",
     )
