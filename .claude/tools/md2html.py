@@ -58,8 +58,13 @@ body {
   font-family: "Pretendard", "Malgun Gothic", sans-serif;
   font-size: 10.4pt; line-height: 1.78; color: var(--ink); margin: 0;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  word-break: keep-all; overflow-wrap: break-word;
+  word-break: keep-all; overflow-wrap: break-word; line-break: strict;
 }
+/* 제목·도표 줄바꿈 — 어절 단위로만 끊고 줄 길이를 고르게(「이슈와 / 시사점」처럼 한 어절만 남기지 않는다).
+   본문 문단은 건드리지 않는다. 칸에 한 어절도 안 들어가면 글자 중간에서 끊기므로 도표 칸은 어절째 넘긴다. */
+h1, h2, h3, h4, th, td, figcaption, .cover h1.title, .cover .subtitle, .stats .l, .stats .c,
+.timeline .e, .timeline .d, .flow .step .h, .flow .step .d, .chart-title, .chart-sub, .pull .q { text-wrap: balance; }
+th, td, .stats .l, .timeline .e, .flow .step .h { overflow-wrap: normal; }
 
 /* 표지 — 사진이 없으면 전면 색 표지, 있으면 위 사진 + 아래 제목 */
 .cover { page: cover; height: 297mm; position: relative; overflow: hidden;
@@ -220,6 +225,7 @@ RE_CODE = re.compile(r"`([^`]+)`")
 RE_BOLD = re.compile(r"\*\*(.+?)\*\*")
 RE_EM = re.compile(r"(?<![\*\w])\*([^\*\n]+)\*(?!\*)")
 RE_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^\)\s]+)\)")
+RE_JOINED = re.compile(r"(?<=\S)[·~∼～‧・](?=\S)")
 RE_CITATION = re.compile(r"\[S(\d{2,3})\]")
 RE_CITATIONS = re.compile(r"(?:\[S\d{2,3}\])+")  # 붙어 있는 인용 묶음 → 위첨자 하나에 쉼표로
 RE_IMG = re.compile(r'^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(?:\{(narrow|wide)\})?$')
@@ -249,6 +255,8 @@ def inline(text):
         return "\x00%d\x00" % (len(kept) - 1)
 
     out = RE_CODE.sub(stash, out)
+    # 「정치·경제」「1~3일」처럼 기호로 붙은 말은 한 덩어리 — 브라우저는 「정치 / ·경제」로 끊는다
+    out = RE_JOINED.sub(lambda m: "⁠" + m.group(0) + "⁠", out)
     out = RE_BOLD.sub(r"<strong>\1</strong>", out)
     out = RE_EM.sub(r"<em>\1</em>", out)
     out = RE_LINK.sub(r'<a href="\2">\1</a>', out)
@@ -376,6 +384,30 @@ def svg_text(x, y, s, size=11, fill="#474c56", anchor="start", weight=400):
             % (x, y, size, fill, anchor, weight, html.escape(s)))
 
 
+def split_label(s, max_w, size):
+    """폭을 넘는 라벨을 어절(공백) 경계에서 두 줄로 — 글자 중간에서는 끊지 않는다."""
+    words = s.split()
+    if text_w(s, size) <= max_w or len(words) < 2:
+        return [s]
+    # 두 줄 길이 차가 가장 작은 어절 경계를 고른다
+    best = min(range(1, len(words)),
+               key=lambda i: abs(text_w(" ".join(words[:i]), size) - text_w(" ".join(words[i:]), size)))
+    return [" ".join(words[:best]), " ".join(words[best:])]
+
+
+def svg_label(x, y, s, max_w, size=11, fill="#474c56", anchor="start", weight=400, up=False):
+    """svg_text와 같되 폭을 넘으면 어절 단위 두 줄. up=True면 둘째 줄을 위로 올려 기준선을 지킨다."""
+    lines = split_label(s, max_w, size)
+    if len(lines) == 1:
+        return svg_text(x, y, s, size, fill, anchor, weight)
+    lead = size * 1.2
+    y0 = y - lead / 2 if up else y
+    spans = "".join('<tspan x="%.1f" dy="%.1f">%s</tspan>' % (x, 0 if i == 0 else lead, html.escape(t))
+                    for i, t in enumerate(lines))
+    return ('<text x="%.1f" y="%.1f" font-size="%s" fill="%s" text-anchor="%s" font-weight="%d">%s</text>'
+            % (x, y0, size, fill, anchor, weight, spans))
+
+
 def bar_path_h(x0, x1, y, h, r=4):
     r = min(r, max(x1 - x0, 0), h / 2)
     return ("M%.1f %.1fH%.1fQ%.1f %.1f %.1f %.1fV%.1fQ%.1f %.1f %.1f %.1fH%.1fZ"
@@ -407,8 +439,8 @@ def chart_bar(spec, data, accent):
         x1 = x0 + (x_max - x0) * v / vmax
         on = (not hl) or lab in hl
         out.append('<path d="%s" fill="%s"/>' % (bar_path_h(x0, x1, y, bar_h), accent if on else NEUTRAL_MARK))
-        out.append(svg_text(x0 - 10, y + bar_h - 4.5, lab, 11.5, "#16181d" if on else "#474c56", "end",
-                            600 if (hl and on) else 400))
+        out.append(svg_label(x0 - 10, y + bar_h - 4.5, lab, lab_w - 14, 11.5, "#16181d" if on else "#474c56", "end",
+                             600 if (hl and on) else 400, up=True))
         out.append(svg_text(x1 + 7, y + bar_h - 4.5, fmt(v, unit), 11.5, "#16181d", "start",
                             700 if (hl and on) else 500))
     out.append("</svg>")
@@ -423,6 +455,8 @@ def chart_column(spec, data, accent):
         return None
     W, H, top, bottom = 640, 250, 24, 34
     band = W / len(rows)
+    if any(len(split_label(l, band - 8, 11)) > 1 for l, _ in rows):
+        H, bottom = 262, 46  # 두 줄 라벨 자리
     bw = min(24, band * 0.6)
     vmax = max(v for _, v in rows) or 1
     y0 = H - bottom
@@ -434,7 +468,7 @@ def chart_column(spec, data, accent):
         on = (not hl) or lab in hl
         out.append('<path d="%s" fill="%s"/>' % (bar_path_v(cx - bw / 2, y1, bw, y0), accent if on else NEUTRAL_MARK))
         out.append(svg_text(cx, y1 - 7, fmt(v, unit), 11, "#16181d", "middle", 700 if (hl and on) else 500))
-        out.append(svg_text(cx, y0 + 18, lab, 11, "#474c56", "middle"))
+        out.append(svg_label(cx, y0 + 18, lab, band - 8, 11, "#474c56", "middle"))
     out.append("</svg>")
     return "".join(out)
 
@@ -454,7 +488,7 @@ def chart_line(spec, data, accent):
     vals = [[num(r[j + 1]) if j + 1 < len(r) else None for r in rows] for j in range(k)]
     vmax = max(v for s in vals for v in s if v is not None) or 1
     ticks = nice_ticks(vmax)
-    W, H, left, right, top, bottom = 640, 250, 46, 70, 16, 30
+    W, H, left, right, top, bottom = 640, 256, 46, 70, 16, 36
     y0, pw = H - bottom, W - left - right
     xs = [left + (pw * i / (len(rows) - 1) if len(rows) > 1 else pw / 2) for i in range(len(rows))]
 
@@ -467,9 +501,10 @@ def chart_line(spec, data, accent):
                    % (left, yv(t), W - right, yv(t), "#b9bdc4" if t == 0 else "#e9ebee"))
         out.append(svg_text(left - 8, yv(t) + 4, fmt(t), 10, "#7b808b", "end"))
     step = max(1, math.ceil(len(rows) / 8))
+    gap = pw * step / max(len(rows) - 1, 1) - 6
     for i, r in enumerate(rows):
         if i % step == 0 or i == len(rows) - 1:
-            out.append(svg_text(xs[i], y0 + 18, r[0], 10, "#7b808b", "middle"))
+            out.append(svg_label(xs[i], y0 + 16, r[0], gap, 10, "#7b808b", "middle"))
     for j in range(k):
         pts = [(xs[i], yv(v)) for i, v in enumerate(vals[j]) if v is not None]
         if not pts:
