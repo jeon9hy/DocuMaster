@@ -168,6 +168,16 @@ def test_mismatched_calls_in_run_log_are_reported(tmp_path):
     assert len(problems) == 3 and "haiku" in problems[0] and "gpt-5.6-sol" in problems[1] and "xhigh" in problems[2]
 
 
+def test_system_events_with_string_message_do_not_crash_model_check(tmp_path):
+    """permission_denied 같은 system 이벤트는 message가 문자열이다 — 실행을 실패로 닫으면 안 된다."""
+    expected = orchestrator_models({"yor": {"modelId": "gpt-6-astra", "reasoningLevel": "high"},
+                                    "yuri": {"modelId": "claude-sonnet-5-5"}, "anya": {"modelId": "claude-opus-5-5"}})
+    log = tmp_path / "run.jsonl"
+    log.write_text(json.dumps({"type": "system", "subtype": "permission_denied", "message": "classifier gave no verdict"}),
+                   encoding="utf-8")
+    assert check_model_calls(log, expected) == []
+
+
 def test_model_check_ignores_help_and_accepts_current_snapshot_variables(tmp_path):
     expected = {"yor": {"model": "gpt-5.6-sol", "effort": "medium"},
                 "yuri": {"model": "sonnet"}, "anya": {"model": "opus"}}

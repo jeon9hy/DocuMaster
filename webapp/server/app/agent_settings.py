@@ -239,7 +239,9 @@ def check_model_calls(log_path: Path, expected: dict) -> list[str]:
             message = json.loads(line)
         except ValueError:
             continue
-        content = (message.get("message") or {}).get("content") if isinstance(message, dict) else None
+        envelope = message.get("message") if isinstance(message, dict) else None
+        # system 이벤트(permission_denied 등)는 message가 문자열이다 — 대화 봉투만 읽는다.
+        content = envelope.get("content") if isinstance(envelope, dict) else None
         for block in content if isinstance(content, list) else []:
             if not isinstance(block, dict) or block.get("type") != "tool_use":
                 continue
