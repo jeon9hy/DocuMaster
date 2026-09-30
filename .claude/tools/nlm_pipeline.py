@@ -852,7 +852,7 @@ def cmd_promote(opts: argparse.Namespace) -> int:
         return 1
 
     final_root = ROOT / "최종"
-    dest_dir = final_root / job.id
+    dest_dir = final_root / "발표" / job.id  # 최종/은 글 유형별로 나뉜다. PPT는 발표/
     dest_dir.mkdir(parents=True, exist_ok=True)
     moved = []
     for kind, info in state.get("artifacts", {}).items():

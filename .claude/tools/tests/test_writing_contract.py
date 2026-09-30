@@ -198,6 +198,16 @@ class WritingContractTests(unittest.TestCase):
                            "단행본과 애니메이션으로도 이어진 작품이에요.\n")
         self.assertFalse([r for r in gate.results if r[1] == "어미" and "쏠렸다" in r[2]])
 
+    def test_paragraphs_of_only_two_or_three_sentences_are_flagged(self):
+        box = ("치이카와의 세계는 현실과 닮은 환상 세계다. 주민들은 일해서 돈을 벌어 물건을 산다. "
+               "여기까지는 우리의 일상과 크게 다르지 않다.\n\n")
+        gate.check_paragraphs(box * 12)
+        self.assertTrue([r for r in gate.results if r[1] == "문단" and r[0] == "CHECK"])
+        gate.results.clear()
+        long_paragraph = " ".join(f"이것은 이 세계를 설명하는 {n}번째 문장이라고 하겠다." for n in range(6))
+        gate.check_paragraphs(box * 6 + (long_paragraph + "\n\n") * 6)
+        self.assertTrue([r for r in gate.results if r[1] == "문단" and r[0] == "OK"])
+
     def test_note_collected_at_document_end_is_flagged(self):
         self.assertTrue(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n"))
         self.assertFalse(gate.ends_with_note("본문이다.\n::: note\n한계 문장.\n:::\n\n이어지는 본문이다.\n"))

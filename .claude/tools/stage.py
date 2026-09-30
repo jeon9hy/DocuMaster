@@ -126,6 +126,12 @@ def mark_row(lines: list[str], stage: str, state: str, output: str | None, note:
     lines.insert(end, f"| {stage} | {output or '-'} | {state} | {note or ''} |")
 
 
+def manifest_kind(final: str) -> str:
+    """최종/<유형>/<ID>/<파일>의 유형 폴더 이름. 옛 최종/<ID>/<파일>에는 유형이 없다."""
+    parts = Path(final).as_posix().split("/")
+    return parts[1] if len(parts) >= 4 and parts[0] == "최종" else ""
+
+
 def copy_yor_sessions(lines: list[str], base: Path) -> None:
     try:
         sessions = json.loads((base / "_yor_sessions.json").read_text(encoding="utf-8"))
@@ -224,7 +230,9 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
             if f"`{args.id}`" not in text:
                 if text and not text.endswith("\n"):
                     text += "\n"
-                manifest.write_text(text + f"- {today} · `{args.id}` · {args.manifest}\n", encoding="utf-8",
+                kind = manifest_kind(args.final)
+                label = f"[{kind}] " if kind else ""
+                manifest.write_text(text + f"- {today} · {label}`{args.id}` · {args.manifest}\n", encoding="utf-8",
                                     newline="\n")
         return f"stage finish: {args.id} · 완료"
 

@@ -386,6 +386,24 @@ def check_endings(target: str) -> None:
         report("OK", "어미", f"어미 쏠림 없음(최빈 {top_n * 100 // total}% · 상위3 {top3 * 100 // total}%)")
 
 
+def check_paragraphs(target: str) -> None:
+    """문단은 한 논점을 끝까지 전개한다 — 짧은 문단만 이어 붙이지 않는다(문서규격 §2)."""
+    body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+    body = re.sub(r"```.*?```", "", body, flags=re.S)
+    # `**라벨.**`로 시작하는 항목은 원래 짧다 — 산문 문단만 센다.
+    prose = [p for p in re.split(r"\n\s*\n", body) if not p.lstrip().startswith("**")]
+    sizes = [len(s) for s in (sentences_of(p) for p in prose) if s]
+    if len(sizes) < 10:
+        return
+    small = sum(1 for n in sizes if n <= 3)
+    share = small * 100 // len(sizes)
+    if share >= 75:
+        report("CHECK", "문단", f"문단 {len(sizes)}개 중 {small}개({share}%)가 3문장 이하"
+                              f" — 같은 틀을 반복하는지 보고 관련된 문단을 잇는다")
+    else:
+        report("OK", "문단", f"3문장 이하 문단 {share}% · 가장 긴 문단 {max(sizes)}문장")
+
+
 def ends_with_note(body: str) -> bool:
     """마지막 블록이 note인가 — 독자 한계는 걸린 자리에 두고 끝에 모으지 않는다(문서규격 §2)."""
     starts = list(re.finditer(r"^:::\s*note\b[^\n]*\n", body, re.M))
@@ -724,6 +742,7 @@ def main() -> int:
         check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
         check_hedges(target)
         check_endings(target)
+        check_paragraphs(target)
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07":
