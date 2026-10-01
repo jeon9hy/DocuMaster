@@ -10,6 +10,9 @@ Edge 인쇄는 머리말·꼬리말을 넣지 않으므로 쪽번호는 PyMuPDF�
     --pages 3,7  같은 폴더에 p03.png·p07.png(확대, 100dpi). PDF를 다시 굽지 않으려면 --only-images와 함께
     --only-images 이미 있는 PDF(NotebookLM 슬라이드 포함)에서 모아보기·확대만 만든다
 
+대제목(h1) 아래 같은 쪽에 본문이 7줄 미만 남으면 그 장은 다음 쪽에서 시작하도록 HTML에 break-before를 넣고
+다시 굽는다(문서규격 §4). 끄려면 --no-chapter-room.
+
 출력 마지막 줄이 `검사 결과: OK` 가 아니면 그 PDF를 쓰지 않는다.
 """
 from __future__ import annotations
@@ -56,6 +59,56 @@ def print_pdf(html_path, pdf_path):
         time.sleep(0.8)
     tail = (r.stderr or b"").decode("utf-8", "replace")[-600:]
     raise SystemExit("인쇄 실패 — PDF가 새로 쓰이지 않았다. 이 파일을 쓰지 마라.\n" + tail)
+
+
+CHAPTER_MIN_LINES = 7
+
+
+def ensure_chapter_room(html_path, pdf_path):
+    """대제목과 본문 CHAPTER_MIN_LINES줄을 한 쪽에 둘 수 없으면 그 장을 다음 쪽으로 넘긴다."""
+    import html as htmllib
+    import re
+    import fitz
+    with open(html_path, encoding="utf-8") as f:
+        s = re.sub(r'<style id="chroom">.*?</style>', "", f.read(), flags=re.S)
+    titles = []
+
+    def mark(m):
+        titles.append(htmllib.unescape(re.sub(r"<[^>]+>", "", m.group(1))).strip())
+        return '<h1 id="ch%d">%s</h1>' % (len(titles) - 1, m.group(1))
+
+    s = re.sub(r"<h1>(.*?)</h1>", mark, s, flags=re.S)  # 표지 제목(h1 class="title")은 제외
+    if not titles:
+        return []
+    breaks = set()
+    for _ in range(6):
+        css = "".join("#ch%d{break-before:page;margin-top:0;}" % i for i in sorted(breaks))
+        with open(html_path, "w", encoding="utf-8") as f:
+            f.write(s.replace("</head>", '<style id="chroom">%s</style></head>' % css, 1))
+        print_pdf(html_path, pdf_path)
+        doc = fitz.open(pdf_path)
+        new = set()
+        for i, t in enumerate(titles):
+            if i in breaks:
+                continue
+            for page in doc:
+                hits = [r for r in page.search_for(t[-9:]) if r.height > 14]  # 21pt 제목만(본문 인용 제외)
+                if not hits:
+                    continue
+                y, bottom = hits[0].y1, page.rect.height - 45  # 꼬리말 위까지
+                lines = [ln for b in page.get_text("dict")["blocks"] if b["type"] == 0
+                         for ln in b["lines"]
+                         if ln["bbox"][1] > y - 1 and ln["bbox"][3] < bottom and ln["spans"][0]["size"] < 12]
+                if len(lines) < CHAPTER_MIN_LINES:
+                    new.add(i)
+                break
+        doc.close()
+        if not new:
+            break
+        breaks |= new
+    if breaks:
+        print("장 새 쪽 이동(본문 %d줄 미만):" % CHAPTER_MIN_LINES, ", ".join(titles[i][:12] for i in sorted(breaks)))
+    return sorted(breaks)
 
 
 def label_font():
@@ -163,6 +216,8 @@ def main():
     html_path, pdf_path = args[0], args[1]
 
     print_pdf(html_path, pdf_path)
+    if "--no-chapter-room" not in sys.argv:
+        ensure_chapter_room(html_path, pdf_path)
     if "--no-page-number" not in sys.argv:
         with open(html_path, encoding="utf-8") as f:
             has_cover = '<meta name="doc-cover" content="1">' in f.read(4000)

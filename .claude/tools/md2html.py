@@ -96,9 +96,9 @@ th, td, .stats .l, .timeline .e, .flow .step .h { overflow-wrap: normal; }
 .cover.photo .meta { color: var(--muted); border-top: 0.6pt solid var(--rule); }
 
 /* 제목 */
-h1 { font-size: 21pt; line-height: 1.32; margin: 36pt 0 16pt; letter-spacing: -0.03em;
+h1 { font-size: 21pt; line-height: 1.32; margin: 44pt 0 26pt; letter-spacing: -0.03em;
      page-break-after: avoid; break-after: avoid; }
-.pagebreak + h1, .cover + h1 { margin-top: 0; }  /* 장은 제목으로 구분하고 쪽 나눔은 필요한 곳만(문서규격 §4) */
+.pagebreak + h1, .cover + h1 { margin-top: 0; }  /* 장은 공백으로 구분한다: 대제목 앞 > 대제목 뒤 ≈ 소제목 앞 > 소제목 뒤(문서규격 §4). 쪽 나눔은 필요한 곳만 */
 h2 { font-size: 15pt; line-height: 1.4; margin: 26pt 0 10pt; letter-spacing: -0.02em;
      page-break-after: avoid; break-after: avoid; page-break-inside: avoid; break-inside: avoid; }
 h2 .no { display: block; font-size: 9pt; font-weight: 700; letter-spacing: .14em;
