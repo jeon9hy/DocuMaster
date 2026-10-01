@@ -53,3 +53,9 @@ def test_new_pipeline_tools_have_activity_labels() -> None:
 
     assert _command_label('python .claude/tools/render_doc.py "회사_20261001" --pages 3') == "문서 검사·렌더링"
     assert _command_label("python .claude/tools/source_check.py X S01=16.5") == "원문 대조"
+
+
+def test_claude_session_limit_is_usage_limit() -> None:
+    result = TurnResult(exit_code=1, is_error=True,
+                        result_text="You've hit your session limit · resets 3:10am (Asia/Seoul)")
+    assert classify_error(result) == "usage_limit"

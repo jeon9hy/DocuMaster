@@ -410,6 +410,9 @@ def excerpt(job: Job, kind: str, body: str) -> str:
         parts.append("절: " + " · ".join(h[3:43] for h in heads))
         if kind == "research":  # 본문을 읽는 절: §D 출처 충돌 · §H 기획 보정 제안
             parts += [section(body, "D") or "## D. (없음)", section(body, "H") or "## H. (없음)"]
+            unverified = re.search(r"미확인 필수 항목:\s*(\d+)", body.split(HEADER_END, 1)[0])
+            if unverified and int(unverified[1]) > 0:  # 필수가 비면 §E로 방향을 정한다(10-02 E2E: 따로 sed)
+                parts.append(section(body, "E"))
     elif kind == "answer":
         answers = job.ws / "04_verification_answers.md"
         text = answers.read_text(encoding="utf-8") if answers.is_file() else ""

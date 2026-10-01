@@ -392,7 +392,8 @@ _ERROR_RULES = (
     ("claude_auth_required", ("/login", "not logged in", "invalid api key", "authentication_error", "please run `claude")),
     ("codex_auth_required", ("codex login", "codex: not logged")),
     ("notebooklm_login_required", ("nlm login",)),
-    ("usage_limit", ("usage limit", "rate limit", "429")),
+    # 「You've hit your session limit · resets 3:10am」(10-02 실측)도 한도다 — 프로세스 오류로 보이지 않게
+    ("usage_limit", ("usage limit", "rate limit", "session limit", "hit your limit", "429")),
 )
 
 ERROR_MESSAGES = {

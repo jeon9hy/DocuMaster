@@ -193,3 +193,14 @@ def test_failed_turn_reports_the_event_message(env):
     _, _, values = env
     result = run(values, "research", FAKE_EXIT="1")
     assert result.returncode == 1 and "가짜 실패" in result.stdout
+
+
+
+def test_research_shows_unverified_section_only_when_required_items_missing(env):
+    root, ws, values = env
+    pack = ("# Research Pack\n- 미확인 필수 항목: 2건\n--- 헤더 끝 ---\n## D. 충돌\n없음\n"
+            "## E. Unverified Claims\n- Q3 출산율 원인 미확인\n## H. 기획 보정 제안\n없음\n")
+    result = run(values, "research", FAKE_OUTPUT=pack)
+    assert "Q3 출산율 원인 미확인" in result.stdout
+    result = run(values, "research", FAKE_OUTPUT=pack.replace("2건", "0건"))
+    assert "Q3 출산율 원인 미확인" not in result.stdout
