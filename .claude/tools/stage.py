@@ -8,20 +8,23 @@
     python .claude/tools/stage.py done   <단계> --id ID [--output 경로] [--note 비고] [공통 옵션]
     python .claude/tools/stage.py set    --id ID [공통 옵션]
     python .claude/tools/stage.py log    --id ID "<기록 한 줄>"
-    python .claude/tools/stage.py finish --id ID --final 최종/<유형>/ID/파일 [--manifest "<파일명 · 비고>"]
+    python .claude/tools/stage.py finish --id ID --kind <유형> --manifest "<파일명 · 비고>"   # DOC: output/ID.pdf를 최종/<유형>/ID/로 복사
+    python .claude/tools/stage.py finish --id ID --final 최종/발표/ID/파일                     # PPT: promote가 이미 옮긴 파일
 공통 옵션:
     --status "진행 중 03 검증질문"   상태 줄        --next "<한 줄>"   다음에 할 일
     --session "유리 에이전트=<id>"   세션 칸(여러 번) --open "<전체>"    열린 것 칸
     --plan "<전체>"                  기획 칸          --log "<한 줄>"    기록.md에 덧붙임(날짜 자동)
 
 `done <단계>`는 진행 표에서 첫 칸이 <단계>이거나 「<단계> 」로 시작하는 행을 완료로 바꾸고, 없으면 행을 더한다.
-`finish`는 세션 칸에 자리표시자(`실행 후 기록`·`(미실행)`)가 남아 있거나 `--final` 파일이 없으면 쓰지 않고 멈춘다(종료 코드 1).
+`finish`는 세션 칸에 자리표시자(`실행 후 기록`·`(미실행)`)가 남아 있거나 최종 파일이 없으면 쓰지 않고 멈춘다(종료 코드 1).
+`--kind`는 글 유형에서 가운뎃점을 뺀 이름(현황기록·설명해설·분석·평가비평·제안설득·안내절차·서사소개)이다.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import shutil
 import sys
 from datetime import date
 from pathlib import Path
@@ -33,6 +36,7 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parents[2]
 PLACEHOLDER = re.compile(r"실행 후 기록|\(미실행\)")
+DOC_KINDS = ("현황기록", "설명해설", "분석", "평가비평", "제안설득", "안내절차", "서사소개")
 YOR_SESSION_FIELDS = {"research": "요르 조사 세션 ID", "plan": "요르 기획 세션 ID"}
 
 
@@ -193,7 +197,9 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
     log.add_argument("text")
     finish = sub.add_parser("finish")
     finish.add_argument("--id", required=True)
-    finish.add_argument("--final", required=True)
+    where = finish.add_mutually_exclusive_group(required=True)
+    where.add_argument("--kind", choices=DOC_KINDS, help="DOC: output/<ID>.pdf를 최종/<유형>/<ID>/로 복사")
+    where.add_argument("--final", help="이미 이관된 최종 파일(PPT promote)")
     finish.add_argument("--manifest")
     args = parser.parse_args(argv)
     today = today or date.today().isoformat()
@@ -220,8 +226,15 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
         if PLACEHOLDER.search(session_line):
             raise Stop("세션 칸의 자리표시자를 실제 ID 또는 `해당 없음(이유)`으로 닫아야 한다 — "
                        "`stage.py set --session \"이름=값\"`")
+        if args.kind:  # 최종 경로를 손으로 쓰지 않는다 — 유형 폴더 계약(CLAUDE.md §4)대로 도구가 옮긴다
+            rendered = base / "output" / f"{args.id}.pdf"
+            if not rendered.is_file():
+                raise Stop(f"렌더된 PDF가 없다: 작업/{args.id}/output/{args.id}.pdf — render_doc을 먼저 한다")
+            args.final = f"최종/{args.kind}/{args.id}/{args.id}.pdf"
+            (root / args.final).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(rendered, root / args.final)
         if not (root / args.final).is_file():
-            raise Stop(f"--final 파일이 없다: {args.final} — 이관(cp·promote)을 먼저 한다")
+            raise Stop(f"--final 파일이 없다: {args.final} — 이관(promote)을 먼저 한다")
         set_line(lines, "상태:", "완료", limit=5)
         set_line(lines, "다음에 할 일:", f"없음 — {args.final}", limit=5)
         state_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

@@ -91,3 +91,22 @@ def test_reads_an_existing_real_layout(tmp_path, stage):
     text = (base / "상태.md").read_text(encoding="utf-8")
     assert "| 07 DOC | workspace/07 | 완료 | 아냐 opus |" in text
     assert "## 세션      유리 에이전트: a1 · 아냐 에이전트: b2\n" in text
+
+
+def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
+    """DOC 이관: 유형만 주면 output/<ID>.pdf를 최종/<유형>/<ID>/로 옮기고 완료·manifest까지 쓴다."""
+    run = lambda *args: stage.run(list(args), root=tmp_path, today=TODAY)  # noqa: E731
+    run("init", "--id", ID, "--topic", "주제", "--mode", "DOCUMENT")
+    run("set", "--id", ID, "--session", "요르 조사 세션 ID=s1", "--session", "유리 에이전트=a1",
+        "--session", "아냐 에이전트=b2")
+    with pytest.raises(stage.Stop, match="렌더된 PDF가 없다"):
+        run("finish", "--id", ID, "--kind", "분석", "--manifest", "x")
+    with pytest.raises(SystemExit):  # 유형 이름은 정해진 일곱 개뿐(가운뎃점 없이)
+        run("finish", "--id", ID, "--kind", "분석·해설")
+    output = tmp_path / "작업" / ID / "output"
+    output.mkdir()
+    (output / f"{ID}.pdf").write_bytes(b"%PDF-1.7")
+    assert run("finish", "--id", ID, "--kind", "분석", "--manifest", f"{ID}.pdf (3쪽)") == f"stage finish: {ID} · 완료"
+    assert (tmp_path / "최종" / "분석" / ID / f"{ID}.pdf").read_bytes() == b"%PDF-1.7"
+    assert read(tmp_path, "상태.md").splitlines()[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{ID}.pdf"
+    assert "[분석] `" in (tmp_path / "최종" / "_manifest.md").read_text(encoding="utf-8")

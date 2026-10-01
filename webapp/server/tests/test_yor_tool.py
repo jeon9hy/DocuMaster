@@ -79,6 +79,9 @@ def test_research_inlines_inputs_uses_snapshot_and_records_session(env):
     result = run(values, "research")
     assert result.returncode == 0, result.stdout
     assert "요르 research: OK" in result.stdout and "실제 gpt-test/medium" in result.stdout
+    # 다음에 읽을 부분(머리말·§D·§H)을 함께 보인다 — 로이드가 따로 sed하지 않게
+    shown = result.stdout.split("----- 읽을 부분 -----", 1)[1].split("----- 끝 -----", 1)[0]
+    assert "# Research Pack" in shown and "## D. (없음)" in shown and "## H. (없음)" in shown and "본문" not in shown
     call = calls(root)[0]
     assert call["args"][call["args"].index("-m") + 1] == "gpt-test"
     assert "model_reasoning_effort=medium" in call["args"] and "tools.web_search=true" in call["args"]
@@ -110,6 +113,7 @@ def test_answer_resumes_research_session_and_applies_patch(env):
     assert "### V-001" in call["prompt"] and "샌드박스" not in result.stdout
     assert "값 12" in (ws / "02_research_pack_v02.md").read_text(encoding="utf-8")
     assert (ws / "04_verification_answers.md").read_text(encoding="utf-8").startswith("## V-001")
+    assert "04 응답 1건 — 수정 1" in result.stdout and "02_research_pack_v02.md 머리말" in result.stdout
 
 
 def test_failed_patch_writes_nothing_and_points_to_nearest_line(env):

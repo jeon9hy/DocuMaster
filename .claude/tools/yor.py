@@ -28,6 +28,7 @@ import shutil
 import subprocess
 import sys
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -408,7 +409,42 @@ def finish(job: Job, kind: str, spec: dict, opts, code: int | None, want: dict, 
             f"요청 {want['model']}/{want['effort']} · 실제 {actual} · 세션 {session} · {seconds / 60:.1f}분 · 로그 {job.rel(log)}")
     if new_session and got["session"]:
         line += f"\n상태.md `## 세션`에 적는다: 요르 {'조사' if new_session == 'research' else '기획'} 세션 {got['session']}"
-    return line + "".join(f"\n  - {note}" for note in notes), exit_code
+    summary = line + "".join(f"\n  - {note}" for note in notes)
+    if exit_code == 0:
+        summary = excerpt(job, kind, body) + summary
+    return summary, exit_code
+
+
+EXCERPT_LIMIT = 6000
+
+
+def section(text: str, letter: str) -> str:
+    m = re.search(rf"^## {letter}\.[^\n]*\n.*?(?=^## [A-Z0-9]+\.|\Z)", text, re.S | re.M)
+    return m[0].strip() if m else ""
+
+
+def excerpt(job: Job, kind: str, body: str) -> str:
+    """로이드가 다음에 읽을 부분만 결과와 함께 보인다(CLAUDE.md §6) — 따로 sed·grep하는 턴을 없앤다."""
+    parts = []
+    if kind in ("research", "plan", "pack") and HEADER_END in body:
+        parts.append(body.split(HEADER_END, 1)[0].strip())
+        heads = re.findall(r"^## .+$", body, re.M)[:30]
+        parts.append("절: " + " · ".join(h[3:43] for h in heads))
+        if kind == "research":  # 본문을 읽는 절: §D 출처 충돌 · §H 기획 보정 제안
+            parts += [section(body, "D") or "## D. (없음)", section(body, "H") or "## H. (없음)"]
+    elif kind == "answer":
+        answers = job.ws / "04_verification_answers.md"
+        text = answers.read_text(encoding="utf-8") if answers.is_file() else ""
+        tally = Counter(re.findall(r"^응답:\s*(확인|수정|철회)", text, re.M))
+        parts.append(f"04 응답 {sum(tally.values())}건 — " + " · ".join(f"{k} {v}" for k, v in tally.items()))
+        latest_02 = latest(job.ws, "02_research_pack")
+        if latest_02 and latest_02.name != "02_research_pack.md":
+            parts.append(f"{latest_02.name} 머리말:\n"
+                         + latest_02.read_text(encoding="utf-8").split(HEADER_END, 1)[0].strip())
+    text = "\n\n".join(p for p in parts if p)
+    if len(text) > EXCERPT_LIMIT:
+        text = text[:EXCERPT_LIMIT] + "\n… (잘림 — 전문은 파일에서)"
+    return f"----- 읽을 부분 -----\n{text}\n----- 끝 -----\n" if text else ""
 
 
 def apply(job: Job, kind: str, opts, raw: Path, notes: list[str]) -> int:
