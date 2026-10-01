@@ -122,7 +122,7 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
           icon={Plus}
           label="새 프로젝트"
           onClick={() => setCreating(true)}
-          className={cn("border border-line bg-white", wide ? "size-9" : "size-10")}
+          className={cn("border border-line bg-white text-blue-600 hover:text-blue-700", wide ? "size-9" : "size-10")}
         />
       )}
       <NewProjectModal open={creating} onClose={closeCreate} />
