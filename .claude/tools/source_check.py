@@ -1,6 +1,7 @@
 """교차 확인용 원문 대조 — 05 §5의 출처를 열어 값이 원문에 있는지 앞뒤 문장과 함께 보여 준다(cross-check §2).
 
-    python .claude/tools/source_check.py <작업ID> S01=16.5,64.9 S04=58.9 [S07="문장 일부"] [--refresh]
+    python .claude/tools/source_check.py <작업ID> S01=16.5,64.9,659만 S04=58.9 [S07="문장 일부"] [--refresh]
+    값은 쉼표로 나눈다(천 단위 쉼표 3,508은 한 값). 값 안에 쉼표가 있으면 `S07=가, 나|다`처럼 `|`로 나눈다
 
 왜 이게 있는가 — 로이드가 WebFetch·curl·PDF 추출을 출처마다 따로 하느라 교차 확인에만 턴 일고여덟 번을 썼다(10-01 실측).
 하는 일
@@ -68,17 +69,16 @@ def locate(row: str) -> tuple[str, str]:
 
 
 def parse_targets(args: list[str]) -> dict[str, list[str]]:
+    """`S01=16.5,64.9` → {S01: [16.5, 64.9]}. 천 단위 쉼표(3,508)는 나누지 않는다. 값에 쉼표가 들면 `|`로 구분한다."""
     targets: dict[str, list[str]] = {}
     for arg in args:
         sid, sep, values = arg.partition("=")
         if not sep or not re.fullmatch(r"S\d{2,3}", sid.strip()) or not values.strip():
             raise ValueError(f"`S01=값,값` 형식이 아니다: {arg}")
         quoted = values.strip()
-        # 숫자 목록이면 쉼표로 나눈다. 문장(인용)은 그대로 하나로
-        parts = [v.strip() for v in quoted.split(",")] if re.fullmatch(r"[\d.,%p\s~\-]+", quoted) else [quoted]
-        if re.fullmatch(r"\d{1,3}(,\d{3})+(\.\d+)?", quoted):  # 3,508처럼 천 단위 쉼표 하나짜리 값
-            parts = [quoted]
-        targets.setdefault(sid.strip(), []).extend(p for p in parts if p)
+        # 숫자 사이의 `,ddd`만 천 단위 쉼표다(3,508). `41만,659만`·`2041,2055`는 나눈다
+        parts = quoted.split("|") if "|" in quoted else re.split(r"(?<!\d),|,(?!\d{3}(?!\d))", quoted)
+        targets.setdefault(sid.strip(), []).extend(p.strip() for p in parts if p.strip())
     return targets
 
 
@@ -103,8 +103,18 @@ def text_pattern(value: str) -> re.Pattern:
     return re.compile(r"\s*".join(words))
 
 
+UNIT = {"만": 10_000, "억": 100_000_000}
+
+
 def pattern_of(value: str) -> re.Pattern:
-    return number_pattern(value) if re.fullmatch(r"[\d.,%p\s]+", value) and re.search(r"\d", value) else text_pattern(value)
+    if re.fullmatch(r"[\d.,%p\s]+", value) and re.search(r"\d", value):
+        return number_pattern(value)
+    # `659만`·`1.2억`은 원문이 `6,590,000`처럼 풀어 쓴 경우도 같은 값으로 본다
+    unit = re.fullmatch(r"(\d[\d,]*(?:\.\d+)?)\s*([만억])(.*)", value)
+    if unit:
+        whole = round(float(unit[1].replace(",", "")) * UNIT[unit[2]])
+        return re.compile(f"(?:{text_pattern(value).pattern})|(?:{number_pattern(str(whole)).pattern})")
+    return text_pattern(value)
 
 
 def html_text(data: bytes, content_type: str) -> str:
@@ -120,6 +130,8 @@ def html_text(data: bytes, content_type: str) -> str:
             continue
     text = text if text is not None else data.decode("utf-8", errors="replace")
     text = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", text)
+    # 관공서 공지는 본문을 그림으로 올리고 같은 글을 alt에 넣는다(10-01 국민연금공단) — 태그와 함께 버리지 않는다
+    text = re.sub(r"(?is)<img\b[^>]*?\balt\s*=\s*([\"'])(.*?)\1[^>]*>", r" \2 ", text)
     text = re.sub(r"(?s)<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", htmllib.unescape(text))
 
@@ -136,7 +148,21 @@ def pdf_pages(data: bytes) -> list[str]:
 def fetch(url: str) -> tuple[bytes, str]:
     request = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
     with urllib.request.urlopen(request, timeout=40) as response:
-        return response.read(MAX_BYTES), response.headers.get("Content-Type", "")
+        data, content_type = response.read(MAX_BYTES), response.headers.get("Content-Type", "")
+    return follow_shell(url, data, content_type)
+
+
+def follow_shell(url: str, data: bytes, content_type: str) -> tuple[bytes, str]:
+    """본문을 스크립트로 불러오는 껍데기 페이지면 본문 주소를 한 번 더 받는다.
+
+    법제처 `lsInfoP.do?lsiSeq=N`은 조문이 없다 — 같은 페이지의 `efYd`로 `LSW/lsInfoR.do`를 부르면 조문 전문이 온다
+    (10-01 E2E: WebFetch·이 도구 모두 lsInfoP에서 조문을 못 읽었다, E-071).
+    """
+    law = re.match(r"https?://(?:www\.)?law\.go\.kr/(?:LSW/)?lsInfoP\.do\?(?:.*&)?lsiSeq=(\d+)", url)
+    effective = re.search(rb"var efYd\s*=\s*'(\d{8})'", data)
+    if law and effective:
+        return fetch(f"https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq={law[1]}&efYd={effective[1].decode()}")
+    return data, content_type
 
 
 def load(sid: str, kind: str, where: str, cache: Path, refresh: bool) -> list[str]:
@@ -203,17 +229,21 @@ def check(job_id: str, targets: dict[str, list[str]], refresh: bool = False) -> 
         size = sum(len(p) for p in pages)
         if size < 200:
             print(f"  본문이 거의 없다({size}자) — 스크립트로 그리는 페이지일 수 있다. 직접 연다")
+        misses = 0
         for value in values:
             pattern = pattern_of(value)
             hits = [(n, m) for n, page in enumerate(pages, 1) for m in pattern.finditer(page)]
             if not hits:
                 print(f"  ✗ {value} — 원문에서 못 찾았다")
                 missing += 1
+                misses += 1
                 continue
             more = f" (외 {len(hits) - 1}곳)" if len(hits) > 1 else ""
             for n, m in hits[:2]:
                 where_hit = f"쪽 {n}" if len(pages) > 1 else "본문"
                 print(f"  ✓ {value} · {where_hit}{more if (n, m) == hits[0] else ''} · {context(pages[n - 1], m.start(), m.end())}")
+        if misses and size >= 200:
+            print(f"  (받은 원문 {len(pages)}쪽 · {size:,}자 — 본문을 스크립트로 그리는 페이지면 값이 없을 수 있다)")
     print(f"\n결과: 못 찾음·못 엶 {missing}건 — " + ("찾은 문장의 시점·단위·범위를 05와 대조한다" if not missing
                                               else "✗·못 연 것만 직접 연다(검색 스니펫은 확인이 아니다)"))
     return 1 if missing else 0

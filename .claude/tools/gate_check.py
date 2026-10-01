@@ -1,7 +1,8 @@
 """05 / PPT 06·07 / DOC 07 게이트 — 사실 재유입과 형식 위반을 사람이 읽기 전에 걸러 낸다.
 
 사용:
-    python .claude/tools/gate_check.py <작업ID> 05|06|07 [--file <대상 경로>]
+    python .claude/tools/gate_check.py <작업ID> 05|06|07 [--file <대상 경로>] [--draft]
+    --draft  집필자(아냐)의 자체 검사 — 로이드가 기록할 상태.md 검사를 건너뛴다
 
 05는 §2·§5의 구조·출처와 집필 지시 유출 후보를 잰다. 주제의 정의·조건은 문맥으로 구별한다(E-063).
 
@@ -301,6 +302,20 @@ def check_state_bookkeeping(state: str) -> None:
                + ", ".join(dict.fromkeys(placeholders)) + " — 로이드가 `stage.py`로 닫는다(집필자는 고치지 않는다)")
     else:
         report("OK", "상태 기록", "세션·에이전트 자리표시자 없음")
+
+
+BARE_ID = re.compile(r"(?<![\[\w])S\d{2,3}(?![\]\d])")
+
+
+def check_bare_ids(body: str) -> None:
+    """`[S03]` 밖에 쓴 근거 ID는 위첨자로 바뀌지 않고 독자에게 그대로 보인다(10-01 E2E: `자료: S01 부칙`)."""
+    body = re.sub(r"\A﻿?---\s*\n.*?\n---\s*\n", "", body, flags=re.S)  # 머리 메타데이터
+    body = re.sub(r"<!--.*?-->", "", body, flags=re.S)
+    hits = [f"{i}행 {line.strip()[:70]}" for i, line in enumerate(body.splitlines(), 1) if BARE_ID.search(line)]
+    for hit in hits[:8]:
+        report("FAIL", "근거 ID 노출", hit + " — `[S03]` 형식(위첨자)으로 쓰거나 기관·자료명으로 바꾼다")
+    if len(hits) > 8:
+        report("FAIL", "근거 ID 노출", f"… 외 {len(hits) - 8}건")
 
 
 def check_doc_sources(target: str) -> None:
@@ -690,6 +705,8 @@ def check_words(target: str, pat: re.Pattern, level: str, name: str, why: str, s
 def main() -> int:
     args = sys.argv[1:]
     file_arg = None
+    draft = "--draft" in args
+    args = [a for a in args if a != "--draft"]
     if "--file" in args:
         i = args.index("--file")
         file_arg = args[i + 1]
@@ -766,13 +783,14 @@ def main() -> int:
         check_corrected(t05)
         check_words(target, STRONG_WORDS, "CHECK", "강도", "강도 후보", skip=r"^(title|subtitle|kind|date|org|accent)")
         body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+        check_bare_ids(body)
         check_words(body, TRACE_WORDS, "CHECK", "검수 흔적", "본문에 들어온 검수의 말")
         check_hedges(target)
         check_endings(target)
         check_paragraphs(target)
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
-    if stage == "07":
+    if stage == "07" and not draft:
         state = ws.parent / "상태.md"
         if state.is_file():
             check_state_bookkeeping(read(state))

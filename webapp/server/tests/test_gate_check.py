@@ -81,3 +81,15 @@ def test_05_sources_pointing_to_02_fail() -> None:
     gate_check.check_05(_section5("- S01 | 02 §G 참조 | 통계청 | 2026 | https://example.com\n"))
 
     assert ("FAIL", "05 §5", "02·04를 가리킨다 — 05는 혼자 읽혀야 한다") in gate_check.results
+
+
+def test_bare_evidence_id_in_body_fails() -> None:
+    """`[S03]` 밖의 근거 ID는 렌더되면 독자에게 보인다 — 위첨자 인용·출처 블록·메타데이터는 통과."""
+    body = ("---\ntitle: S01 제목처럼 보여도 메타데이터\n---\n"
+            "보험료율은 9.5%다.[S01] 같은 근거의 두 문장이다.[S01][S02]\n"
+            "<!-- S05는 주석 -->\n"
+            "| 구분 | 값 |\n| --- | --- |\n| 2026 | 4.75% |\n"
+            "자료: S01 부칙 제4조·S02 요율 기준\n")
+    gate_check.check_bare_ids(body)
+    fails = [r for r in gate_check.results if r[0] == "FAIL"]
+    assert len(fails) == 1 and "자료: S01 부칙" in fails[0][2]
