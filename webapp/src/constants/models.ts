@@ -40,6 +40,7 @@ export const MODEL_OPTIONS: readonly ModelOption[] = [
   { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", provider: "anthropic" },
   { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", provider: "anthropic" },
   // Codex: 실제 선택지는 백엔드가 ~/.codex/models_cache.json에서 읽는다. 여기는 표시 이름만.
+  { id: "gpt-6.1-sol", label: "GPT-6.1 Sol", provider: "openai" },
   { id: "gpt-6-astra", label: "GPT-6 Astra", provider: "openai" },
   { id: "gpt-6-sol", label: "GPT-6 Sol", provider: "openai" },
   { id: "gpt-6-luna", label: "GPT-6 Luna", provider: "openai" },
