@@ -10,7 +10,7 @@ Edge 인쇄는 머리말·꼬리말을 넣지 않으므로 쪽번호는 PyMuPDF�
     --pages 3,7  같은 폴더에 p03.png·p07.png(확대, 100dpi). PDF를 다시 굽지 않으려면 --only-images와 함께
     --only-images 이미 있는 PDF(NotebookLM 슬라이드 포함)에서 모아보기·확대만 만든다
 
-대제목(h1) 아래 같은 쪽에 본문이 7줄 미만 남으면 그 장은 다음 쪽에서 시작하도록 HTML에 break-before를 넣고
+대제목(h1) 아래 같은 쪽에 본문 5줄이 들어갈 공간이 없으면 그 장은 다음 쪽에서 시작하도록 HTML에 break-before를 넣고
 다시 굽는다(문서규격 §4). 끄려면 --no-chapter-room.
 
 출력 마지막 줄이 `검사 결과: OK` 가 아니면 그 PDF를 쓰지 않는다.
@@ -61,11 +61,16 @@ def print_pdf(html_path, pdf_path):
     raise SystemExit("인쇄 실패 — PDF가 새로 쓰이지 않았다. 이 파일을 쓰지 마라.\n" + tail)
 
 
-CHAPTER_MIN_LINES = 7
+CHAPTER_MIN_LINES = 5
+BODY_LINE_PT = 18  # 본문 10.4pt의 줄 간격(실측 16~19pt)
 
 
 def ensure_chapter_room(html_path, pdf_path):
-    """대제목과 본문 CHAPTER_MIN_LINES줄을 한 쪽에 둘 수 없으면 그 장을 다음 쪽으로 넘긴다."""
+    """대제목 아래 남은 높이에 본문 CHAPTER_MIN_LINES줄이 들어가지 않으면 그 장을 다음 쪽으로 넘긴다.
+
+    실제로 놓인 줄이 아니라 남은 공간으로 잰다 — 다음 문단이 통째로 밀려 줄이 적게 놓인 것을 공간 부족으로
+    오판하면 쪽 중간의 제목까지 넘겨 큰 공백이 생긴다(10-02 삼위일체 3쪽: 제목 아래 270pt인데 6줄이라 넘김).
+    """
     import html as htmllib
     import re
     import fitz
@@ -97,11 +102,8 @@ def ensure_chapter_room(html_path, pdf_path):
                 hits = [r for r in page.search_for(t[-9:]) if r.height > 14]  # 21pt 제목만(본문 인용 제외)
                 if not hits:
                     continue
-                y, bottom = hits[0].y1, page.rect.height - 45  # 꼬리말 위까지
-                lines = [ln for b in page.get_text("dict")["blocks"] if b["type"] == 0
-                         for ln in b["lines"]
-                         if ln["bbox"][1] > y - 1 and ln["bbox"][3] < bottom and ln["spans"][0]["size"] < 12]
-                if len(lines) < CHAPTER_MIN_LINES:
+                room = page.rect.height - 45 - hits[0].y1  # 제목 아래부터 꼬리말 위까지
+                if room < CHAPTER_MIN_LINES * BODY_LINE_PT:
                     new.add(i)
                 break
         doc.close()
@@ -109,7 +111,7 @@ def ensure_chapter_room(html_path, pdf_path):
             break
         breaks.add(min(new))
     if breaks:
-        print("장 새 쪽 이동(본문 %d줄 미만):" % CHAPTER_MIN_LINES, ", ".join(titles[i][:12] for i in sorted(breaks)))
+        print("장 새 쪽 이동(제목 아래 본문 %d줄 공간 없음):" % CHAPTER_MIN_LINES, ", ".join(titles[i][:12] for i in sorted(breaks)))
     return sorted(breaks)
 
 
