@@ -50,6 +50,13 @@ PROCESS_WORDS = re.compile(
     r"확인한 (범위|자료|공고|결과|바|것)|(만|까지) 확인했|판단하지 않았|"
     r"이 (보고서|가이드|지침서|문서|글)(가|에서|는|은|의) ?(정리|나눈|분류|권하|다루|판단)|"
     r"(조심해서|주의해서|신중히) 읽|로 읽(어야|어서는|으면 안)|읽으면 안|가장 정직한")
+# 사실 뒤에 성격만 따로 붙인 꼬리 — 라벨로 옮긴다(E-066). 05 §2와 07에 함께 쓴다
+NATURE_TAIL = re.compile(
+    r"(이것은|이는|역시|모두|둘 다|[는은]) ?(정책 |정부 )?(전망|계획|목표치?|계획치|실적)(이다|이며|이지|일 뿐)|"
+    r"(^|[.)] )(정책 |정부 )?(전망|계획|목표치?|실적)(이다|이며|이지)|"
+    r"(실적|확정치?)(이|은|는)? 아니|(값|숫자|수치|지표)(이|가) 아니다|다른 (숫자|값|수치|지표)(이)?다")
+# `A가 아니라 B` 뒤집기 — 문서규격 §2·§1 결론(E-066)
+CONTRAST = re.compile(r"[이가은는] 아니라[, ]")
 # 장마다 같은 틀로 닫는 관전 권유 — 3회 이상이면 CHECK
 WATCH_WORDS = re.compile(r"보는 것이 (좋|필요)|지켜볼|주시할|볼 (대목|지점)|눈여겨")
 # 05 §2 검토 후보 — 집필 지시·미확인 꼬리·내부 참조(주제의 실제 조건과 문맥으로 구별)
@@ -474,7 +481,13 @@ def ends_with_note(body: str) -> bool:
 def check_hedges(target: str) -> None:
     """단어만으로 필요한 설명을 삭제하지 않는다(문서규격 §2·E-063)."""
     body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
-    out, process, notes, in_note, note_no = [], [], set(), False, 0
+    out, process, tails, flips, notes, in_note, note_no = [], [], [], [], set(), False, 0
+    # 뒤집기는 결론에서만 센다 — 본문의 사실 구분(`관리자가 아니라 경영책임자`)은 정상이다
+    heads = [(i, len(m.group(1))) for i, line in enumerate(body.splitlines(), 1)
+             if (m := re.match(r"^(#{1,3}) (?!.*(출처|참고문헌))", line))]
+    levels = [lv for _, lv in heads]
+    top = min((lv for lv in levels if levels.count(lv) > 1), default=0)  # 문서 제목 하나뿐인 # 은 장이 아니다
+    closing_from = max((i for i, lv in heads if lv == top), default=10**9)
     for i, line in enumerate(body.splitlines(), 1):
         if re.match(r"^:::\s*note\b", line):
             in_note, note_no = True, note_no + 1
@@ -484,6 +497,12 @@ def check_hedges(target: str) -> None:
             continue
         if re.match(r"^\s*(title|subtitle):", line):
             continue
+        t = NATURE_TAIL.search(line)
+        if t:
+            tails.append(f"{i}행 「{t.group(0)}」 {line.strip()[:60]}")
+        c = CONTRAST.search(line) if i > closing_from else None
+        if c:
+            flips.append(f"{i}행 {line.strip()[:60]}")
         p = None if in_note else PROCESS_WORDS.search(line)
         if p:
             process.append(f"{i}행 「{p.group(0)}」 {line.strip()[:60]}")
@@ -501,11 +520,19 @@ def check_hedges(target: str) -> None:
         report("CHECK", "해명 문장", h + " — 문서규격 §2 주어 기준: 오해 방지는 범위·라벨로, 대상의 조건·행동 지시는 보존")
     if len(out) > 15:
         report("CHECK", "해명 문장", f"… 외 {len(out) - 15}건")
+    for h in tails[:15]:
+        report("CHECK", "성격 꼬리", h + " — 문서규격 §2: `정부 계획`·`한국은행 전망에서`처럼 수식어·괄호 라벨로 옮긴다")
+    if len(tails) > 15:
+        report("CHECK", "성격 꼬리", f"… 외 {len(tails) - 15}건")
+    for h in flips[:15]:
+        report("CHECK", "뒤집기", h + " — 마지막 장에서 `A가 아니라 B`로 결론·독려를 세웠는지 본다(문서규격 §1). 사실 구분이면 유지")
+    if len(flips) > 15:
+        report("CHECK", "뒤집기", f"… 외 {len(flips) - 15}건")
     if len(notes) > 2:
         report("CHECK", "해명 문장", f"note {len(notes)}곳 — 독자 한계(≤2개)를 넘는다. 개별 행동 조건인지 확인")
     if ends_with_note(body):
         report("CHECK", "끝 note", "문서 끝에 note가 모여 있다 — 공백이 걸린 본문 자리로 옮기거나 도입부 끝으로")
-    if not out and not process and len(notes) <= 2 and not ends_with_note(body):
+    if not out and not process and not tails and not flips and len(notes) <= 2 and not ends_with_note(body):
         report("OK", "해명 문장", "note 밖 해명 문장 없음")
     watch = WATCH_WORDS.findall(body)
     if len(watch) >= 3:
@@ -521,10 +548,13 @@ def check_05(t05: str) -> None:
     hits = []
     for i, line in enumerate(s2.splitlines(), 1):
         m = DIRECTIVE_WORDS.search(line)
+        t = None if m else NATURE_TAIL.search(line)
         if m:
-            hits.append(f"§2 {i}행 「{m.group(0)}」 {line.strip()[:60]}")
+            hits.append(f"§2 {i}행 「{m.group(0)}」 {line.strip()[:60]} — 검수 지시는 §4로, 주제의 정의·법적 금지·행동 조건은 보존")
+        elif t:
+            hits.append(f"§2 {i}행 「{t.group(0)}」 {line.strip()[:60]} — 성격 꼬리: 주어·수식어·괄호 라벨로 넣는다(E-066)")
     for h in hits[:15]:
-        report("CHECK", "05 §2", h + " — 검수 지시는 §4로, 주제의 정의·법적 금지·행동 조건은 보존")
+        report("CHECK", "05 §2", h)
     if len(hits) > 15:
         report("CHECK", "05 §2", f"… 외 {len(hits) - 15}건")
     if s2.strip() and not hits:
