@@ -25,7 +25,8 @@ def test_defaults_match_claude_md_placement(client):
     assert rows["yor"]["config"] == {"provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "xhigh"}
     assert rows["yuri"]["config"]["modelId"] == "claude-sonnet-5-5"
     assert rows["anya"]["config"]["modelId"] == "claude-opus-5-5"
-    assert rows["loid"]["config"]["modelId"] == "claude-code-default"
+    assert rows["loid"]["config"] == OPUS_HIGH
+    assert "claude-code-default" not in rows["loid"]["modelIds"] and None not in rows["loid"]["reasoningLevels"]
     assert all(not row["overridden"] for row in rows.values())
     # 모델 선택이 없는 본드만 잠긴다. 유리·아냐는 추론 강도를 넘길 방법이 없어 「도구 기본값」 하나뿐
     assert rows["bond"]["lockedReason"]
@@ -35,11 +36,20 @@ def test_defaults_match_claude_md_placement(client):
 
 
 def test_owner_can_change_loid_and_reset(client):
-    rows = by_agent(client.patch("/api/settings/agents/loid", json=OPUS_HIGH).json())
-    assert rows["loid"]["config"] == OPUS_HIGH and rows["loid"]["overridden"] and rows["loid"]["updatedAt"]
+    sonnet_max = {"provider": "anthropic", "modelId": "claude-sonnet-5-5", "reasoningLevel": "max"}
+    rows = by_agent(client.patch("/api/settings/agents/loid", json=sonnet_max).json())
+    assert rows["loid"]["config"] == sonnet_max and rows["loid"]["overridden"] and rows["loid"]["updatedAt"]
     rows = by_agent(client.delete("/api/settings/agents/loid").json())
-    assert rows["loid"]["config"]["modelId"] == "claude-code-default" and not rows["loid"]["overridden"]
+    assert rows["loid"]["config"] == OPUS_HIGH and not rows["loid"]["overridden"]
     assert rows["loid"]["updatedAt"]  # 되돌린 것도 마지막 변경으로 남는다
+
+
+def test_saved_claude_code_default_fills_only_the_empty_parts(client):
+    service = client.app.state.services.agent_settings
+    service._save("loid", {"provider": "anthropic", "modelId": "claude-code-default", "reasoningLevel": None})
+    assert by_agent(client.get("/api/settings/agents").json())["loid"]["config"] == OPUS_HIGH
+    service._save("loid", {"provider": "anthropic", "modelId": "claude-haiku-4-5", "reasoningLevel": None})
+    assert by_agent(client.get("/api/settings/agents").json())["loid"]["config"]["modelId"] == "claude-haiku-4-5"
 
 
 def test_saved_old_model_id_moves_to_its_successor(client):
@@ -56,6 +66,8 @@ def test_unsupported_settings_are_refused_not_substituted(client):
         ("bond", {"provider": "google", "modelId": "gemini", "reasoningLevel": None}),
         ("loid", {"provider": "anthropic", "modelId": "claude-imaginary", "reasoningLevel": "high"}),
         ("loid", {"provider": "openai", "modelId": "claude-opus-5-5", "reasoningLevel": "high"}),
+        ("loid", {"provider": "anthropic", "modelId": "claude-code-default", "reasoningLevel": "high"}),
+        ("loid", {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": None}),
     ]
     for agent_id, config in cases:
         response = client.patch(f"/api/settings/agents/{agent_id}", json=config)

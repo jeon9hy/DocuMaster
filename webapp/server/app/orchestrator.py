@@ -226,7 +226,7 @@ class ClaudeCodeOrchestratorAdapter(OrchestratorAdapter):
 
 
 def loid_model_flags(agent_configs: dict) -> list[str]:
-    """로이드 설정 → claude CLI 옵션. 기본값(claude-code-default · None)이면 아무것도 넘기지 않는다."""
+    """로이드 설정 → claude CLI 옵션. 값이 없는 옛 스냅샷(claude-code-default · None)이면 그 옵션만 넘기지 않는다."""
     config = agent_configs.get("loid") or {}
     flags = []
     if config.get("modelId") and config["modelId"] != "claude-code-default":

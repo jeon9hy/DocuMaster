@@ -33,8 +33,6 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
 };
 
 export const MODEL_OPTIONS: readonly ModelOption[] = [
-  // 로이드 기본값: --model을 넘기지 않는다 — 사용자의 Claude Code 기본 설정을 따른다(실행 때 실제 모델을 기록).
-  { id: "claude-code-default", label: "Claude Code 기본값", provider: "anthropic" },
   { id: "claude-fable-5-1", label: "Claude Fable 5.1", provider: "anthropic" },
   { id: "claude-opus-5-5", label: "Claude Opus 5.5", provider: "anthropic" },
   { id: "claude-sonnet-5-5", label: "Claude Sonnet 5.5", provider: "anthropic" },

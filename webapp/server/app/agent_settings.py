@@ -25,10 +25,9 @@ from .db import Database, now_iso
 
 UNSUPPORTED_MESSAGE = "현재 선택한 모델 설정을 사용할 수 없습니다."
 
-# 로이드가 고를 수 있는 모델. claude-code-default = --model을 넘기지 않음(사용자의 Claude Code 기본값).
-_LOID_MODELS = ("claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5")
-# None = --effort를 넘기지 않음(Claude Code 기본값)
-_LOID_REASONING = (None, "low", "medium", "high", "xhigh", "max")
+# 로이드가 고를 수 있는 모델·추론 강도. 「Claude Code 기본값」(넘기지 않음)은 두지 않는다(사용자 지시).
+_LOID_MODELS = ("claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5")
+_LOID_REASONING = ("low", "medium", "high", "xhigh", "max")
 
 # 서브에이전트(Agent 도구)의 model 값. 화면의 모델 ID → 도구에 넘기는 별칭
 SUBAGENT_ALIAS = {
@@ -131,6 +130,12 @@ class AgentSettingsService:
             result[agent_id] = dict(default) if row is None else {
                 "provider": row["provider"], "modelId": _RENAMED_MODELS.get(row["model_id"], row["model_id"]),
                 "reasoningLevel": row["reasoning_level"]}
+        # 없앤 「Claude Code 기본값」으로 저장된 로이드 설정은 빈 칸만 기본 배치로 채운다
+        loid, default = result["loid"], contract.DEFAULT_AGENT_CONFIGS["loid"]
+        if loid["modelId"] == "claude-code-default":
+            loid["modelId"] = default["modelId"]
+        if loid["reasoningLevel"] is None:
+            loid["reasoningLevel"] = default["reasoningLevel"]
         return result
 
     def list(self) -> list[dict]:

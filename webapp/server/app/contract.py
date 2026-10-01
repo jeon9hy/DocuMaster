@@ -16,8 +16,8 @@ STAGES = ("requirements", "planning", "research", "validation", "writing", "fina
 # Owner가 설정 화면에서 바꾸지 않으면 이 값으로 돈다(agent_settings.py). 유리·아냐는 서브에이전트라
 # 추론 강도를 넘길 방법이 없다 → None(도구 기본값).
 DEFAULT_AGENT_CONFIGS: dict[str, dict] = {
-    # 로이드는 모델을 고정하지 않는다(사용자 지시) — claude CLI에 --model/--effort를 넘기지 않는다.
-    "loid": {"provider": "anthropic", "modelId": "claude-code-default", "reasoningLevel": None},
+    # 로이드도 모델·추론 강도를 항상 넘긴다(사용자 지시 2026-10-01 — 「기본값」 선택지 없음).
+    "loid": {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": "high"},
     "yor": {"provider": "openai", "modelId": "gpt-5.6-sol", "reasoningLevel": "xhigh"},
     "yuri": {"provider": "anthropic", "modelId": "claude-sonnet-5-5", "reasoningLevel": None},
     "anya": {"provider": "anthropic", "modelId": "claude-opus-5-5", "reasoningLevel": None},

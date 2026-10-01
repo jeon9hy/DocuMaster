@@ -34,7 +34,7 @@ export const AGENT_PROFILES = {
     role: "총괄 · 게이트",
     description: "요청을 읽고 문서로 만들지 발표로 만들지 정한 뒤 전체 계획을 세웁니다. 단계마다 품질 기준을 통과했는지 판정하고, 완성본의 수치와 출처를 마지막으로 직접 확인합니다.",
     accent: { text: "text-teal-700", soft: "bg-teal-50", dot: "bg-teal-500" },
-    defaultConfig: { provider: "anthropic", modelId: "claude-code-default", reasoningLevel: null },
+    defaultConfig: { provider: "anthropic", modelId: "claude-opus-5-5", reasoningLevel: "high" },
   },
   yor: {
     name: "요르",

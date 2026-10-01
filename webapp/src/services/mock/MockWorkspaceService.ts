@@ -35,8 +35,8 @@ const STOP_DELAY_MS = 1200;
 
 /** 목업의 모델 선택지 — 백엔드(server/app/agent_settings.py)와 같은 규칙: 로이드만 바꿀 수 있다. */
 const MOCK_LOID_OPTIONS: Pick<AgentSetting, "modelIds" | "reasoningLevels"> = {
-  modelIds: ["claude-code-default", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"],
-  reasoningLevels: [null, "low", "medium", "high", "xhigh", "max"],
+  modelIds: ["claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"],
+  reasoningLevels: ["low", "medium", "high", "xhigh", "max"],
 };
 const MOCK_SUBAGENT_MODELS = ["claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"];
 const MOCK_LOCK_REASON = "NotebookLM(nlm CLI)에는 모델 선택이 없습니다.";

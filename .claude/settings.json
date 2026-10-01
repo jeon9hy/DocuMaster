@@ -15,5 +15,21 @@
       "PowerShell(git clean:*)",
       "PowerShell(git stash:*)"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "[ -n \"$DOCUMASTER_AGENT_MODELS\" ] && exit 0; git -C \"$CLAUDE_PROJECT_DIR\" pull --ff-only --quiet >/dev/null 2>&1 || echo \"{\\\"systemMessage\\\": \\\"세션 시작 git pull 실패 — git status로 확인하세요(로컬과 원격이 갈라졌거나 인증·네트워크 문제)\\\"}\"",
+            "timeout": 30,
+            "statusMessage": "git pull --ff-only"
+          }
+        ]
+      }
+    ]
   }
 }
