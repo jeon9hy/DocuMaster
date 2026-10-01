@@ -1,0 +1,4 @@
+# 로이드가 셸의 `python`으로 부르는 도구(.claude/tools/)의 의존성 — webapp/start.bat이 없으면 설치한다
+pymupdf>=1.28      # make_pdf · nlm_pipeline 검사 · 참고자료 판독(fitz)
+pillow>=12         # 모아보기 · fetch_images
+python-pptx>=1.0   # nlm_pipeline --slides-pptx 검사

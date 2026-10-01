@@ -15,6 +15,12 @@ if not exist node_modules (
   call npm install || goto :error
 )
 
+rem 로이드가 셸의 python으로 부르는 렌더·검사 도구의 모듈. 없으면 실행 도중 설치하느라 멈추지 않게 미리 설치한다
+python -c "import fitz, PIL, pptx" >nul 2>&1 || (
+  echo 문서 도구에 필요한 파이썬 패키지를 설치합니다...
+  python -m pip install -q -r ..\.claude\tools\requirements.txt || goto :error
+)
+
 rem 커밋 전 검사 훅(.githooks/pre-commit)을 켠다. 이미 켜져 있으면 그대로
 git -C .. config core.hooksPath .githooks >nul 2>&1
 

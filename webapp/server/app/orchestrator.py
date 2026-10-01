@@ -222,7 +222,28 @@ class ClaudeCodeOrchestratorAdapter(OrchestratorAdapter):
     def missing_tools(self) -> list[str]:
         # 로이드가 부르는 도구(CLAUDE.md §1). 없으면 실행 전에 알린다.
         tools = {"claude": "claude", "codex": "codex", "python": "python"}
-        return [label for label, command in tools.items() if not shutil.which(command)]
+        missing = [label for label, command in tools.items() if not shutil.which(command)]
+        if "python" not in missing and not python_tool_modules_ready():
+            missing.append("python 패키지 pymupdf·pillow(webapp/start.bat이 .claude/tools/requirements.txt로 설치)")
+        return missing
+
+
+_TOOL_MODULES_READY = False
+
+
+def python_tool_modules_ready() -> bool:
+    """로이드의 `python`에 렌더·검사 도구의 모듈이 있는지. 없으면 실행 도중 전역 pip 설치로 새지 않게 미리 막는다.
+
+    한 번 확인되면 기억한다(상태 화면이 부를 때마다 프로세스를 띄우지 않게). 없으면 매번 다시 본다.
+    """
+    global _TOOL_MODULES_READY
+    if not _TOOL_MODULES_READY:
+        try:
+            done = subprocess.run(["python", "-c", "import fitz, PIL"], capture_output=True, timeout=60, check=False)
+            _TOOL_MODULES_READY = done.returncode == 0
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+    return _TOOL_MODULES_READY
 
 
 def loid_model_flags(agent_configs: dict) -> list[str]:

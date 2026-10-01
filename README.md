@@ -172,7 +172,7 @@ Loid picks the mode and runs the pipeline. It stops to ask only when:
 - the evidence forces a change of direction, or
 - verification is blocked.
 
-**Requirements:** Claude Code, Codex CLI (`npm i -g @openai/codex`, called only through `yor.py`), Python 3.12 with PyMuPDF, Pillow and fontTools (PDF font subsetting), Microsoft Edge for HTML→PDF, the Pretendard font, and `nlm` (notebooklm-mcp-cli) with a one-time `nlm login`.
+**Requirements:** Claude Code, Codex CLI (`npm i -g @openai/codex`, called only through `yor.py`), Python 3.12 with the packages in `.claude/tools/requirements.txt` (PyMuPDF, Pillow, python-pptx — `webapp/start.bat` installs them), Microsoft Edge for HTML→PDF, the Pretendard font, and `nlm` (notebooklm-mcp-cli) with a one-time `nlm login`.
 
 ---
 

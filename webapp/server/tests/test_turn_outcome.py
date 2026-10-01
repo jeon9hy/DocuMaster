@@ -26,3 +26,23 @@ def test_blocked_verdict_does_not_ask_again_after_presentation_06() -> None:
 def test_usage_limit_needs_whole_number() -> None:
     assert classify_error(TurnResult(exit_code=1, stderr_tail="HTTP 429 Too Many Requests")) == "usage_limit"
     assert classify_error(TurnResult(exit_code=1, stderr_tail="file 4290.md not found")) == "agent_process_error"
+
+
+def test_tool_modules_check_is_remembered_only_when_ready(monkeypatch) -> None:
+    """렌더 도구 모듈 확인 — 있으면 기억하고, 없으면 다음에 다시 본다."""
+    import subprocess
+
+    from app import orchestrator
+
+    calls = []
+
+    def fake_run(command, **_):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 1 if len(calls) == 1 else 0)
+
+    monkeypatch.setattr(orchestrator, "_TOOL_MODULES_READY", False)
+    monkeypatch.setattr(orchestrator.subprocess, "run", fake_run)
+    assert orchestrator.python_tool_modules_ready() is False
+    assert orchestrator.python_tool_modules_ready() is True
+    assert orchestrator.python_tool_modules_ready() is True
+    assert len(calls) == 2
