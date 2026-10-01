@@ -437,6 +437,31 @@ def check_paragraphs(target: str) -> None:
         report("OK", "문단", f"3문장 이하 문단 {share}% · 가장 긴 문단 {max(sizes)}문장")
 
 
+OPENER_LIMIT = 5
+
+
+def check_openers(target: str) -> None:
+    """문단을 같은 말로 여는 버릇(문서규격 §2 리듬) — 10-02 회사생존법: 11개 문단이 「가령」으로 시작했다.
+
+    캡션(`자료:` 등)·숫자로 시작하는 말(연도)·한 글자 지시어(이·그)는 세지 않는다.
+    """
+    body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
+    body = re.sub(r"```.*?```", "", body, flags=re.S)
+    body = re.sub(r"\A﻿?---\s*\n.*?\n---\s*\n", "", body, flags=re.S)
+    counts: Counter = Counter()
+    for paragraph in re.split(r"\n\s*\n", body):
+        paragraph = paragraph.strip()
+        if not paragraph or paragraph.startswith(("#", "|", "-", "*", ">", ":::", "!", "<!--")) \
+                or re.match(r"\d+\.", paragraph):
+            continue
+        word = re.match(r"[^\s,.:]+", paragraph)
+        if word and len(word[0]) > 1 and not word[0][0].isdigit() and not re.match(r"(자료|출처|주|계산)$", word[0]):
+            counts[word[0]] += 1
+    for word, count in counts.most_common():
+        if count >= OPENER_LIMIT:
+            report("CHECK", "문단 첫머리", f"첫말이 「{word}」인 문단이 {count}개다 — 같은 틀로 열지 않게 표현을 바꾼다")
+
+
 def ends_with_note(body: str) -> bool:
     """마지막 블록이 note인가 — 독자 한계는 걸린 자리에 두고 끝에 모으지 않는다(문서규격 §2)."""
     starts = list(re.finditer(r"^:::\s*note\b[^\n]*\n", body, re.M))
@@ -781,6 +806,7 @@ def main() -> int:
         check_hedges(target)
         check_endings(target)
         check_paragraphs(target)
+        check_openers(target)
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07" and not draft:

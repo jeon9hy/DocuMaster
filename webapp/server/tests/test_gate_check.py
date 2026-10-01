@@ -93,3 +93,12 @@ def test_bare_evidence_id_in_body_fails() -> None:
     gate_check.check_bare_ids(body)
     fails = [r for r in gate_check.results if r[0] == "FAIL"]
     assert len(fails) == 1 and "자료: S01 부칙" in fails[0][2]
+
+
+
+def test_repeated_paragraph_opener_is_checked() -> None:
+    """같은 첫말로 여는 문단이 5개 이상이면 CHECK — 캡션·연도·한 글자 지시어는 세지 않는다."""
+    scene = "\n\n".join(f"가령 {i}번째 장면이다. 이어지는 설명이다." for i in range(5))
+    other = "\n\n".join(["자료: 통계청"] * 6 + ["2026년 기준이다."] * 6 + ["이 값은 크다."] * 6)
+    gate_check.check_openers(scene + "\n\n" + other)
+    assert gate_check.results == [("CHECK", "문단 첫머리", "첫말이 「가령」인 문단이 5개다 — 같은 틀로 열지 않게 표현을 바꾼다")]
