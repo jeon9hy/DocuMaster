@@ -218,14 +218,17 @@ def pack_slide_count(pack_text: str) -> int | None:
     return len(slides) or None
 
 
+FOCUS_LIMIT = 9500
+
+
 def focus_prompt(instruction: str, extra: str = "") -> str:
-    """studio 생성용 focus 프롬프트. 근거 고정 문구를 항상 마지막에 붙인다."""
-    parts = [instruction.strip()]
-    if extra:
-        parts.append(extra.strip())
-    parts.append(GROUNDING)
-    text = "\n".join(p for p in parts if p)
-    return text[:9500]
+    """studio 생성용 focus 프롬프트. 근거 고정 문구를 항상 마지막에 붙인다.
+
+    길이 상한을 넘으면 지시 쪽을 자른다 — 끝을 자르면 근거 고정 문구가 먼저 사라진다.
+    """
+    tail = "\n".join(p for p in (extra.strip(), GROUNDING) if p)
+    head = instruction.strip()[: FOCUS_LIMIT - len(tail) - 1]
+    return "\n".join(p for p in (head, tail) if p)
 
 
 # ── 숫자 대조 ───────────────────────────────────────────────────────────────
@@ -879,10 +882,12 @@ def cmd_promote(opts: argparse.Namespace) -> int:
 
     state["promoted"] = {"at": now(), "files": moved, "forced": bool(opts.force)}
     job.save_state(state)
+    # stage.py finish와 같은 줄 모양. 다시 이관하면 그 작업의 줄을 바꾼다(같은 ID 줄이 쌓이지 않게)
     manifest = final_root / "_manifest.md"
-    line = f"- {now()[:10]} · `{job.id}` · " + " · ".join(Path(m).name for m in moved)
-    with manifest.open("a", encoding="utf-8") as fh:
-        fh.write(line + "\n")
+    line = f"- {now()[:10]} · [발표] `{job.id}` · " + " · ".join(Path(m).name for m in moved)
+    old = manifest.read_text(encoding="utf-8").splitlines() if manifest.exists() else []
+    kept = [entry for entry in old if f"`{job.id}`" not in entry]
+    manifest.write_text("\n".join(kept + [line]) + "\n", encoding="utf-8", newline="\n")
     print(f"\n{len(moved)}개 이관. 목록: 최종/_manifest.md")
     return 0
 

@@ -8,14 +8,14 @@
     python .claude/tools/stage.py done   <단계> --id ID [--output 경로] [--note 비고] [공통 옵션]
     python .claude/tools/stage.py set    --id ID [공통 옵션]
     python .claude/tools/stage.py log    --id ID "<기록 한 줄>"
-    python .claude/tools/stage.py finish --id ID --final 최종/ID/파일 [--manifest "<파일명 · 비고>"]
+    python .claude/tools/stage.py finish --id ID --final 최종/<유형>/ID/파일 [--manifest "<파일명 · 비고>"]
 공통 옵션:
     --status "진행 중 03 검증질문"   상태 줄        --next "<한 줄>"   다음에 할 일
     --session "유리 에이전트=<id>"   세션 칸(여러 번) --open "<전체>"    열린 것 칸
     --plan "<전체>"                  기획 칸          --log "<한 줄>"    기록.md에 덧붙임(날짜 자동)
 
 `done <단계>`는 진행 표에서 첫 칸이 <단계>이거나 「<단계> 」로 시작하는 행을 완료로 바꾸고, 없으면 행을 더한다.
-`finish`는 세션 칸에 자리표시자(`실행 후 기록`·`(미실행)`)가 남아 있으면 쓰지 않고 멈춘다(종료 코드 1).
+`finish`는 세션 칸에 자리표시자(`실행 후 기록`·`(미실행)`)가 남아 있거나 `--final` 파일이 없으면 쓰지 않고 멈춘다(종료 코드 1).
 """
 from __future__ import annotations
 
@@ -220,6 +220,8 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
         if PLACEHOLDER.search(session_line):
             raise Stop("세션 칸의 자리표시자를 실제 ID 또는 `해당 없음(이유)`으로 닫아야 한다 — "
                        "`stage.py set --session \"이름=값\"`")
+        if not (root / args.final).is_file():
+            raise Stop(f"--final 파일이 없다: {args.final} — 이관(cp·promote)을 먼저 한다")
         set_line(lines, "상태:", "완료", limit=5)
         set_line(lines, "다음에 할 일:", f"없음 — {args.final}", limit=5)
         state_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

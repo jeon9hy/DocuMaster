@@ -66,10 +66,13 @@ def run(src_path: str, out_path: str | None, raw_path: str, answers_path: str | 
 
     if answers_path is not None:
         resp = cut(raw, *RESP)
-        if resp is None:
+        if resp is None and Path(answers_path).is_file():
+            # `answer --retry`는 고칠 패치만 다시 받는다 — 첫 응답에서 저장한 04를 그대로 둔다
+            print("[유지] 응답 블록 없음 — 이미 저장한 응답을 그대로 쓴다:", answers_path)
+        elif resp is None:
             print("[실패] 응답 구분자가 없다 — 요르에게 형식을 지켜 다시 내라고 한다(1회만).")
             return 1
-        if out_path:
+        elif out_path:
             Path(answers_path).write_text(resp + "\n", encoding="utf-8")
             print("[저장] 응답", answers_path)
 

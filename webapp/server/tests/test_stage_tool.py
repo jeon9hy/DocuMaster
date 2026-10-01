@@ -57,6 +57,12 @@ def test_init_done_log_and_finish(tmp_path, stage):
     assert read(tmp_path, "상태.md").splitlines()[1] == "상태: 진행 중 03 검증질문"
 
     run("set", "--id", ID, "--session", "아냐 에이전트=def456", "--session", "실제 모델=gpt(확인)")
+    # 이관 전 — 최종 파일이 없으면 완료로 바꾸지 않는다
+    with pytest.raises(stage.Stop, match="--final 파일이 없다"):
+        run("finish", "--id", ID, "--final", f"최종/분석/{ID}/{ID}.pdf")
+    final = tmp_path / "최종" / "분석" / ID / f"{ID}.pdf"
+    final.parent.mkdir(parents=True)
+    final.write_bytes(b"%PDF")
     run("finish", "--id", ID, "--final", f"최종/분석/{ID}/{ID}.pdf", "--manifest", f"{ID}.pdf (DOCUMENT · 4쪽)")
     lines = read(tmp_path, "상태.md").splitlines()
     assert lines[1] == "상태: 완료" and lines[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{ID}.pdf"

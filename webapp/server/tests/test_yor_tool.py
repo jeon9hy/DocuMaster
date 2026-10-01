@@ -124,6 +124,15 @@ def test_failed_patch_writes_nothing_and_points_to_nearest_line(env):
     assert "가장 가까운 줄" in result.stdout and "**S01**" in result.stdout
     assert not (ws / "02_research_pack_v02.md").exists()
 
+    # --retry는 패치만 다시 받는다 — 응답 블록이 없어도 첫 응답의 04를 두고 패치를 적용한다
+    (root / "작업" / ID / "_입력_응답.md").write_text("OLD를 `| **S01** | 값 10 |`로", encoding="utf-8")
+    retry = ("=== 수정 패치 시작 ===\n--- PATCH 1 ---\nOLD:\n| **S01** | 값 10 |\n"
+             "NEW:\n| **S01** | 값 12 |\n--- PATCH 끝 ---\n=== 수정 패치 끝 ===\n")
+    result = run(values, "answer", "--retry", FAKE_OUTPUT=retry)
+    assert result.returncode == 0, result.stdout
+    assert "값 12" in (ws / "02_research_pack_v02.md").read_text(encoding="utf-8")
+    assert (ws / "04_verification_answers.md").read_text(encoding="utf-8") == "ok\n"
+
 
 def test_model_mismatch_in_log_fails(env):
     _, _, values = env
