@@ -240,6 +240,8 @@ def check_model_calls(log_path: Path, expected: dict) -> list[str]:
         return problems
     subagent_models = {expected["yuri"]["model"], expected["anya"]["model"]}
     for line in lines:
+        if '"tool_use"' not in line:
+            continue  # 턴마다 로그 전체를 다시 읽는다 — 도구 호출이 없는 줄은 파싱하지 않는다
         try:
             message = json.loads(line)
         except ValueError:

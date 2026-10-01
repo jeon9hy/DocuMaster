@@ -242,23 +242,22 @@ def claude_usage_from_logs(log_dir: Path, now: float | None = None) -> dict:
     latest: tuple[float, dict] | None = None
     # 기존 Phase E 실험은 .data/smoke/logs에 격리해 두었다.
     paths = (*log_dir.glob("run_*.jsonl"), *(log_dir.parent / "smoke" / "logs").glob("run_*.jsonl"))
+    stamped = []
     for path in paths:
         try:
-            modified_at = path.stat().st_mtime
-            with path.open(encoding="utf-8") as lines:
-                for line in lines:
-                    try:
-                        event = json.loads(line)
-                    except ValueError:
-                        continue
-                    if event.get("type") != "rate_limit_event":
-                        continue
-                    info = event.get("rate_limit_info")
-                    if isinstance(info, dict) and isinstance(info.get("unifiedWindows"), dict):
-                        if latest is None or modified_at >= latest[0]:
-                            latest = (modified_at, info)
+            stamped.append((path.stat().st_mtime, path))
         except OSError as error:
             log.warning("Claude 실행 로그를 읽지 못했습니다: %s", error)
+    # 실행 하나의 로그가 수 MB다 — 최신 로그부터 보고 값이 있는 첫 로그에서 멈춘다(전부 파싱하지 않는다)
+    for modified_at, path in sorted(stamped, key=lambda item: item[0], reverse=True):
+        try:
+            info = _last_rate_limit_info(path)
+        except OSError as error:
+            log.warning("Claude 실행 로그를 읽지 못했습니다: %s", error)
+            continue
+        if info:
+            latest = (modified_at, info)
+            break
     if latest is None:
         return _unavailable("anthropic", label, "Claude 사용량 정보를 확인할 수 없습니다.", source)
     captured_at, info = latest
