@@ -4,6 +4,7 @@ import type {
   AgentSetting,
   ArtifactContent,
   AuthSession,
+  LibraryDocument,
   NewProjectInput,
   NewReferenceInput,
   ProjectSummary,
@@ -36,6 +37,8 @@ export interface WorkspaceService {
   createProject(input: NewProjectInput): Promise<ProjectSummary>;
   /** 프로젝트 전용 작업/·최종/·참고자료 폴더와 목록 항목을 함께 지운다. 실행 중이면 거절한다. */
   deleteProject(projectId: string): Promise<void>;
+  /** 최종본이 있는 문서 목록(최신 날짜부터). 파일에서 읽은 값만 — 필터는 화면에서 한다. */
+  listLibrary(): Promise<LibraryDocument[]>;
   /** 스냅샷. lastEventSeq까지 반영된 상태를 돌려준다 — 이어서 subscribe(afterSeq=lastEventSeq)로 받는다. */
   getWorkspace(projectId: string): Promise<ProjectWorkspace>;
   /** 미리보기를 열 때만 부른다. 목록에는 메타데이터만 온다. 아직 본문이 없으면 null. */

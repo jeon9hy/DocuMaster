@@ -4,6 +4,7 @@ import { ArtifactsView } from "./ArtifactsView";
 import { ChatView } from "./ChatView";
 import { DashboardView } from "./DashboardView";
 import { HomeView } from "./HomeView";
+import { LibraryView } from "./LibraryView";
 import { PlaceholderView } from "./PlaceholderView";
 import { ProjectsView } from "./ProjectsView";
 import { SettingsView } from "./SettingsView";
@@ -22,12 +23,7 @@ export const VIEWS: Record<ViewId, ComponentType> = {
   agents: AgentsView,
   settings: SettingsView,
   home: HomeView,
-  library: () => (
-    <PlaceholderView
-      title="지식 라이브러리"
-      description="여러 프로젝트에서 다시 쓸 레퍼런스와 검증된 근거를 보관할 자리입니다."
-    />
-  ),
+  library: LibraryView,
   projectSettings: () => (
     <PlaceholderView
       title="프로젝트 설정"

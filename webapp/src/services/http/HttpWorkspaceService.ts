@@ -5,6 +5,7 @@ import type {
   AgentSetting,
   ArtifactContent,
   AuthSession,
+  LibraryDocument,
   NewProjectInput,
   NewReferenceInput,
   ProjectSummary,
@@ -73,6 +74,10 @@ export class HttpWorkspaceService implements WorkspaceService {
 
   createProject(input: NewProjectInput): Promise<ProjectSummary> {
     return this.request("/api/projects", { method: "POST", json: input });
+  }
+
+  listLibrary(): Promise<LibraryDocument[]> {
+    return this.request("/api/library");
   }
 
   async deleteProject(projectId: string): Promise<void> {

@@ -32,6 +32,8 @@ export interface AppActions {
   setView(view: ViewId): void;
   toggleStage(stageId: WorkflowStageId): void;
   selectArtifact(artifactId: string): void;
+  /** 라이브러리 문서를 그 프로젝트의 작업물 화면에서 연다(artifactId가 있으면 그 파일을 고른다) */
+  openLibraryDocument(projectId: string, artifactId: string | null): void;
   runWorkflow(): Promise<void>;
   queueWorkflow(): Promise<void>;
   cancelQueuedWorkflow(): Promise<void>;
@@ -144,6 +146,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setView: (view) => dispatch({ type: "view/changed", view }),
       toggleStage: (stageId) => dispatch({ type: "stage/toggled", stageId }),
       selectArtifact: (artifactId) => dispatch({ type: "artifact/selected", artifactId }),
+      openLibraryDocument: (id, artifactId) => dispatch({ type: "library/opened", projectId: id, artifactId }),
       runWorkflow: () => {
         requestNotificationPermission(); // 클릭 순간에만 물을 수 있다 — 확인 요청·완료를 알리려고
         return mutate(() => workspaceService.runWorkflow(requireProject()));

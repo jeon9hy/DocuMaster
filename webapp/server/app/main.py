@@ -16,6 +16,7 @@ from .db import Database
 from .events import EventStore
 from .files import FileStore
 from .imports import import_existing_projects
+from .library import LibraryService
 from .orchestrator import create_adapter
 from .projects import ProjectService
 from .retention import prune_run_logs
@@ -32,6 +33,7 @@ class Services:
     runs: RunManager
     auth: AuthService
     agent_settings: AgentSettingsService
+    library: LibraryService
 
 
 def build_services(settings: Settings) -> Services:
@@ -41,7 +43,8 @@ def build_services(settings: Settings) -> Services:
     projects = ProjectService(settings, db, events, files)
     agent_settings = AgentSettingsService(db, settings.codex_home)
     runs = RunManager(settings, db, events, files, projects, create_adapter(settings), agent_settings)
-    return Services(settings, db, events, files, projects, runs, AuthService(settings, db), agent_settings)
+    return Services(settings, db, events, files, projects, runs, AuthService(settings, db), agent_settings,
+                    LibraryService(db, events, files, projects))
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

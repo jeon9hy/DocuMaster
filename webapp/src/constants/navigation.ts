@@ -34,7 +34,7 @@ export const GLOBAL_NAV: readonly NavItem[] = [
   { id: "home", label: "홈", icon: Home },
   { id: "projects", label: "프로젝트", icon: Folder },
   { id: "agents", label: "에이전트", icon: Bot },
-  { id: "library", label: "지식 라이브러리", icon: BookOpen },
+  { id: "library", label: "문서 라이브러리", icon: BookOpen },
   { id: "settings", label: "설정", icon: Settings },
 ];
 

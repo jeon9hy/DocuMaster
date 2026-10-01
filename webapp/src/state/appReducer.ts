@@ -26,6 +26,8 @@ export interface AppState {
   /** 단계 상세를 펼친 단계. null이면 닫힘 */
   openStageId: WorkflowStageId | null;
   selectedArtifactId: string | null;
+  /** 라이브러리에서 연 문서. 워크스페이스가 로드되면 이 작업물을 고른다 */
+  pendingArtifactId: string | null;
   /** 실시간 이벤트 연결. 끊기면 화면에 「재연결 중」을 보여 준다. */
   connection: ConnectionState;
 }
@@ -34,6 +36,7 @@ export type AppAction =
   | { type: "projects/loaded"; projects: ProjectSummary[] }
   | { type: "session/changed"; session: AuthSession }
   | { type: "project/selected"; projectId: string }
+  | { type: "library/opened"; projectId: string; artifactId: string | null }
   | { type: "project/cleared" }
   | { type: "workspace/loaded"; workspace: ProjectWorkspace }
   | { type: "workspace/failed" }
@@ -55,6 +58,7 @@ export const initialAppState: AppState = {
   view: DEFAULT_VIEW,
   openStageId: null,
   selectedArtifactId: null,
+  pendingArtifactId: null,
   connection: "connected",
 };
 
@@ -81,6 +85,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         workspaceStatus: "loading",
         openStageId: null,
         selectedArtifactId: null,
+        pendingArtifactId: null,
+      };
+
+    case "library/opened":
+      // 같은 프로젝트면 워크스페이스를 다시 받지 않고 고르기만 한다
+      if (action.projectId === state.projectId) {
+        return { ...state, view: "artifacts", selectedArtifactId: action.artifactId ?? state.selectedArtifactId };
+      }
+      return {
+        ...state,
+        view: "artifacts",
+        projectId: action.projectId,
+        workspace: null,
+        workspaceStatus: "loading",
+        openStageId: null,
+        selectedArtifactId: null,
+        pendingArtifactId: action.artifactId,
       };
 
     case "project/cleared":
@@ -92,7 +113,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         workspace: action.workspace,
         workspaceStatus: "success",
-        selectedArtifactId: pickDefaultArtifact(action.workspace),
+        selectedArtifactId:
+          state.pendingArtifactId && action.workspace.artifacts.some((item) => item.id === state.pendingArtifactId)
+            ? state.pendingArtifactId
+            : pickDefaultArtifact(action.workspace),
+        pendingArtifactId: null,
       };
 
     case "workspace/failed":

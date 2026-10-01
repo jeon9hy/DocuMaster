@@ -1,5 +1,6 @@
 import { AGENT_IDS, AGENT_PROFILES, DEFAULT_ASSIGNEE } from "@/constants/agents";
 import { MOCK_REPLIES } from "@/data/mock/stageScripts";
+import { LIBRARY_SEEDS } from "@/data/mock/libraryDocuments";
 import { PROJECT_SEEDS, type ProjectSeed } from "@/data/mock/seedProjects";
 import { applyWorkflowEvent } from "@/lib/applyWorkflowEvent";
 import { createId } from "@/lib/ids";
@@ -13,6 +14,7 @@ import type {
   AgentSetting,
   ArtifactContent,
   AuthSession,
+  LibraryDocument,
   NewProjectInput,
   NewReferenceInput,
   ProjectSummary,
@@ -90,6 +92,12 @@ export class MockWorkspaceService implements WorkspaceService {
   async listProjects(): Promise<ProjectSummary[]> {
     await wait(LATENCY_MS);
     return [...this.stores.values()].map((store) => store.workspace.project);
+  }
+
+  async listLibrary(): Promise<LibraryDocument[]> {
+    await wait(LATENCY_MS);
+    // 지운 목업 프로젝트의 문서는 빼고 보여 준다
+    return LIBRARY_SEEDS.filter((doc) => this.stores.has(doc.projectId));
   }
 
   async createProject(input: NewProjectInput): Promise<ProjectSummary> {

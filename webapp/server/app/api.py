@@ -128,6 +128,15 @@ def delete_project(project_id: str, request: Request):
         pass  # 예약이 없었다
 
 
+# --- 문서 라이브러리 ------------------------------------------------------------------
+
+
+@router.get("/library")
+def list_library(request: Request):
+    """최종본이 있는 문서 목록. 파일만 읽는다."""
+    return _services(request).library.documents()
+
+
 @router.get("/projects/{project_id}/workspace")
 def get_workspace(project_id: str, request: Request):
     return _guard(lambda: _services(request).projects.snapshot(project_id))
