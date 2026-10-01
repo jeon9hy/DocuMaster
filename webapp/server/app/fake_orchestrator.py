@@ -59,7 +59,7 @@ class FakeLoid:
     def __init__(self, work_root: Path, session_id: str, step: float, workspace_id: str | None = None):
         self.id = workspace_id or f"fake_{date.today():%Y%m%d}_{session_id[:6]}"
         self.base = work_root / "작업" / self.id
-        self.final = work_root / "최종" / self.id
+        self.final_root = work_root / "최종"
         self.workspace = self.base / "workspace"
         self.step = step
         self.session_id = session_id
@@ -106,6 +106,7 @@ class FakeLoid:
         self.write("00_user_brief.md", f"""
 # User Brief
 - 작업 ID: {self.id} / 모드: {mode} / 작성일: {date.today()}
+- 글 유형: 설명·해설 — 가짜 실행
 - 원문 요청: {prompt.splitlines()[0] if prompt else ""}
 --- 헤더 끝 ---
 ## 목적
@@ -175,10 +176,13 @@ class FakeLoid:
         (self.base / "output").mkdir(parents=True, exist_ok=True)
         (self.base / "output" / output_name).write_bytes(tiny_pdf(self.id))
         time.sleep(self.step)
-        self.final.mkdir(parents=True, exist_ok=True)
-        (self.final / output_name).write_bytes(tiny_pdf(f"{self.id} final"))
+        # 실제 계약처럼 유형 폴더 아래에 둔다(CLAUDE.md §4 — DOC는 글 유형, PPT는 발표)
+        kind = "설명해설" if mode == "DOCUMENT" else "발표"
+        final = self.final_root / kind / self.id
+        final.mkdir(parents=True, exist_ok=True)
+        (final / output_name).write_bytes(tiny_pdf(f"{self.id} final"))
         self.state("완료", mode)
-        return f"완료 보고 — 산출물: 최종/{self.id}/{output_name} · 판정: conditional · CAUTION 1건(주장 A) · 가짜 실행이라 실제 모델은 쓰지 않았습니다."
+        return f"완료 보고 — 산출물: 최종/{kind}/{self.id}/{output_name} · 판정: conditional · CAUTION 1건(주장 A) · 가짜 실행이라 실제 모델은 쓰지 않았습니다."
 
 
 def main() -> int:
