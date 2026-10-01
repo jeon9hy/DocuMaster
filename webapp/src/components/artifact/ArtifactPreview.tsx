@@ -11,7 +11,7 @@ import { Modal } from "../ui/Modal";
 import { EmptyState, ErrorState, LoadingState } from "../ui/States";
 import { ArtifactContentView } from "./ArtifactContentView";
 
-function PreviewBody({ result, large = false }: { result: ContentResult; large?: boolean }) {
+function PreviewBody({ result, large = false, fill = false }: { result: ContentResult; large?: boolean; fill?: boolean }) {
   switch (result.status) {
     case "loading":
       return <LoadingState label="미리보기를 불러오는 중…" />;
@@ -27,7 +27,7 @@ function PreviewBody({ result, large = false }: { result: ContentResult; large?:
     case "error":
       return <ErrorState message={result.message} className="py-6" />;
     case "success":
-      return <ArtifactContentView content={result.content} large={large} />;
+      return <ArtifactContentView content={result.content} large={large} fill={fill} />;
   }
 }
 
@@ -92,15 +92,18 @@ export function ArtifactPreview({ projectId, artifact, tall = false }: ArtifactP
           />
         )}
       </div>
-      <div
-        className={cn(
-          "overflow-y-auto rounded-lg border border-line bg-canvas/60 p-3",
-          // 넓은 화면에서는 PDF도 칸 높이만큼 크게(75vh + 안쪽 여백)
-          tall ? "max-h-[80vh]" : "max-h-72",
-        )}
-      >
-        <PreviewBody result={result} large={tall} />
-      </div>
+      {tall ? (
+        // 넓은 작업물 화면: 높이는 옆 목록 칸을 따라가고(내용이 줄 높이를 늘리지 않게 absolute), 좁으면 80vh까지
+        <div className="rounded-lg border border-line bg-canvas/60 p-3 @3xl:relative @3xl:min-h-96 @3xl:flex-1">
+          <div className="max-h-[80vh] overflow-y-auto @3xl:absolute @3xl:inset-3 @3xl:max-h-none">
+            <PreviewBody result={result} large fill />
+          </div>
+        </div>
+      ) : (
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-line bg-canvas/60 p-3">
+          <PreviewBody result={result} />
+        </div>
+      )}
       {expanded && <ArtifactPreviewModal projectId={projectId} artifact={artifact} onClose={close} />}
     </>
   );

@@ -24,7 +24,11 @@ export function ArtifactsView() {
             onSelect={selectArtifact}
           />
         </Panel>
-        <Panel title={selected ? selected.name : "미리보기"}>
+        <Panel
+          title={selected ? selected.name : "미리보기"}
+          className="@3xl:flex @3xl:flex-col"
+          bodyClassName="@3xl:flex @3xl:flex-1 @3xl:flex-col"
+        >
           <ArtifactPreview projectId={workspace.project.id} artifact={selected} tall />
         </Panel>
       </div>

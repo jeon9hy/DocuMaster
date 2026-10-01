@@ -8,9 +8,12 @@ import { MarkdownLite } from "./MarkdownLite";
 export function ArtifactContentView({
   content,
   large = false,
+  fill = false,
 }: {
   content: ArtifactContent;
   large?: boolean;
+  /** 넓은 작업물 화면: 부모 칸 높이를 꽉 채운다(좁은 화면은 large와 같다) */
+  fill?: boolean;
 }) {
   switch (content.type) {
     case "markdown":
@@ -31,7 +34,10 @@ export function ArtifactContentView({
           <iframe
             src={content.src.includes("#") ? content.src : `${content.src}#view=FitH`}
             title={content.title}
-            className={cn("w-full rounded-lg border border-line bg-white", large ? "h-[75vh]" : "h-72")}
+            className={cn(
+              "w-full rounded-lg border border-line bg-white",
+              fill ? "h-[75vh] @3xl:h-full" : large ? "h-[75vh]" : "h-72",
+            )}
           />
         );
       }
