@@ -128,9 +128,10 @@ pre code { background: none; padding: 0; font-size: 8.4pt; line-height: 1.5; }
 /* 표 — 세로선 없이 가로 괘선만 */
 table { border-collapse: collapse; width: 100%%; margin: 12pt 0 6pt; font-size: 9.3pt;
         page-break-inside: avoid; line-height: 1.55; }
-thead th { border-bottom: 1.2pt solid var(--ink); font-weight: 700; text-align: left;
-           padding: 5pt 7pt 5pt 0; vertical-align: bottom; }
-td { border-bottom: 0.5pt solid var(--hair); padding: 5pt 7pt 5pt 0; vertical-align: top; }
+thead th { border-bottom: 1.2pt solid var(--ink); font-weight: 700; text-align: center;
+           padding: 5pt 7pt; vertical-align: bottom; }
+td { border-bottom: 0.5pt solid var(--hair); padding: 5pt 7pt; vertical-align: middle;
+     text-align: center; }
 tbody tr:last-child td { border-bottom: 0.8pt solid var(--rule); }
 td[style*="right"], th[style*="right"] { font-variant-numeric: tabular-nums; }
 
@@ -140,7 +141,7 @@ blockquote { margin: 12pt 0; padding: 2pt 0 2pt 12pt; border-left: 2pt solid var
 blockquote p:last-child { margin-bottom: 0; }
 
 /* 핵심 요약 */
-.summary { background: var(--accent-soft); padding: 13pt 16pt 7pt; margin: 6pt 0 16pt;
+.summary { background: var(--accent-soft); padding: 13pt 16pt 7pt; margin: 6pt 0 34pt;  /* 본문과 두 줄쯤 띄운다 */
            page-break-inside: avoid; }
 .summary .label { font-size: 8.5pt; font-weight: 700; letter-spacing: .12em; color: var(--accent-deep);
                   margin-bottom: 6pt; }
@@ -859,8 +860,10 @@ def main():
     cover = meta.get("cover", "true" if meta.get("title") else "false").lower() == "true"
     if cover:
         meta.setdefault("title", title)
-        # 표지가 제목을 맡으면 본문 첫 H1은 뺀다
-        md = re.sub(r"^#\s+.+\n", "", md, count=1, flags=re.M)
+        # 표지가 제목을 맡으면 본문의 제목 H1만 뺀다 — 장 제목(# 1. …)은 남긴다
+        first = re.search(r"^#\s+(.+)\n", md, re.M)
+        if first and first.group(1).strip() == meta["title"].strip():
+            md = md[:first.start()] + md[first.end():]
     elif meta.get("title") and not re.search(r"^#\s+.+$", md, re.M):
         # 짧은 메모는 front matter만으로 제목을 주기도 한다. 표지가 없으면 본문 제목을 자동 표시한다.
         md = "# " + meta["title"] + "\n\n" + md.lstrip()
