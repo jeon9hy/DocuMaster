@@ -37,6 +37,7 @@
 ├─ skills/ doc-finish · cross-check · deck-review · notebooklm-handoff (로이드 전용)
 ├─ tools/  yor(요르 호출) · stage(상태.md·기록.md) · gate_check(05 / PPT 06·07 / DOC 07) · render_doc(DOC 07 검사+굽기 묶음) · source_check(교차 확인 원문 대조)
 │          md2html · make_pdf · apply_patch · fetch_images · nlm_pipeline — 의존성은 tools/requirements.txt
+│          경로·최신 버전(_vNN) 규칙은 workspace_files.py 한 곳 — 도구마다 다시 짜지 않는다
 ├─ 환경기록.md  E-번호 한 줄 색인
 └─ archive/    옛 원문. 읽지 않는다
 ```

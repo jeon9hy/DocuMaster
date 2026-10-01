@@ -22,19 +22,13 @@ except Exception:
     pass
 
 TOOLS = Path(__file__).resolve().parent
-ROOT = Path(os.environ.get("DOCUMASTER_WORK_ROOT") or TOOLS.parents[1]).resolve()
+sys.path.insert(0, str(TOOLS))
+from workspace_files import latest, work_root  # noqa: E402
+
+ROOT = work_root()
 DOC_BASE = "07_final_document"
 # make_pdf 출력에서 판단에 필요한 줄
 PDF_KEEP = re.compile(r"^(크기:|본문 글자|장 새 쪽|모아보기:|확대:|검사 결과:|인쇄 실패|Edge)")
-
-
-def latest_doc(ws: Path) -> Path | None:
-    found = []
-    for path in ws.glob(DOC_BASE + "*.md"):
-        m = re.fullmatch(re.escape(DOC_BASE) + r"(?:_v(\d+))?\.md", path.name)
-        if m:
-            found.append((int(m[1] or 1), path))
-    return max(found)[1] if found else None
 
 
 def run(*args: str) -> tuple[int, str]:
@@ -67,7 +61,7 @@ def main() -> int:
         return 2
     job_id = args[0]
     base = ROOT / "작업" / job_id
-    doc = latest_doc(base / "workspace")
+    doc = latest(base / "workspace", DOC_BASE)
     if doc is None:
         print(f"[중단] 07이 없다: 작업/{job_id}/workspace/{DOC_BASE}.md")
         return 2

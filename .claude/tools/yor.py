@@ -39,12 +39,10 @@ except Exception:
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import apply_patch  # noqa: E402
+from workspace_files import HEADER_END, RULES, latest, next_version, work_root  # noqa: E402
 
-RULES = Path(__file__).resolve().parents[1]  # .claude/
-# 작업/이 있는 곳. 테스트만 DOCUMASTER_WORK_ROOT로 임시 폴더를 준다
-ROOT = Path(os.environ.get("DOCUMASTER_WORK_ROOT") or RULES.parent).resolve()
+ROOT = work_root()
 DEFAULT_MODEL = {"model": "gpt-5.6-sol", "effort": "xhigh"}
-HEADER_END = "--- 헤더 끝 ---"
 WAIT_SECONDS = 540       # Bash 도구 한도(10분) 안에서 돌아온다
 CALL_TIMEOUT = 90 * 60   # Codex가 멈춰도 로이드가 끝없이 기다리지 않게
 RUNNING, STILL_RUNNING = "running", 75
@@ -89,26 +87,6 @@ class Stop(Exception):
 
 def now() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-
-
-def versioned(ws: Path, base: str) -> list[tuple[int, Path]]:
-    """workspace의 `<base>.md`·`<base>_vNN.md`를 (버전, 경로)로, 버전순."""
-    found = []
-    for path in ws.glob(base + "*.md"):
-        m = re.fullmatch(re.escape(base) + r"(?:_v(\d+))?\.md", path.name)
-        if m:
-            found.append((int(m[1] or 1), path))
-    return sorted(found)
-
-
-def latest(ws: Path, base: str) -> Path | None:
-    found = versioned(ws, base)
-    return found[-1][1] if found else None
-
-
-def next_version(ws: Path, base: str) -> Path:
-    found = versioned(ws, base)
-    return ws / f"{base}_v{(found[-1][0] if found else 1) + 1:02d}.md"
 
 
 def models() -> dict:

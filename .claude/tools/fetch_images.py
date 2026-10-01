@@ -26,15 +26,13 @@ try:
 except Exception:
     pass
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_files import latest, work_root  # noqa: E402
+
+ROOT = work_root()
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 MAX_SIDE = 1600
-
-
-def latest_02(ws: Path) -> Path | None:
-    cands = [p for p in ws.glob("02_research_pack*.md") if re.fullmatch(r"02_research_pack(_v\d+)?\.md", p.name)]
-    return max(cands, key=lambda p: int((re.search(r"_v(\d+)\.md$", p.name) or [0, 1])[1]), default=None)
 
 
 def rows_of_section_i(text: str) -> list[list[str]]:
@@ -113,7 +111,7 @@ def main() -> int:
         return 2
     job = ROOT / "작업" / args[0]
     ws = job / "workspace"
-    p02 = latest_02(ws)
+    p02 = latest(ws, "02_research_pack")
     if not p02:
         print(f"[중단] 02가 없다: {ws}")
         return 2

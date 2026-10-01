@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import html as htmllib
-import os
 import re
 import sys
 import urllib.error
@@ -28,22 +27,16 @@ try:
 except Exception:
     pass
 
-ROOT = Path(os.environ.get("DOCUMASTER_WORK_ROOT") or Path(__file__).resolve().parents[2]).resolve()
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_files import latest, work_root  # noqa: E402
+
+ROOT = work_root()
 BASE_05 = "05_verified_research_pack"
 BLOCKED = ("pwc.com", "weforum.org", "hbs.edu")  # E-056 — 로이드·유리 쪽에서 403
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0 Safari/537.36")
 CONTEXT = 70
 MAX_BYTES = 40 * 1024 * 1024
-
-
-def latest_05(ws: Path) -> Path | None:
-    found = []
-    for path in ws.glob(BASE_05 + "*.md"):
-        m = re.fullmatch(re.escape(BASE_05) + r"(?:_v(\d+))?\.md", path.name)
-        if m:
-            found.append((int(m[1] or 1), path))
-    return max(found)[1] if found else None
 
 
 def source_rows(text_05: str) -> dict[str, str]:
@@ -196,7 +189,7 @@ def context(text: str, start: int, end: int) -> str:
 
 def check(job_id: str, targets: dict[str, list[str]], refresh: bool = False) -> int:
     ws = ROOT / "작업" / job_id / "workspace"
-    path_05 = latest_05(ws)
+    path_05 = latest(ws, BASE_05)
     if path_05 is None:
         print(f"[중단] 05가 없다: 작업/{job_id}/workspace")
         return 2

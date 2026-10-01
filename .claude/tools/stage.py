@@ -34,7 +34,10 @@ try:
 except Exception:
     pass
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_files import work_root  # noqa: E402
+
+ROOT = work_root()
 PLACEHOLDER = re.compile(r"실행 후 기록|\(미실행\)")
 DOC_KINDS = ("현황기록", "설명해설", "분석", "평가비평", "제안설득", "안내절차", "서사소개")
 YOR_SESSION_FIELDS = {"research": "요르 조사 세션 ID", "plan": "요르 기획 세션 ID"}
@@ -214,6 +217,8 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
             log_path.write_text(f"# 기록 — {args.id}\n", encoding="utf-8", newline="\n")
         return f"stage init: {args.id} · {args.mode}"
     if args.command == "log":
+        if not base.is_dir():  # 오타 난 ID로 빈 작업 폴더를 만들지 않는다
+            raise Stop(f"작업/{args.id} 가 없다 — 작업 ID를 확인한다")
         append_log(log_path, args.id, args.text, today)
         return f"stage log: {args.id}"
     if not state_path.exists():

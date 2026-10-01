@@ -110,3 +110,9 @@ def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
     assert (tmp_path / "최종" / "분석" / ID / f"{ID}.pdf").read_bytes() == b"%PDF-1.7"
     assert read(tmp_path, "상태.md").splitlines()[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{ID}.pdf"
     assert "[분석] `" in (tmp_path / "최종" / "_manifest.md").read_text(encoding="utf-8")
+
+
+def test_log_for_unknown_job_stops_cleanly(tmp_path, stage):
+    with pytest.raises(stage.Stop, match="작업 ID를 확인"):
+        stage.run(["log", "--id", "없는작업", "기록"], root=tmp_path, today=TODAY)
+    assert not (tmp_path / "작업").exists()

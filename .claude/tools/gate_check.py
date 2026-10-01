@@ -14,7 +14,6 @@
 """
 from __future__ import annotations
 
-import os
 import re
 import sys
 from collections import Counter
@@ -25,9 +24,10 @@ try:
 except Exception:
     pass
 
-RULES = Path(__file__).resolve().parents[1]  # .claude/
-# 작업/이 있는 곳. 테스트만 DOCUMASTER_WORK_ROOT로 임시 폴더를 준다(yor.py와 같다)
-ROOT = Path(os.environ.get("DOCUMASTER_WORK_ROOT") or RULES.parent).resolve()
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from workspace_files import RULES, latest, work_root  # noqa: E402
+
+ROOT = work_root()
 BASES = {
     "00": "00_user_brief", "05": "05_verified_research_pack", "06": "06_detailed_plan",
     "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
@@ -81,13 +81,6 @@ results: list[tuple[str, str, str]] = []
 
 def report(level: str, name: str, msg: str) -> None:
     results.append((level, name, msg))
-
-
-def latest(ws: Path, base: str) -> Path | None:
-    cands = [p for p in ws.glob(base + "*.md") if re.fullmatch(re.escape(base) + r"(_v\d+)?\.md", p.name)]
-    if not cands:
-        return None
-    return max(cands, key=lambda p: int((re.search(r"_v(\d+)\.md$", p.name) or [0, 1])[1]))
 
 
 def norm(s: str) -> str:
