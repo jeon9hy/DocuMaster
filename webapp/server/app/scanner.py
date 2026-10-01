@@ -132,7 +132,7 @@ def turn_outcome(result: ScanResult) -> tuple[str, str]:
     """로이드의 턴이 정상 종료된 뒤 무엇을 할지 — 구조화된 상태만 본다(문장이 질문형인지는 보지 않는다).
 
     completed: 상태.md = 완료
-    needs_input: 상태 줄이 사용자 대기·중단·보류 / 05 판정이 blocked인데 06 전 / 작업 폴더가 아직 없음
+    needs_input: 상태 줄이 사용자 대기·중단·보류 / 05 판정이 blocked인데 다음 단계(PPT 06·DOC 07) 전 / 작업 폴더가 아직 없음
                  (폴더 전에 턴이 끝나는 것은 모드 판정·이어 하기 확인뿐 — 대신 답하지 않는다)
     continue: 그 밖 — 같은 세션을 자동으로 이어 간다
     """
@@ -142,7 +142,8 @@ def turn_outcome(result: ScanResult) -> tuple[str, str]:
         return "needs_input", "로이드의 확인 요청 · 작업 시작 전"
     if contract.needs_user(result.status):
         return "needs_input", result.status
-    if result.verdict == "blocked" and "06" not in result.numbers:
+    # 사용자가 blocked를 풀어 주면 로이드는 다음 단계로 간다 — 그 뒤에도 같은 05로 다시 묻지 않는다
+    if result.verdict == "blocked" and not result.numbers & {"06", "07"}:
         return "needs_input", "검증 보류 — 확인 불가"
     return "continue", ""
 

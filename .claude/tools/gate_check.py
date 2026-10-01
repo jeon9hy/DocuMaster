@@ -111,9 +111,16 @@ def declared_count(t05: str, label: str) -> int | None:
     return int(match[1]) if match else None
 
 
+# 0건을 표 한 행(`| 없음 | — | — |`)으로 적는 05가 있다 — 항목으로 세지 않는다
+EMPTY_ROW = re.compile(r"^(없음|해당 없음|-+|—+)?$")
+
+
+def table_items(t05: str, title: str) -> list[list[str]]:
+    return [r for r in section_table(t05, title)[1:] if r and not EMPTY_ROW.match(r[0].strip())]
+
+
 def remove_items(t05: str) -> list[tuple[str, list[str]]]:
-    tab = section_table(t05, "REMOVE")
-    return [(r[0], re.findall(r"\bS\d{2,3}\b", r[0])) for r in tab[1:] if r and r[0]]
+    return [(r[0], re.findall(r"\bS\d{2,3}\b", r[0])) for r in table_items(t05, "REMOVE")]
 
 
 def caution_items(t05: str) -> list[tuple[str, str]]:
@@ -122,7 +129,7 @@ def caution_items(t05: str) -> list[tuple[str, str]]:
         return []
     header = tab[0]
     col = next((i for i, h in enumerate(header) if "문구" in h or "문장" in h), len(header) - 1)
-    return [(r[0], norm(r[col])) for r in tab[1:] if len(r) > col and r[col]]
+    return [(r[0], norm(r[col])) for r in table_items(t05, "CAUTION") if len(r) > col and r[col]]
 
 
 def numbers(text: str, skip_layout: bool) -> dict[str, str]:
@@ -273,8 +280,7 @@ def check_doc_type(t00: str, target: str, job_dir: Path) -> None:
 
 def check_corrected(t05: str) -> None:
     """아냐는 05 §1을 못 본다 — 수정된 값·조건(범위)이 최종본에 살아 있는지 로이드가 하나씩 대조한다(E-060)."""
-    tab = section_table(t05, "CORRECTED")
-    items = [r[0] for r in tab[1:] if r and r[0]] if tab else []
+    items = [r[0] for r in table_items(t05, "CORRECTED")]
     if items:
         report("CHECK", "CORRECTED", "수정된 값과 범위가 최종본에 그대로인지 05 §1과 대조한다: "
                + " / ".join(l[:25] for l in items))
@@ -289,7 +295,7 @@ def check_state_bookkeeping(state: str) -> None:
     placeholders = re.findall(r"실행 후 기록|\(미실행\)", line)
     if placeholders:
         report("FAIL", "상태 기록", "실제 ID 또는 `해당 없음(이유)`으로 바꾸지 않은 자리표시자: "
-               + ", ".join(dict.fromkeys(placeholders)))
+               + ", ".join(dict.fromkeys(placeholders)) + " — 로이드가 `stage.py`로 닫는다(집필자는 고치지 않는다)")
     else:
         report("OK", "상태 기록", "세션·에이전트 자리표시자 없음")
 
@@ -499,7 +505,9 @@ def check_05(t05: str) -> None:
     rows = {m[0]: m[1] for m in re.findall(r"^\s*-?\s*S(\d{2,3})\s*\|(.*)$", s5, re.M)}
     missing = [f"S{i}" for i in ids if i not in rows]
     no_link = [f"S{i}" for i, r in rows.items() if not re.search(r"https?://|자료/|p\.\s*\d|쪽", r)]
-    if re.search(r"02|04", s5) and re.search(r"따른다|참조|참고", s5):
+    # 파일 번호로 쓴 02·04만 본다(`02 §C`·`04의`·`02_research`) — 날짜·근거 ID의 02는 아니다
+    file_ref = r"(?<![\w\-./:])0[24](?=_|\s?§|·0[24]|\s?(?:을|를|의|에서|에|와|과)(?:\s|$))"
+    if re.search(file_ref, s5) and re.search(r"따른다|참조|참고", s5):
         report("FAIL", "05 §5", "02·04를 가리킨다 — 05는 혼자 읽혀야 한다")
     if missing:
         report("FAIL", "05 §5", "§2 근거 ID의 출처 행 없음(`- S01 | 자료명 | 주체 | 날짜 | URL`): " + ", ".join(missing[:15]))
@@ -762,7 +770,11 @@ def main() -> int:
         check_words(body, re.compile(r"\S\s*[—–]\s*\S"), "CHECK", "대시", "본문 문장의 대시(문서규격 §2)",
                     skip=r"^\s*(#|title:|subtitle:|source:)|\|")
     if stage == "07":
-        check_state_bookkeeping(read(ws.parent / "상태.md"))
+        state = ws.parent / "상태.md"
+        if state.is_file():
+            check_state_bookkeeping(read(state))
+        else:
+            report("FAIL", "상태 기록", "상태.md가 없다 — 로이드가 `stage.py init`으로 만든다")
 
     return summarize()
 

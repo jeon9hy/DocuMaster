@@ -203,7 +203,7 @@ class FakeOrchestratorAdapter(OrchestratorAdapter):
 class ClaudeCodeOrchestratorAdapter(OrchestratorAdapter):
     """저장소 루트에서 `claude -p`로 로이드 세션을 연다. CLAUDE.md·.claude/는 Claude Code가 그대로 읽는다.
 
-    --model/--effort는 Owner가 설정 화면에서 로이드 값을 바꿨을 때만 넘긴다(기본은 사용자의 Claude Code 설정).
+    --model/--effort는 실행 스냅샷의 로이드 값을 항상 넘긴다(contract.DEFAULT_AGENT_CONFIGS — 옛 스냅샷만 예외).
     --fallback-model은 넘기지 않는다 — 한도·오류 때 다른 모델로 조용히 바꾸지 않는다.
     옵션은 `claude --help`(2.1.278)에서 확인한 것만 쓴다.
     """
@@ -390,7 +390,8 @@ def classify_error(result: TurnResult) -> str:
         return "permission_check_unavailable"
     haystack = f"{result.result_text}\n{result.stderr_tail}".lower()
     for code, needles in _ERROR_RULES:
-        if any(needle in haystack for needle in needles):
+        # 「429」는 다른 숫자(4290·1429) 속에 있으면 한도가 아니다
+        if any(re.search(rf"(?<!\d){re.escape(needle)}(?!\d)", haystack) for needle in needles):
             return code
     return "agent_process_error"
 
