@@ -8,6 +8,7 @@ Edge 인쇄는 머리말·꼬리말을 넣지 않으므로 쪽번호는 PyMuPDF�
                                      [--contact] [--pages 3,7]
     --contact    같은 폴더에 contact.png(전 쪽 모아보기, 4열)
     --pages 3,7  같은 폴더에 p03.png·p07.png(확대, 100dpi). PDF를 다시 굽지 않으려면 --only-images와 함께
+    --only-images 이미 있는 PDF(NotebookLM 슬라이드 포함)에서 모아보기·확대만 만든다
 
 출력 마지막 줄이 `검사 결과: OK` 가 아니면 그 PDF를 쓰지 않는다.
 """
@@ -122,7 +123,10 @@ def save_images(pdf_path, contact, pages):
     out_dir = os.path.dirname(os.path.abspath(pdf_path))
     doc = fitz.open(pdf_path)
     if contact:
-        ims = [Image.open(io.BytesIO(p.get_pixmap(dpi=40).tobytes("png"))) for p in doc]
+        # A4는 40dpi(약 330px 폭). 슬라이드처럼 넓은 쪽은 폭 400px로 묶는다 — 모아보기가 한 장에 읽히게
+        ims = [Image.open(io.BytesIO(p.get_pixmap(matrix=fitz.Matrix(min(40 / 72, 400 / p.rect.width),
+                                                                     min(40 / 72, 400 / p.rect.width))
+                                                  ).tobytes("png"))) for p in doc]
         w, h = ims[0].size
         cols = 4
         sheet = Image.new("RGB", (w * cols, h * ((len(ims) + cols - 1) // cols)), "white")

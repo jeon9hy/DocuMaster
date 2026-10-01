@@ -639,7 +639,7 @@ def step_download(job: Job, state: dict, kinds: list[str], opts: argparse.Namesp
 
 
 def step_inspect(job: Job, state: dict, pack_text: str) -> None:
-    """기계 검사. 눈으로 볼 것 세 가지는 로이드가 따로 본다(skills §5)."""
+    """기계 검사. 눈으로 볼 것은 로이드가 따로 본다(skills/notebooklm-handoff §3)."""
     checks = state.setdefault("inspection", {})
     expected = pack_slide_count(pack_text)
     state["pack_slide_count"] = expected
@@ -710,8 +710,8 @@ def write_report(job: Job, state: dict) -> None:
             L.append(f"- `{e['step']}` — {e['detail']}")
     L.append("")
     L.append("## 다음")
-    L.append("1. 전 장 렌더 후 눈으로 판정 (`skills/notebooklm-handoff` §4) — 사실(팩에 없는 주장 / "
-             "Qualification 생존 / 검증 기록 노출) + Render Gate.")
+    L.append("1. 전 장 렌더 후 눈으로 판정 (`skills/notebooklm-handoff` §3) — 사실(팩에 없는 주장 / "
+             "한정 생존 / 검증 기록 노출) + Render Gate.")
     L.append("2. `skills/cross-check` 로 크게 박힌 수치를 원문과 대조.")
     L.append(f"3. 둘 다 닫히면 `python .claude/tools/nlm_pipeline.py promote --id {job.id}`.")
     L.append("")

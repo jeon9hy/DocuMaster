@@ -35,9 +35,9 @@ python .claude/tools/nlm_pipeline.py run --id "$ID"        # 포그라운드로 
 
 ## 3. 검사 — 기계 검사 + Render Gate
 `_nlm_run.md`의 기계 검사(장수, 빈 장, 파일 열림)를 먼저 본다. 슬라이드는 통 이미지라 숫자 검사가 안 되니(E-017) 눈으로 대조한다.
-**모아보기 한 장으로 전체를 먼저 보고, 의심 장만 확대한다**(`skills/doc-finish` §1의 모아보기 스크립트에 `<ID>_slides.pdf`를 넣고 `dpi=60`, `c=3`으로 쓴다).
+**모아보기 한 장으로 전체를 먼저 보고, 의심 장만 확대한다** — 이미지용 스크립트를 따로 짜지 않는다.
 ```bash
-python -c "import fitz,sys; d=fitz.open(r'작업/$ID/output/${ID}_slides.pdf'); [d[int(n)-1].get_pixmap(dpi=110).save(r'작업/$ID/output/slide_p%02d.png'%int(n)) for n in sys.argv[1:]]" 3 9
+python .claude/tools/make_pdf.py "작업/$ID/output/${ID}_slides.pdf" --only-images --contact --pages 3,9   # output/contact.png · p03.png · p09.png
 ```
 - **모아보기에서 볼 것**: 발표규격 §6·유형 파일 §7의 재작업 대상 · 흐름과 리듬 · 한 덱처럼 보이는가 · 같은 캐릭터를 모든 장에서 비교(다른 동물·체형이면 실패).
 - **확대해서 볼 것** — 숫자·한정·출처가 있는 장과 모아보기에서 걸린 장만 본다.

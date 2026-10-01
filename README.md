@@ -12,8 +12,8 @@ You ask for a report or a deck in plain language. DocuMaster plans the research,
 
 | Mode | When | Output | Quality target |
 | --- | --- | --- | --- |
-| **DOCUMENT** | Factual writing: status, explanation, analysis, criticism, proposals, instructions, profiles | `최종/<ID>/<ID>.pdf` | **Final, ready to submit.** No quality step is skipped |
-| **PRESENTATION** | Decks, talks, slides | `최종/<ID>/` slide PDF + presentation pack | **A strong first draft.** Final design is done separately. Deck type (story · briefing · academic) has its own rule file, and only that one is loaded per job |
+| **DOCUMENT** | Factual writing: status, explanation, analysis, criticism, proposals, instructions, profiles | `최종/<purpose>/<ID>/<ID>.pdf` | **Final, ready to submit.** No quality step is skipped |
+| **PRESENTATION** | Decks, talks, slides | `최종/발표/<ID>/` slide PDF + presentation pack | **A strong first draft.** Final design is done separately. Deck type (story · briefing · academic) has its own rule file, and only that one is loaded per job |
 
 ---
 
@@ -24,12 +24,13 @@ The agents are named after the *Spy×Family* cast. Each one does a single job an
 | Name | What it is | Responsibility | Never does |
 | --- | --- | --- | --- |
 | **Loid** (로이드) | The Claude Code session | Mode decision, brief & research plan, adoption decisions, every gate, final cross-check | Invent facts, redesign the plan |
-| **Yor** (요르) | Codex `gpt-5.6-sol` · xhigh | **The only source of facts** (research, verification answers), detailed plan, visual plan / presentation pack | Approve its own research, add facts after verification |
-| **Yuri** (유리) | Claude `sonnet` sub-agent | Independent verification — questions the research, opens sources itself, issues the verdict | Planning, large-scale research, writing |
-| **Anya** (아냐) | Claude `opus` sub-agent | **DOCUMENT only** — designs structure and visuals, writes and revises the final document from `00 + 05` | New research, unverified facts |
+| **Yor** (요르) | Codex (default `gpt-5.6-sol` · xhigh) | **The only source of facts** (research, verification answers), detailed plan, visual plan / presentation pack | Approve its own research, add facts after verification |
+| **Yuri** (유리) | Claude sub-agent (default Sonnet) | Independent verification — questions the research, opens sources itself, issues the verdict | Planning, large-scale research, writing |
+| **Anya** (아냐) | Claude sub-agent (default Opus) | **DOCUMENT only** — designs structure and visuals, writes and revises the final document from `00 + 05` | New research, unverified facts |
 | **Bond** (본드) | NotebookLM via the `nlm` CLI | Turns the presentation pack into slides | Add anything outside the pack |
 
 Yor and Yuri come from different vendors, so we *assume* they are less likely to make the same mistake. This has not been measured.
+Models are fixed per run: the web app snapshots its agent settings at start (`DOCUMASTER_AGENT_MODELS`), and a CLI run uses the defaults above.
 
 ---
 
@@ -45,12 +46,12 @@ flowchart TD
     V -->|blocked| STOP([Stop and ask the user])
     V -->|DOCUMENT passed / conditional| W["Anya · 07 Structure + visuals + final document (reads 00 + 05)"]
     W --> F["doc-finish: Lite Review · render gate · limited revision"]
-    F --> X1["cross-check"] --> OUT1([최종/ID/ID.pdf])
+    F --> X1["cross-check"] --> OUT1([최종/purpose/ID/ID.pdf])
 
     V -->|PRESENTATION passed / conditional| D["Yor · 06 Detailed plan (new session, reads 05 only)"]
     D -->|Completeness gate + gate_check| PK["Yor · 07 Presentation pack"]
     PK --> DR["deck-review: flow · visuals · on-screen copy"]
-    DR --> X2["cross-check"] --> NB["Bond · NotebookLM slides + render gate"] --> OUT2([최종/ID/ slides + pack])
+    DR --> X2["cross-check"] --> NB["Bond · NotebookLM slides + render gate"] --> OUT2([최종/발표/ID/ slides + pack])
 ```
 
 ### Design rules that hold it together
@@ -111,10 +112,10 @@ Each claim gets one of four labels: **APPROVED**, **CORRECTED**, **REMOVE** (nev
 ### Mechanical gate: `gate_check.py`
 
 ```bash
-python .claude/tools/gate_check.py <ID> 06|07
+python .claude/tools/gate_check.py <ID> 05|06|07
 ```
 
-This script runs before Loid reads a gated file. It catches:
+This script runs before Loid reads a gated file. On `05` it checks that §2 facts stand alone (sources, no writing directives). On `06`/`07` it catches:
 
 - numbers that do not appear in `05`
 - a REMOVE item's evidence ID showing up again
@@ -139,13 +140,14 @@ CLAUDE.md                 Run-time constitution (loaded every turn — kept unde
 ├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec (common) · one rule file per deck type
 ├─ 요르/ 유리/ 아냐/ 로이드/   Role + procedure files, one folder per agent
 ├─ skills/                doc-finish · cross-check · deck-review · notebooklm-handoff
-├─ tools/                 yor (Codex calls) · stage (상태.md · 기록.md) · gate_check · md2html · make_pdf · apply_patch · nlm_pipeline
+├─ tools/                 yor (Codex calls) · stage (상태.md · 기록.md) · gate_check · md2html · make_pdf · apply_patch · fetch_images · nlm_pipeline
 ├─ 환경기록.md             One-line index of environment findings (E-numbers)
 └─ archive/               Retired originals (local only, not read)
 자료/                      User reference material (not committed)
 작업/<ID>/                 Work in progress: 상태.md (resume point) · 기록.md (decision log) · workspace/00–07
                           (the repo keeps only the latest version of each workspace file)
-최종/<ID>/                 Outputs that passed every gate — listed in 최종/_manifest.md
+최종/<purpose>/<ID>/       Outputs that passed every gate (decks under 최종/발표/) — listed in 최종/_manifest.md
+webapp/                   Local web UI (Next.js + FastAPI) that starts runs and streams progress — see webapp/README.md
 ```
 
 Each rule lives in exactly one file. Size budgets keep the rules short: `CLAUDE.md` 9 KB, procedure and skill files 6 KB each.
@@ -189,7 +191,7 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 
 ![Chiikawa deck preview](최종/_preview/치이카와세계관_20260918.jpg)
 
-[Slides (PDF)](최종/치이카와세계관_20260918/치이카와세계관_20260918_슬라이드.pdf) · [Verdict (05)](작업/치이카와세계관_20260918/workspace/05_verified_research_pack.md) · [Presentation pack](작업/치이카와세계관_20260918/workspace/07_notebooklm_presentation_pack_v03.md)
+[Slides (PDF)](최종/발표/치이카와세계관_20260918/치이카와세계관_20260918_슬라이드.pdf) · [Verdict (05)](작업/치이카와세계관_20260918/workspace/05_verified_research_pack.md) · [Presentation pack](작업/치이카와세계관_20260918/workspace/07_notebooklm_presentation_pack_v03.md)
 
 ### Orchestration history
 
@@ -204,10 +206,11 @@ The deck introduces Chiikawa's world: under the cute characters sit hard, almost
 | 2026-09-19 | NotebookLM rendering fixes from real outputs (E-042, E-045, E-046): text placed in the empty space of the scene, no split panels, line-length limits, mandatory source lines, a "what was counted" line on every number slide. NotebookLM keeps what is repeated on every slide and drifts on what is said once, so the art style and error-prone features are now repeated per slide |
 | 2026-09-19 | Deck types (E-043, E-047–E-050): separate rule files for story, briefing and academic, loaded one at a time; purpose-based routing; type-drift and missing-source gates; NotebookLM runs stop instead of falling back to a story-style prompt, and the slide format is read from the type file |
 | 2026-09-27 | Codex calls moved into `yor.py` (E-051, E-053): inputs are inlined instead of passed as Korean paths, resumed sessions are forced read-only (they had been running with write access, E-007), and long calls are awaited with `yor.py wait` instead of a tool that does not exist. Sub-agents now read their role files themselves instead of Loid pasting them, and the dead DOCUMENT section of the Yor plan procedure was removed |
+| 2026-09-30 – 10-01 | Documents route by seven writing purposes instead of report/reading (E-063); the subject of a sentence is the topic, never the research process (E-065, E-066); analysis must explain *why*, not just list facts (E-067); research plans stop pre-selecting sources (E-068). The local web app starts runs, streams progress and keeps a document library |
 
 ### Not yet verified
 
-- The refactored DOCUMENT path (`00 + 05` → Anya → `doc-finish`) still needs a real-job acceptance run; page breaks past 10 pages remain untested.
+- The DOCUMENT path (`00 + 05` → Anya → `doc-finish`) has shipped ten documents (see `최종/_manifest.md`); whether the purpose split (E-063) and explanation density (E-067) rules change real output is still unmeasured.
 - Briefing decks have not run yet. Academic decks have run once: layout and sources held, but title size and position drifted between slides (E-049).
 - Whether NotebookLM's `presenter_slides` format beats `detailed_deck` for story decks — every type uses `detailed_deck` until tested.
 - How often Yor and Yuri make the *same* mistake, and whether ten questions are enough.
