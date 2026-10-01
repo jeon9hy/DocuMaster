@@ -1,15 +1,18 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 interface ViewHeaderProps {
   title: string;
   description?: string;
   action?: ReactNode;
+  /** 제목·버튼을 아래 카드 테두리보다 살짝 안쪽에 둔다 */
+  inset?: boolean;
 }
 
 /** 대화 외 화면의 공통 제목 줄 */
-export function ViewHeader({ title, description, action }: ViewHeaderProps) {
+export function ViewHeader({ title, description, action, inset = false }: ViewHeaderProps) {
   return (
-    <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <header className={cn("mb-5 flex flex-wrap items-end justify-between gap-3", inset && "px-2")}>
       <div>
         <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
         {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}

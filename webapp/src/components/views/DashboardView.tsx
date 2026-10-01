@@ -1,13 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { MessagesSquare } from "lucide-react";
 import { getAgentProfile } from "@/constants/agents";
 import { STAGE_STATUS } from "@/constants/status";
 import { WORKFLOW_STAGES } from "@/constants/workflow";
 import { computeProgress } from "@/lib/progress";
-import { useWorkspace } from "@/state/WorkspaceProvider";
+import { useAppActions, useWorkspace } from "@/state/WorkspaceProvider";
 import { AgentAvatar } from "../agent/AgentAvatar";
 import { StatusBadge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 import { ProgressBar } from "../ui/ProgressBar";
 import { StageStatusIcon } from "../workflow/StageStatusIcon";
 import { ViewContainer, ViewHeader } from "./ViewHeader";
@@ -25,6 +27,7 @@ function StatCard({ label, value, children }: { label: string; value: string; ch
 /** 프로젝트 한눈에 보기: 수치 요약 + 단계별 담당·산출물 */
 export function DashboardView() {
   const workspace = useWorkspace();
+  const { setView } = useAppActions();
   const progress = computeProgress(workspace.stageStatus);
   const completed = WORKFLOW_STAGES.filter((stage) => workspace.stageStatus[stage.id] === "completed").length;
   const latestArtifacts = workspace.artifacts.filter((artifact) => artifact.status === "latest").length;
@@ -32,7 +35,16 @@ export function DashboardView() {
 
   return (
     <ViewContainer>
-      <ViewHeader title="대시보드" description={workspace.project.name} />
+      <ViewHeader
+        title="대시보드"
+        description={workspace.project.name}
+        inset
+        action={
+          <Button size="sm" variant="primary" icon={MessagesSquare} onClick={() => setView("chat")}>
+            대화창으로
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
         <StatCard label="전체 진행률" value={`${progress}%`}>
