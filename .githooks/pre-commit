@@ -33,6 +33,11 @@ if printf '%s\n' "$staged" | grep -qE '^(webapp/server/|\.claude/tools/)'; then
     fi
     run "백엔드 테스트" sh -c "cd webapp/server && '$venv/python' -m pytest -q"
     run "글 유형·렌더 호환 테스트" "$venv/python" -m unittest discover -s .claude/tools/tests -q
+    # 게이트 규칙이 바뀌면 기존 작업 전체의 게이트 출력 차이를 보인다 — 의도한 변경일 수 있어 막지는 않는다
+    if printf '%s\n' "$staged" | grep -qE '^\.claude/(tools/(gate_check|workspace_files)\.py|공통/발표_)'; then
+      echo "[pre-commit] 게이트 회귀(HEAD 대비, 막지 않음)"
+      PYTHONIOENCODING=utf-8 "$venv/python" .claude/tools/tests/gate_corpus.py | tail -40
+    fi
   else
     echo "[pre-commit] 건너뜀: webapp/server/.venv 없음(start.bat을 한 번 실행)"
   fi

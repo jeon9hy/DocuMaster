@@ -81,7 +81,9 @@ def ensure_chapter_room(html_path, pdf_path):
     if not titles:
         return []
     breaks = set()
-    for _ in range(6):
+    # 한 번에 하나씩 넘긴다 — 앞 장을 넘기면 뒤 장의 위치가 바뀌어, 같은 렌더로 함께 정하면 빈 쪽이 생긴다(10-02 삼위일체 5쪽)
+    rounds = min(len(titles), 12)
+    for round_no in range(rounds + 1):  # 마지막 회차는 정한 넘김을 반영해 굽기만 한다
         css = "".join("#ch%d{break-before:page;margin-top:0;}" % i for i in sorted(breaks))
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(s.replace("</head>", '<style id="chroom">%s</style></head>' % css, 1))
@@ -103,9 +105,9 @@ def ensure_chapter_room(html_path, pdf_path):
                     new.add(i)
                 break
         doc.close()
-        if not new:
+        if not new or round_no == rounds:
             break
-        breaks |= new
+        breaks.add(min(new))
     if breaks:
         print("장 새 쪽 이동(본문 %d줄 미만):" % CHAPTER_MIN_LINES, ", ".join(titles[i][:12] for i in sorted(breaks)))
     return sorted(breaks)

@@ -16,6 +16,7 @@
 - 위 되돌리기 명령은 **맨 명령으로만** 쓴다 — `pwsh -Command "…"`·`bash -lc "…"`로 감싸거나 `git -C <경로> restore`처럼 쓰면 승인 규칙(`~/.codex/rules/default.rules`)이 잡지 못한다(2026-09-28 `codex execpolicy check`로 확인).
 - 코드·UI 변경은 검사를 통과하면 그 세션 안에 `main`에 커밋·푸시한다. 끝난 변경을 작업트리에만 남겨 두지 않는다. 커밋된 것은 되돌려도 git에서 되살릴 수 있다 — 작업 단위가 끝날 때마다 커밋하는 것이 가장 확실한 방어다.
 - 커밋 전 검사는 `.githooks/pre-commit`이 바뀐 영역만 돈다(켜기: `git config core.hooksPath .githooks`, `start.bat`이 자동으로 켬). 막히면 고쳐서 다시 커밋한다 — `--no-verify`는 사용자가 시켰을 때만.
+- 게이트 규칙(`gate_check.py`)을 바꾸면 `python .claude/tools/tests/gate_corpus.py`로 기존 작업 전체의 출력 차이를 보고 의도한 곳만 바뀌었는지 확인한다(커밋 전 검사가 자동으로 보여 준다).
 - 웹앱 변경은 영향 범위에 맞춰 `webapp/README.md`의 테스트·타입 검사·lint·빌드 명령으로 확인한다. 실제 문서 생성 모델을 호출하는 검증은 해당 통합을 변경했을 때만 필요하다.
 - `DOCUMASTER_ORCHESTRATOR=claude`는 기존 실제 실행 설정이며, 현재 웹앱은 `fake`와 `claude`만 지원한다. 실행 엔진 교체가 명시적으로 요청되지 않은 개발 작업에서는 이 계약을 유지한다.
 
