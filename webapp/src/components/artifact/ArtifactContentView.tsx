@@ -25,10 +25,11 @@ export function ArtifactContentView({
 
     case "pdf":
       // 실제 파일이면 브라우저 기본 PDF 뷰어로 보여 준다(추가 라이브러리 없음).
+      // #view=FitH — 쪽 너비를 칸에 맞춘다(가로 스크롤 없이)
       if (content.src) {
         return (
           <iframe
-            src={content.src}
+            src={content.src.includes("#") ? content.src : `${content.src}#view=FitH`}
             title={content.title}
             className={cn("w-full rounded-lg border border-line bg-white", large ? "h-[75vh]" : "h-72")}
           />

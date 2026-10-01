@@ -95,10 +95,11 @@ export function ArtifactPreview({ projectId, artifact, tall = false }: ArtifactP
       <div
         className={cn(
           "overflow-y-auto rounded-lg border border-line bg-canvas/60 p-3",
-          tall ? "max-h-[70vh]" : "max-h-72",
+          // 넓은 화면에서는 PDF도 칸 높이만큼 크게(75vh + 안쪽 여백)
+          tall ? "max-h-[80vh]" : "max-h-72",
         )}
       >
-        <PreviewBody result={result} />
+        <PreviewBody result={result} large={tall} />
       </div>
       {expanded && <ArtifactPreviewModal projectId={projectId} artifact={artifact} onClose={close} />}
     </>
