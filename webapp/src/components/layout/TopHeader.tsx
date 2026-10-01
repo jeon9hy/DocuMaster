@@ -31,11 +31,18 @@ export function TopHeader({ onOpenLeft, onOpenRight }: TopHeaderProps) {
           <ProjectSelector />
         </div>
 
-        <div className="mx-auto hidden w-full max-w-sm items-center gap-3 md:flex">
+        {/* 누르면 대화창으로 — 진행 상황은 대화에서 본다 */}
+        <button
+          type="button"
+          onClick={() => setView("chat")}
+          disabled={!workspace}
+          title="대화창으로 이동"
+          className="mx-auto hidden w-full max-w-sm items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-gray-50 disabled:pointer-events-none md:flex"
+        >
           <span className="shrink-0 text-xs text-gray-500">전체 진행률</span>
           <ProgressBar value={progress} label="전체 진행률" />
           <span className="w-10 shrink-0 text-right text-sm font-semibold text-gray-900">{progress}%</span>
-        </div>
+        </button>
         {workspace && (
           <span className="shrink-0">
             <RunStatusBadge status={workspace.runStatus} />
