@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import { Clock, Download, Maximize2, MousePointerClick } from "lucide-react";
 import { useArtifactContent, type ContentResult } from "@/hooks/useArtifactContent";
-import { cn } from "@/lib/cn";
 import { workspaceService } from "@/services";
 import type { Artifact } from "@/types";
 import { IconButton } from "../ui/Button";
