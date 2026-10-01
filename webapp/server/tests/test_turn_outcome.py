@@ -46,3 +46,10 @@ def test_tool_modules_check_is_remembered_only_when_ready(monkeypatch) -> None:
     assert orchestrator.python_tool_modules_ready() is True
     assert orchestrator.python_tool_modules_ready() is True
     assert len(calls) == 2
+
+
+def test_new_pipeline_tools_have_activity_labels() -> None:
+    from app.orchestrator import _command_label
+
+    assert _command_label('python .claude/tools/render_doc.py "회사_20261001" --pages 3') == "문서 검사·렌더링"
+    assert _command_label("python .claude/tools/source_check.py X S01=16.5") == "원문 대조"

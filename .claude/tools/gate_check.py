@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from collections import Counter
@@ -23,7 +24,9 @@ try:
 except Exception:
     pass
 
-ROOT = Path(__file__).resolve().parents[2]
+RULES = Path(__file__).resolve().parents[1]  # .claude/
+# 작업/이 있는 곳. 테스트만 DOCUMASTER_WORK_ROOT로 임시 폴더를 준다(yor.py와 같다)
+ROOT = Path(os.environ.get("DOCUMASTER_WORK_ROOT") or RULES.parent).resolve()
 BASES = {
     "00": "00_user_brief", "05": "05_verified_research_pack", "06": "06_detailed_plan",
     "pack": "07_notebooklm_presentation_pack", "07_doc": "07_final_document",
@@ -67,7 +70,7 @@ DOC_STYLES = ("단정", "부드러움")
 
 def deck_line(kind: str) -> str:
     """유형 파일 §8의 제작 지시 줄 — 코드에 박지 않고 파일에서 읽는다."""
-    f = ROOT / ".claude" / "공통" / f"발표_{kind}.md"
+    f = RULES / "공통" / f"발표_{kind}.md"
     m = re.search(r"^## 8\..*?^`(.+?)`", f.read_text(encoding="utf-8"), re.S | re.M) if f.exists() else None
     return norm(m[1]) if m else ""
 SKIP_SECTIONS = re.compile(r"Art Direction|Deck Rhythm|제작 지시|자산|헤더|Sources|출처$|근거 목록|근거표")

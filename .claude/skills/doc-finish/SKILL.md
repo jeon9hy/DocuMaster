@@ -10,12 +10,11 @@ user-invocable: true
 
 ## 1. 굽기
 ```bash
-W="작업/$ID/workspace"; O="작업/$ID/output"
-python .claude/tools/gate_check.py "$ID" 07                                    # FAIL은 아냐에게. 「조사 시점」은 고치고, 표현 CHECK는 문서규격 §2 주어 기준으로 닫는다
-python .claude/tools/md2html.py "$W/07_final_document.md" "$O/$ID.html"      # `경고:` 줄부터 닫는다
-python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --label "$ID" --contact   # 마지막 줄 "검사 결과: OK" · $O/contact.png
+O="작업/$ID/output"
+python .claude/tools/render_doc.py "$ID"     # 기계 검사(gate_check 07) → 최신 07 HTML → PDF·contact.png를 한 번에. 판단할 줄만 출력한다
 ```
-이미지용 스크립트를 따로 짜지 않는다 — 모아보기·확대는 `make_pdf.py` 옵션으로만 만든다.
+마지막 줄 `렌더: OK`일 때만 그 PDF를 본다. 종료 코드 1은 기계 검사 FAIL(아냐에게), 3은 렌더 실패다. 「조사 시점」 CHECK는 고치고, 표현 CHECK는 문서규격 §2 주어 기준으로 닫는다. `경고:` 줄부터 닫는다.
+도구를 하나씩 따로 부르거나 이미지용 스크립트를 짜지 않는다 — 확대는 아래 §3의 `make_pdf.py` 옵션으로만 만든다.
 
 ## 2. 로이드 Lite Review — 마지막 이상 탐지
 
@@ -45,6 +44,6 @@ python .claude/tools/make_pdf.py "$O/$ID.html" "$O/$ID.pdf" --only-images --page
 `PASS`면 원고를 수정하지 않는다. `REVISE`면 §2·§3의 이슈를 위치와 함께 한 번에 보낸다.
 `SendMessage(to:"<아냐>", message:"REVISE: <쪽/절 · [범주] 문제> 목록. 보고된 문제만 Edit.")`
 
-아냐는 보고된 문제만 고치며 전체를 다시 쓰지 않는다. 다시 굽고 고친 쪽만 확대한다. 수정 요청은 1회로 묶는다. 수정 뒤 다섯 범주를 재판정하고 doc_review.md에 닫힌 위치를 남긴다. 남은 기계적 오류는 로이드가 고친다. 내용 문제가 남으면 완료 처리하지 않고 미해결 위치를 보고한다.
+아냐는 보고된 문제만 고치며 전체를 다시 쓰지 않는다. `render_doc.py "$ID" --pages <고친 쪽>`으로 다시 굽고 고친 쪽만 확대한다. 수정 요청은 1회로 묶는다. 수정 뒤 다섯 범주를 재판정하고 doc_review.md에 닫힌 위치를 남긴다. 남은 기계적 오류는 로이드가 고친다. 내용 문제가 남으면 완료 처리하지 않고 미해결 위치를 보고한다.
 렌더러·도구(`.claude/tools/`)의 결함은 실행 중에 고치지 않는다 — 원고에서 피해 가고 `기록.md`에 `규칙 제안:`으로 남겨 완료 보고에 올린다.
 LLM 검수 에이전트를 더 부르지 않는다. 그다음 `skills/cross-check`로 간다.

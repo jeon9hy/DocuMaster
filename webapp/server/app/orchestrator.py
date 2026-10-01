@@ -41,6 +41,7 @@ def _agent_in(value: object) -> str | None:
 _YOR_CALLS = {"research": "요르 조사 요청", "answer": "요르 검증 응답 요청", "plan": "요르 세부 기획 요청",
               "pack": "요르 발표팩 요청", "patch": "요르 수정 요청", "wait": "요르 작업 기다리는 중"}
 _PIPELINE_TOOLS = {"gate_check.py": "기계 검사", "md2html.py": "문서 렌더링", "make_pdf.py": "PDF 만들기",
+                   "render_doc.py": "문서 검사·렌더링", "source_check.py": "원문 대조",
                    "nlm_pipeline.py": "NotebookLM 작업", "apply_patch.py": "패치 적용"}
 _PYTHON_TOOL = re.compile(r"\bpython[\w.]*\s+\S*?\b(\w+\.py)(?:\s+(\w+))?")
 

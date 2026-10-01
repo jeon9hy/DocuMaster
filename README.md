@@ -140,7 +140,7 @@ CLAUDE.md                 Run-time constitution (loaded every turn — kept unde
 ├─ 공통/                   Shared standards: evidence policy · document spec · presentation spec (common) · one rule file per deck type
 ├─ 요르/ 유리/ 아냐/ 로이드/   Role + procedure files, one folder per agent
 ├─ skills/                doc-finish · cross-check · deck-review · notebooklm-handoff
-├─ tools/                 yor (Codex calls) · stage (상태.md · 기록.md) · gate_check · md2html · make_pdf · apply_patch · fetch_images · nlm_pipeline
+├─ tools/                 yor (Codex calls) · stage (상태.md · 기록.md) · gate_check · render_doc (gate + HTML + PDF in one call) · source_check (opens sources for the cross-check) · md2html · make_pdf · apply_patch · fetch_images · nlm_pipeline
 ├─ 환경기록.md             One-line index of environment findings (E-numbers)
 └─ archive/               Retired originals (local only, not read)
 자료/                      User reference material (not committed)
