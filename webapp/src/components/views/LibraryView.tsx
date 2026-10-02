@@ -31,7 +31,7 @@ export function LibraryView() {
   return (
     <ViewContainer>
       <ViewHeader
-        title="문서 라이브러리"
+        title="프로젝트"
         description="최종본까지 끝난 문서를 찾아 엽니다."
         action={
           state.status === "success" &&

@@ -1,4 +1,4 @@
-import { ArrowUpRight, FileText, Presentation, Quote } from "lucide-react";
+import { ArrowUpRight, FileText, Presentation } from "lucide-react";
 import { documentKindLabel } from "@/constants/library";
 import { cn } from "@/lib/cn";
 import { formatShortDate } from "@/lib/library";
@@ -37,9 +37,8 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
         <span className="line-clamp-2 text-[15px] leading-snug font-semibold text-gray-900">{doc.title}</span>
 
         {doc.request && (
-          <span className="flex items-start gap-1.5 text-[13px] text-gray-500">
-            <Quote className="mt-0.5 size-3 shrink-0 text-gray-300" aria-hidden />
-            <span className="line-clamp-1">{doc.request}</span>
+          <span className="line-clamp-2 text-[13px] text-pretty break-keep text-gray-500" title={doc.request}>
+            {doc.request}
           </span>
         )}
 
