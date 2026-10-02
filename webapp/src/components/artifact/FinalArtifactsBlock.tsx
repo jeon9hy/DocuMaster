@@ -13,10 +13,20 @@ interface FinalArtifactsBlockProps {
   onSelect: (artifactId: string) => void;
   /** 첨삭은 문서 모드만(아냐가 DOC 전용) */
   revisable: boolean;
+  /** 첨삭 버튼을 못 누르는 이유(로그인 전·실행 중). 없으면 누를 수 있다 */
+  reviseBlockedReason: string | null;
+  onRevise: () => void;
 }
 
 /** 최종검수를 통과한 파일만 따로 모은 맨 위 블록. 파일 줄은 전체 폭, 누르면 아래 미리보기에 연다. */
-export function FinalArtifactsBlock({ finals, selectedId, onSelect, revisable }: FinalArtifactsBlockProps) {
+export function FinalArtifactsBlock({
+  finals,
+  selectedId,
+  onSelect,
+  revisable,
+  reviseBlockedReason,
+  onRevise,
+}: FinalArtifactsBlockProps) {
   // 첨삭 대상은 문서 본문 PDF 한 개 — 맨 앞 파일이 PDF일 때만
   const revisableId = revisable && finals[0]?.fileType === "pdf" ? finals[0].id : null;
 
@@ -54,16 +64,15 @@ export function FinalArtifactsBlock({ finals, selectedId, onSelect, revisable }:
                 </span>
               </button>
               {artifact.id === revisableId && (
-                // 첨삭 실행(로이드·아냐)은 아직 연결 전이다
                 <button
                   type="button"
-                  disabled
-                  title="첨삭 기능은 준비 중입니다"
-                  className="inline-flex h-8 shrink-0 cursor-not-allowed items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 text-[13px] font-medium text-blue-700/70"
+                  onClick={onRevise}
+                  disabled={reviseBlockedReason !== null}
+                  title={reviseBlockedReason ?? "문장·구조를 고쳐 최종본을 새 버전으로 바꿉니다"}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-50 disabled:text-blue-700/50"
                 >
                   <PenLine className="size-3.5" aria-hidden />
                   첨삭하기
-                  <span className="rounded bg-white px-1 text-[11px] text-gray-400">준비 중</span>
                 </button>
               )}
             </li>

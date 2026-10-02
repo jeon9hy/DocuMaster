@@ -11,12 +11,16 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
+import subprocess
+import sys
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 
 from . import contract, git_sync
 from .agent_settings import AgentSettingsService, check_model_calls, load_snapshot, orchestrator_models
@@ -33,7 +37,7 @@ from .orchestrator import (
     describe_error,
 )
 from .projects import InvalidRequestError, NotFoundError, ProjectService
-from .scanner import ArtifactSync, Progress, find_new_workspace, scan, track_progress, turn_outcome
+from .scanner import ArtifactSync, Progress, final_dirs, find_new_workspace, scan, track_progress, turn_outcome
 from .yor_feed import YorLogFollower
 
 log = logging.getLogger(__name__)
@@ -48,6 +52,15 @@ PERMISSION_RETRY_SECONDS = 60
 
 # 로이드·요르·본드가 쓰는 CLI(CLAUDE.md §1)
 TOOL_COMMANDS = {"claude": "claude", "codex": "codex", "nlm": "nlm"}
+
+# 상태.md를 쓰는 루트 도구 — 이 코드와 같은 저장소의 규칙(작업 루트가 임시 폴더여도 같은 도구를 쓴다)
+_STAGE_TOOL = Path(__file__).resolve().parents[3] / ".claude" / "tools" / "stage.py"
+# 첨삭 요청 길이 상한(로이드에게 그대로 넘긴다)
+MAX_REVISE_CHARS = 4000
+# 첨삭 실행이 시작될 때·멈출 때 상태.md에 쓰는 줄(루트 skills/doc-revise §1)
+REVISE_STATUS = "진행 중 첨삭"
+REVISE_PROMPT = ("완료된 문서의 첨삭 요청이다. `.claude/skills/doc-revise`를 따른다 — 상태 줄은 웹앱이 이미 "
+                 f"「{REVISE_STATUS}」으로 두었다. 요르·유리는 부르지 않는다.\n\n[첨삭 요청]\n")
 
 
 class ConflictError(RuntimeError):
@@ -146,6 +159,70 @@ class RunManager:
         result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
         if result.finished:
             raise InvalidRequestError("이미 완료된 작업입니다.")
+
+    # --- 첨삭 --------------------------------------------------------------------
+
+    def revise(self, project_id: str, text: str) -> str:
+        """완료된 문서(DOC 최종본)를 첨삭한다 — 원래 작업 세션과 따로 새 로이드 세션을 연다(긴 조사 맥락을 다시 싣지 않게).
+
+        요르·유리 없이 로이드·아냐만 쓴다(skills/doc-revise). 예약은 받지 않는다 — 다른 실행이 돌고 있으면 거절한다.
+        """
+        text = text.strip()
+        if not text:
+            raise InvalidRequestError("첨삭 요청이 비어 있습니다.")
+        if len(text) > MAX_REVISE_CHARS:
+            raise InvalidRequestError(f"첨삭 요청은 {MAX_REVISE_CHARS}자 이하로 써 주세요.")
+        with self._lock:
+            project = self._projects.get(project_id)
+            self._check_revisable(project)
+            active = self.active_run()
+            if active:
+                if active["project_id"] == project_id:
+                    raise ConflictError("이 프로젝트는 이미 실행 중이거나 응답을 기다리고 있습니다.")
+                raise BusyError("다른 프로젝트가 실행 중입니다. 끝난 뒤 첨삭해 주세요.")
+            work_root = self._projects.work_root(project)
+            self._set_state_line(work_root, project["workspace_id"], REVISE_STATUS, "doc-revise")
+            result = scan(work_root, project["workspace_id"], project["mode"])
+
+            run_id = f"run_{uuid.uuid4().hex[:12]}"
+            self._db.execute(
+                "INSERT INTO runs (id, project_id, status, started_at, agent_config_json, kind, session_id)"
+                " VALUES (?, ?, 'running', ?, ?, 'revise', ?)",
+                (run_id, project_id, now_iso(), self._agent_settings.snapshot_json(), str(uuid.uuid4())),
+            )
+            self._events.append(project_id, {"type": "user.message", "text": "첨삭 요청\n" + text}, run_id)
+            self._events.append(project_id, {"type": "workflow.started"}, run_id)
+            self._launch(run_id, project_id, REVISE_PROMPT + text, resume=False, progress=Progress.resume_from(result))
+            return run_id
+
+    def _check_revisable(self, project: dict) -> None:
+        """완료됐고, 문서 모드이고, 최종/<유형>/<ID>/<ID>.pdf가 있을 때만(발표는 아냐 대상이 아니다)."""
+        workspace_id = project["workspace_id"]
+        if not workspace_id:
+            raise InvalidRequestError("아직 작업 폴더가 없는 프로젝트입니다.")
+        work_root = self._projects.work_root(project)
+        if not scan(work_root, workspace_id, project["mode"]).finished:
+            raise InvalidRequestError("최종본까지 끝난 문서만 첨삭할 수 있습니다.")
+        documents = [folder for folder in final_dirs(work_root, workspace_id)
+                     if folder.parent.name != "발표" and (folder / f"{workspace_id}.pdf").is_file()]
+        if project["mode"] == "presentation" or not documents:
+            raise InvalidRequestError("첨삭은 문서 최종본(PDF)이 있는 문서 프로젝트만 할 수 있습니다.")
+
+    def _set_state_line(self, work_root: Path, workspace_id: str, status: str, next_step: str, note: str = "") -> None:
+        """상태.md는 루트 규칙대로 stage.py로만 쓴다(CLAUDE.md §6)."""
+        command = [sys.executable, str(_STAGE_TOOL), "set",
+                   "--id", workspace_id, "--status", status, "--next", next_step]
+        if note:
+            command += ["--log", note]
+        done = subprocess.run(command, cwd=work_root, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", check=False,
+                              env={**os.environ, "DOCUMASTER_WORK_ROOT": str(work_root), "PYTHONIOENCODING": "utf-8"})
+        if done.returncode != 0:
+            raise InvalidRequestError("상태 파일을 고치지 못했습니다: " + (done.stderr or done.stdout).strip()[-300:])
+
+    def _run_row(self, run_id: str) -> dict:
+        row = self._db.one("SELECT * FROM runs WHERE id = ?", (run_id,))
+        return dict(row) if row else {}
 
     # --- 예약(대기열) ----------------------------------------------------------------
 
@@ -294,8 +371,10 @@ class RunManager:
                          reason=describe_error("orchestrator_unavailable") + f" (없음: {', '.join(missing)})",
                          error_code="orchestrator_unavailable")
             return
-        session_id = project["session_id"] or str(uuid.uuid4())
-        if not project["session_id"]:
+        run = self._run_row(turn.run_id)
+        revising = run.get("kind") == "revise"
+        session_id = run["session_id"] if revising else (project["session_id"] or str(uuid.uuid4()))
+        if not revising and not project["session_id"]:
             # 프로세스보다 먼저 저장한다 — 중간에 백엔드가 꺼져도 같은 세션으로 이어 갈 수 있다.
             self._db.execute("UPDATE projects SET session_id = ?, updated_at = ? WHERE id = ?",
                              (session_id, now_iso(), turn.project_id))
@@ -329,7 +408,7 @@ class RunManager:
                               log_path=self._settings.log_dir / f"{turn.run_id}.jsonl",
                               workspace_id=project["workspace_id"],
                               agent_configs=configs,
-                              env={"DOCUMASTER_AGENT_MODELS": str(models_path)})
+                              env={"DOCUMASTER_AGENT_MODELS": str(models_path)}, revise=revising)
         try:
             turn.process = ProcessTurn(
                 self._adapter.build_command(request), request,
@@ -483,6 +562,8 @@ class RunManager:
     def _finish(self, run_id: str, project_id: str, status: str, stage: str,
                 reason: str = "", error_code: str | None = None) -> None:
         self._set_run(run_id, status=status, finished_at=now_iso(), error_code=error_code)
+        if status != "completed" and self._run_row(run_id).get("kind") == "revise":
+            self._restore_after_revise(run_id, project_id)
         if status == "completed":
             payload = {"type": "workflow.completed"}
             try:
@@ -498,6 +579,22 @@ class RunManager:
         if status in ("completed", "failed"):
             # 이 스레드는 끝난 실행의 감시 스레드다 — 다음 실행은 자기 스레드에서 돈다(_launch)
             self._start_next_queued()
+
+    def _restore_after_revise(self, run_id: str, project_id: str) -> None:
+        """첨삭이 중지·오류로 끝났다 — 최종본은 교체 전이므로 상태를 다시 「완료」로 돌린다(원래 작업이 미완료로 보이지 않게)."""
+        project = self._projects.get(project_id)
+        work_root = self._projects.work_root(project)
+        if scan(work_root, project["workspace_id"], project["mode"]).finished:
+            return  # 로이드가 이미 교체하고 닫았다
+        try:
+            self._set_state_line(work_root, project["workspace_id"], "완료", "없음 — 첨삭 중단, 최종본은 이전 그대로",
+                                 note=f"첨삭 실행 {run_id} 중단 — 최종본 교체 전")
+        except InvalidRequestError:
+            log.exception("첨삭 중단 뒤 상태를 되돌리지 못했습니다: %s", run_id)
+            self._events.append(project_id, {
+                "type": "workflow.warning", "stageId": "finalReview",
+                "message": "첨삭을 멈춘 뒤 상태 파일을 「완료」로 되돌리지 못했습니다. 최종본은 이전 그대로입니다.",
+            }, run_id)
 
     def _sync_to_git(self, run_id: str, project_id: str) -> None:
         """완료된 프로젝트의 작업·최종 파일과 manifest만 커밋·푸시한다. 실패는 대화에 경고로만 남긴다."""

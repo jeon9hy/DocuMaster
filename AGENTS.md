@@ -34,8 +34,9 @@
 ├─ 요르/   역할.md · 조사.md(02) · 검증응답.md(04) · 세부기획.md(06, PPT) · 비주얼_발표.md(07, PPT)
 ├─ 유리/   검증.md(역할 포함, 03·05)
 ├─ 아냐/   문서작성.md(역할 포함, 07) — 00·05 §2·§5·문서규격·선택한 글 유형만 받는다(05 §1·§3·§4, 01~04·로그 금지)
+│          첨삭.md(완료 문서의 07 새 버전 — doc-revise가 부른다)
 ├─ 로이드/ 실행.md(필요한 절만) · 기획.md(01) · 상태파일.md
-├─ skills/ doc-finish · cross-check · deck-review · notebooklm-handoff (로이드 전용)
+├─ skills/ doc-finish · cross-check · deck-review · notebooklm-handoff · doc-revise(완료 DOC 첨삭) (로이드 전용)
 ├─ tools/  yor(요르 호출) · stage(상태.md·기록.md) · gate_check(05 / PPT 06·07 / DOC 07) · render_doc(DOC 07 검사+굽기 묶음) · source_check(교차 확인 원문 대조)
 │          md2html · make_pdf · apply_patch · fetch_images · nlm_pipeline — 의존성은 tools/requirements.txt
 │          경로·최신 버전(_vNN) 규칙은 workspace_files.py 한 곳 — 도구마다 다시 짜지 않는다

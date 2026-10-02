@@ -157,6 +157,8 @@ class TurnRequest:
     agent_configs: dict = field(default_factory=dict)
     """프로세스에 더할 환경변수(DOCUMASTER_AGENT_MODELS 등)"""
     env: dict = field(default_factory=dict)
+    """완료된 문서의 첨삭 실행(가짜 로이드만 구분해 쓴다 — 실제 로이드는 프롬프트로 안다)"""
+    revise: bool = False
 
 
 @dataclass
@@ -198,6 +200,8 @@ class FakeOrchestratorAdapter(OrchestratorAdapter):
                    "--session-id", request.session_id, "--step-seconds", str(self._step)]
         if request.workspace_id:
             command += ["--workspace-id", request.workspace_id]
+        if request.revise:
+            command.append("--revise")
         return command + (["--resume"] if request.resume else [])
 
 

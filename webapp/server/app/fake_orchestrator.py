@@ -185,6 +185,25 @@ class FakeLoid:
         return f"완료 보고 — 산출물: 최종/{kind}/{self.id}/{output_name} · 판정: conditional · CAUTION 1건(주장 A) · 가짜 실행이라 실제 모델은 쓰지 않았습니다."
 
 
+def revise_turn(loid: FakeLoid, text: str) -> str:
+    """첨삭(skills/doc-revise) 흉내 — 07 새 버전 · 다시 굽기 · 최종본 교체. `[revise-none]`이면 반영할 것이 없다고 묻는다."""
+    if "취소" in text.splitlines()[0]:
+        loid.state("완료", "DOCUMENT")
+        return "첨삭을 취소했습니다. 최종본은 이전 그대로입니다."
+    if "[revise-none]" in text:
+        loid.state("사용자 승인 대기 · 첨삭 r1", "DOCUMENT")
+        return "요청은 모두 05에 없는 새 사실이 필요해 반영할 수 없습니다. 요청을 바꾸시겠어요, 새 작업으로 조사할까요?"
+    versions = sorted(loid.workspace.glob("07_final_document*.md"))
+    loid.write(f"07_final_document_v{len(versions) + 1:02d}.md", "# 최종 문서\n## 요약\n첨삭을 반영한 요약입니다.")
+    pdf = tiny_pdf(f"{loid.id} revised")
+    (loid.base / "output").mkdir(parents=True, exist_ok=True)
+    (loid.base / "output" / f"{loid.id}.pdf").write_bytes(pdf)
+    for final in loid.final_root.glob(f"*/{loid.id}/{loid.id}.pdf"):
+        final.write_bytes(pdf)
+    loid.state("완료", "DOCUMENT")
+    return f"첨삭 완료 — 07 v{len(versions) + 1:02d} · 반영 1 · 불가 0 · 가짜 실행이라 실제 모델은 쓰지 않았습니다."
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--work-root", required=True, type=Path)
@@ -192,13 +211,17 @@ def main() -> int:
     parser.add_argument("--step-seconds", type=float, default=1.0)
     parser.add_argument("--workspace-id")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--revise", action="store_true")
     args = parser.parse_args()
 
     sys.stdout.reconfigure(encoding="utf-8")
     prompt = sys.stdin.buffer.read().decode("utf-8")
     loid = FakeLoid(args.work_root, args.session_id, args.step_seconds, args.workspace_id)
     emit({"type": "system", "subtype": "init", "session_id": args.session_id, "model": "fake-orchestrator"})
-    text = loid.continue_turn(prompt) if args.resume else loid.first_turn(prompt)
+    if args.revise:
+        text = revise_turn(loid, prompt)
+    else:
+        text = loid.continue_turn(prompt) if args.resume else loid.first_turn(prompt)
     emit({"type": "result", "subtype": "success", "is_error": False, "result": text, "session_id": args.session_id})
     return 0
 

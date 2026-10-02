@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (
@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS runs (
   actual_model    TEXT,                -- 실행 기록(stream-json init)에서 읽은 실제 모델
   cost_usd        REAL,                -- 턴마다 더한 비용(보고용, 확인 가능할 때만)
   agent_config_json TEXT,              -- 실행 시작 때 고정한 에이전트 설정(실행 중 바꿔도 이 실행에는 적용 안 됨)
+  kind            TEXT NOT NULL DEFAULT 'workflow',  -- workflow(조사부터 최종까지) · revise(완료 문서 첨삭)
+  session_id      TEXT,                -- revise만: 원래 작업 세션과 따로 연 로이드 세션
   started_at      TEXT NOT NULL,
   finished_at     TEXT
 );
@@ -182,6 +184,10 @@ class Database:
         columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(runs)")}
         if "agent_config_json" not in columns:
             self._conn.execute("ALTER TABLE runs ADD COLUMN agent_config_json TEXT")
+        if "kind" not in columns:
+            self._conn.execute("ALTER TABLE runs ADD COLUMN kind TEXT NOT NULL DEFAULT 'workflow'")
+        if "session_id" not in columns:
+            self._conn.execute("ALTER TABLE runs ADD COLUMN session_id TEXT")
         project_columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(projects)")}
         if "deleted_at" not in project_columns:
             self._conn.execute("ALTER TABLE projects ADD COLUMN deleted_at TEXT")

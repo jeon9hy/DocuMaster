@@ -159,6 +159,10 @@ export class HttpWorkspaceService implements WorkspaceService {
     await this.request(`/api/projects/${projectId}/messages`, { method: "POST", json: { text } });
   }
 
+  async reviseDocument(projectId: string, text: string): Promise<void> {
+    await this.request(`/api/projects/${projectId}/revise`, { method: "POST", json: { text } });
+  }
+
   async addReference(projectId: string, input: NewReferenceInput): Promise<void> {
     const form = new FormData();
     form.set("source", input.source);

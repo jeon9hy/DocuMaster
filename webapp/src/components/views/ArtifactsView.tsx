@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useServiceData } from "@/hooks/useServiceData";
 import { splitFinalArtifacts } from "@/lib/library";
 import { workspaceService } from "@/services";
-import { useAppActions, useAppState, useWorkspace } from "@/state/WorkspaceProvider";
+import { useAppActions, useAppState, useIsOwner, useWorkspace } from "@/state/WorkspaceProvider";
 import type { LibraryDocument } from "@/types";
 import { ArtifactList } from "../artifact/ArtifactList";
 import { ArtifactPreview } from "../artifact/ArtifactPreview";
 import { FinalArtifactsBlock } from "../artifact/FinalArtifactsBlock";
+import { ReviseModal } from "../artifact/ReviseModal";
 import { ProjectInfoCard } from "../project/ProjectInfoCard";
 import { Panel } from "../ui/Panel";
 import { ViewContainer } from "./ViewHeader";
@@ -32,6 +33,15 @@ export function ArtifactsView() {
     state.status === "success" ? (state.data.find((item) => item.projectId === workspace.project.id) ?? null) : null;
   const mode = doc?.mode ?? workspace.project.mode;
 
+  const isOwner = useIsOwner();
+  const [revising, setRevising] = useState(false);
+  const busy = ["running", "awaitingInput", "stopping"].includes(workspace.runStatus);
+  const reviseBlockedReason = !isOwner
+    ? "로그인하면 첨삭할 수 있습니다"
+    : busy
+      ? "실행이 끝난 뒤 첨삭할 수 있습니다"
+      : null;
+
   return (
     <ViewContainer>
       <ProjectInfoCard project={workspace.project} doc={doc} />
@@ -41,6 +51,8 @@ export function ArtifactsView() {
           selectedId={selectedArtifactId}
           onSelect={selectArtifact}
           revisable={mode === "document"}
+          reviseBlockedReason={reviseBlockedReason}
+          onRevise={() => setRevising(true)}
         />
       )}
       <div className="grid gap-4 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -55,6 +67,7 @@ export function ArtifactsView() {
           <ArtifactPreview projectId={workspace.project.id} artifact={selected} tall />
         </Panel>
       </div>
+      {revising && <ReviseModal open onClose={() => setRevising(false)} />}
     </ViewContainer>
   );
 }

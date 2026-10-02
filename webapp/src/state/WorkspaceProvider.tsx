@@ -40,6 +40,8 @@ export interface AppActions {
   stopWorkflow(): Promise<void>;
   respondToInput(promptId: string, answer: string): Promise<void>;
   sendMessage(text: string, mentionedAgentId?: AgentId): Promise<void>;
+  /** 완료된 문서 첨삭을 시작하고 진행을 보도록 대화 화면으로 간다 */
+  reviseDocument(text: string): Promise<void>;
   addReference(input: NewReferenceInput): Promise<void>;
   removeReference(referenceId: string): Promise<void>;
   /** 로그인 상태를 다시 확인한다(세션 만료 등) */
@@ -160,6 +162,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       respondToInput: (promptId, answer) =>
         mutate(() => workspaceService.respondToInput(requireProject(), promptId, answer)),
       sendMessage: (text, agentId) => mutate(() => workspaceService.sendMessage(requireProject(), text, agentId)),
+      reviseDocument: async (text) => {
+        requestNotificationPermission();
+        await mutate(() => workspaceService.reviseDocument(requireProject(), text));
+        dispatch({ type: "view/changed", view: "chat" });
+      },
       addReference: (input) => mutate(() => workspaceService.addReference(requireProject(), input)),
       removeReference: (referenceId) =>
         mutate(() => workspaceService.removeReference(requireProject(), referenceId)),

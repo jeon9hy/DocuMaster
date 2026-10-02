@@ -150,6 +150,12 @@ def start_run(project_id: str, request: Request):
     return {"runId": _guard(lambda: _services(request).runs.start(project_id))}
 
 
+@router.post("/projects/{project_id}/revise", status_code=202, dependencies=OWNER)
+def revise_document(project_id: str, body: NewMessage, request: Request):
+    """완료된 문서 최종본을 첨삭한다(로이드·아냐만 — 루트 skills/doc-revise)."""
+    return {"runId": _guard(lambda: _services(request).runs.revise(project_id, body.text))}
+
+
 @router.post("/projects/{project_id}/queue", status_code=202, dependencies=OWNER)
 def queue_run(project_id: str, request: Request):
     """다른 프로젝트가 실행 중이면 끝난 뒤 시작하도록 예약한다(비어 있으면 바로 시작)."""

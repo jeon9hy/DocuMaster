@@ -299,3 +299,52 @@ def test_permission_check_outage_twice_fails_with_a_clear_reason(client, monkeyp
     start(client, project_id, "보고서를 써줘 [noverdict]")
     failed = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "workflow.failed"), None))
     assert "명령 안전 검사" in failed["reason"] and "에이전트 프로세스가 오류로" not in failed["reason"]
+
+
+def finished_document(client) -> str:
+    project_id = create_project(client, "첨삭 대상", "document")
+    start(client, project_id, "주거 정책 보고서를 써줘 [autocontinue]")
+    wait_until(lambda: "workflow.completed" in types_of(client, project_id))
+    return project_id
+
+
+def test_revise_writes_a_new_07_and_replaces_the_final_in_its_own_session(client, settings):
+    project_id = finished_document(client)
+    db = sqlite3.connect(settings.db_path)
+    first_session = db.execute("SELECT session_id FROM projects WHERE id = ?", (project_id,)).fetchone()[0]
+
+    response = client.post(f"/api/projects/{project_id}/revise", json={"text": "요약 문단이 딱딱해요. 부드럽게"})
+    assert response.status_code == 202, response.text
+    run_id = response.json()["runId"]
+    wait_until(lambda: [e for e in events_of(client, project_id) if e["type"] == "workflow.completed"
+                        and e.get("runId") == run_id])
+
+    kind, session = db.execute("SELECT kind, session_id FROM runs WHERE id = ?", (run_id,)).fetchone()
+    assert kind == "revise" and session and session != first_session
+    # 원래 작업 세션은 그대로다(첨삭이 긴 조사 세션을 이어 쓰지 않는다)
+    assert db.execute("SELECT session_id FROM projects WHERE id = ?", (project_id,)).fetchone()[0] == first_session
+    names = {a["name"] for a in client.get(f"/api/projects/{project_id}/artifacts").json()}
+    assert "07_final_document_v02.md" in names
+    user_said = [e["text"] for e in events_of(client, project_id) if e["type"] == "user.message"]
+    assert user_said[-1].startswith("첨삭 요청\n")
+
+
+def test_revise_only_for_finished_documents(client):
+    project_id = create_project(client, "진행 중", "document")
+    start(client, project_id, "보고서를 써줘")  # 기획 확인에서 멈춘다
+    pending_prompt(client, project_id)
+    response = client.post(f"/api/projects/{project_id}/revise", json={"text": "고쳐줘"})
+    assert response.status_code in (400, 409)
+    assert client.post(f"/api/projects/{project_id}/revise", json={"text": " "}).status_code == 400
+
+
+def test_stopped_revise_restores_finished_state(client, settings):
+    project_id = finished_document(client)
+    response = client.post(f"/api/projects/{project_id}/revise", json={"text": "새 통계를 넣어줘 [revise-none]"})
+    assert response.status_code == 202, response.text
+    request = pending_prompt(client, project_id)
+    assert request["title"].startswith("사용자 승인 대기")
+    assert client.post(f"/api/projects/{project_id}/runs/current/stop").status_code == 202
+    wait_until(lambda: "workflow.stopped" in types_of(client, project_id))
+    state = next((settings.repo_root / "webapp" / ".data" / "sandbox" / "작업").glob("*/상태.md"))
+    assert "상태: 완료" in state.read_text(encoding="utf-8")

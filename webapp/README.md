@@ -49,7 +49,7 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 | `app/events.py` | EventStore — seq 부여 · replay · SSE 구독자 전달 |
 | `app/projects.py` · `files.py` | 프로젝트·지시·레퍼런스·작업물 메타데이터 · 안전한 파일 저장(허용 폴더·파일명 정리·sha256) |
 | `app/contract.py` · `scanner.py` | 파일 계약 읽기(00~07 → 6단계·담당 에이전트, 05 첫 줄 판정) · 바뀐 것만 이벤트로 |
-| `app/runs.py` · `orchestrator.py` | 한 번에 한 실행 · 실행 예약(다른 프로젝트가 완료·오류로 끝나면 순서대로 시작, 중지로 끝나면 대기) · graceful stop · 응답 후 `--resume` · 재시작 복구 · 오류 분류 |
+| `app/runs.py` · `orchestrator.py` | 한 번에 한 실행 · 실행 예약(다른 프로젝트가 완료·오류로 끝나면 순서대로 시작, 중지로 끝나면 대기) · graceful stop · 응답 후 `--resume` · 재시작 복구 · 오류 분류 · **첨삭 실행**(`POST /projects/{id}/revise` — 완료된 문서만, 원래 세션과 따로 새 로이드 세션, 루트 `skills/doc-revise`. 시작 때 `stage.py`로 상태를 「진행 중 첨삭」, 중지·오류면 「완료」로 되돌림) |
 | `app/yor_feed.py` | 요르(Codex) 진행을 피드로 — `_yor_call.json`과 `codex exec --json` 이벤트 로그(`_log_NN.jsonl`)를 따라 읽어 중간 보고는 대화, 연 페이지는 도메인, 검색·명령은 건수만. 모르는 이벤트는 건너뜀(옛 텍스트 로그도 읽음) |
 | `app/git_sync.py` | 그 프로젝트 경로(`작업/<ID>` · `최종/<유형>/<ID>` · `최종/_manifest.md`)만 커밋 — 완료 때 커밋·푸시, 삭제 때 manifest 줄을 지우고 커밋만(푸시는 다음 완료 때). 실패는 대화에 경고. claude 오케스트레이터·실제 저장소에서만, 끄기 `DOCUMASTER_GIT_SYNC=0` |
 | `app/retention.py` | 끝난 실행의 로그(`.data/logs/run_*`)를 보존 기간(기본 30일, `DOCUMASTER_LOG_RETENTION_DAYS`, 0=끔)이 지나면 백엔드 시작 때 지움. DB·DB 백업·`.data/smoke/`는 건드리지 않음 |

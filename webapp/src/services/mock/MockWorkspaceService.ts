@@ -199,6 +199,20 @@ export class MockWorkspaceService implements WorkspaceService {
     );
   }
 
+  /** 목업은 파일을 고치지 않는다 — 요청과 로이드의 답만 대화에 남긴다 */
+  async reviseDocument(projectId: string, text: string): Promise<void> {
+    const store = this.getStore(projectId);
+    this.emit(projectId, { type: "user.message", text: `첨삭 요청
+${text}` });
+    this.later(store, REPLY_DELAY_MS, () =>
+      this.emit(projectId, {
+        type: "agent.message",
+        agentId: "loid",
+        text: "목업에서는 첨삭을 실행하지 않습니다. 실제 백엔드에서는 요청을 05 안에서 고칠 수 있는 것과 아닌 것으로 나눈 뒤 아냐에게 넘깁니다.",
+      }),
+    );
+  }
+
   async addReference(projectId: string, input: NewReferenceInput): Promise<void> {
     await wait(LATENCY_MS);
     const store = this.getStore(projectId);
