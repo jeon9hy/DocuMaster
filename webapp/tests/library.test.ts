@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EMPTY_LIBRARY_FILTER } from "@/constants/library";
-import { daysAgo, filterLibrary, groupByMonth } from "@/lib/library";
+import { daysAgo, filterLibrary, groupByMonth, splitFinalArtifacts } from "@/lib/library";
 import { emptyWorkspace } from "@/lib/workspace";
 import { appReducer, initialAppState } from "@/state/appReducer";
-import type { LibraryDocument } from "@/types";
+import type { Artifact, LibraryDocument } from "@/types";
 import { PROJECT } from "./helpers";
 
 function doc(workspaceId: string, title: string, kind: string, date: string, request = ""): LibraryDocument {
@@ -52,4 +52,19 @@ test("라이브러리에서 연 문서는 워크스페이스가 로드되면 그
   const loaded = appReducer(opened, { type: "workspace/loaded", workspace });
   assert.equal(loaded.selectedArtifactId, "a2");
   assert.equal(loaded.pendingArtifactId, null);
+});
+
+test("최종본 나누기: 최종 폴더 파일만 위로, PDF 먼저 · 렌더 결과와 대기 자리는 작업물", () => {
+  const artifact = (id: string, stageId: Artifact["stageId"], extra: Partial<Artifact> = {}): Artifact => ({
+    id, name: id, fileType: "markdown", status: "latest", stageId, agentId: "loid", summary: "", updatedAt: "2026-10-01T00:00:00Z", ...extra,
+  });
+  const { finals, others } = splitFinalArtifacts([
+    artifact("00", "requirements"),
+    artifact("render", "finalReview", { visibility: "internal", fileType: "pdf" }),
+    artifact("pack", "finalReview", { visibility: "primary" }),
+    artifact("doc", "finalReview", { visibility: "primary", fileType: "pdf" }),
+    artifact("slot", "finalReview", { status: "pending", fileType: "pdf" }),
+  ]);
+  assert.deepEqual(finals.map((a) => a.id), ["doc", "pack"]);
+  assert.deepEqual(others.map((a) => a.id), ["00", "render", "slot"]);
 });

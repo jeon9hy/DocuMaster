@@ -1,4 +1,4 @@
-import type { LibraryDocument, LibraryFilter } from "@/types";
+import type { Artifact, LibraryDocument, LibraryFilter } from "@/types";
 
 /** 띄어쓰기·대소문자를 무시하고 비교한다(「포켓몬 역사」로 「포켓몬스터의역사」도 찾게) */
 function normalize(text: string): string {
@@ -59,4 +59,21 @@ export function toIsoDate(date: Date): string {
 export function formatShortDate(iso: string): string {
   const [, month, day] = iso.split("-");
   return `${Number(month)}월 ${Number(day)}일`;
+}
+
+/**
+ * 최종본(`최종/<유형>/<ID>/`의 파일 = finalReview·primary)과 나머지 작업물을 나눈다.
+ * 판정 기준은 백엔드 runs.py의 finalArtifactId와 같다. 아직 생기지 않은(pending) 자리는 작업물 쪽에 둔다.
+ */
+export function splitFinalArtifacts(artifacts: readonly Artifact[]): { finals: Artifact[]; others: Artifact[] } {
+  const finals: Artifact[] = [];
+  const others: Artifact[] = [];
+  for (const artifact of artifacts) {
+    const isFinal =
+      artifact.stageId === "finalReview" && artifact.visibility !== "internal" && artifact.status !== "pending";
+    (isFinal ? finals : others).push(artifact);
+  }
+  // 문서 PDF를 맨 앞에(라이브러리의 대표 파일 순서와 같게)
+  finals.sort((a, b) => Number(b.fileType === "pdf") - Number(a.fileType === "pdf"));
+  return { finals, others };
 }
