@@ -14,7 +14,7 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full w-full gap-3.5 rounded-xl border border-line bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-900/5 focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:outline-none"
+      className="group flex h-full w-full items-center gap-3.5 rounded-xl border border-line bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-900/5 focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:outline-none"
     >
       <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", tone.tile)}>
         <Icon className="size-5" aria-hidden />
@@ -34,13 +34,12 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
           />
         </span>
 
-        <span className="line-clamp-2 text-[15px] leading-snug font-semibold text-gray-900">{doc.title}</span>
-
-        {doc.fileName && (
-          <span className="mt-auto truncate pt-1 text-xs text-gray-400" title={doc.fileName}>
-            {doc.fileName}
-          </span>
-        )}
+        <span
+          className="line-clamp-2 text-[15px] leading-snug font-semibold text-balance break-keep text-gray-900"
+          title={doc.fileName ?? doc.title}
+        >
+          {doc.title}
+        </span>
       </span>
     </button>
   );
