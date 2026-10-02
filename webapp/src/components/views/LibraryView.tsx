@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Library, SearchX } from "lucide-react";
+import { Library, Plus, SearchX } from "lucide-react";
 import { DEFAULT_LIBRARY_FIELD, EMPTY_LIBRARY_FILTER } from "@/constants/library";
 import { useServiceData } from "@/hooks/useServiceData";
 import { countByKind, filterLibrary, groupByMonth } from "@/lib/library";
 import { workspaceService } from "@/services";
-import { useAppActions } from "@/state/WorkspaceProvider";
+import { useAppActions, useIsOwner } from "@/state/WorkspaceProvider";
 import type { LibraryFilter, LibraryFilterField } from "@/types";
 import { LibraryDocumentCard } from "../library/LibraryDocumentCard";
 import { LibraryFilterBar } from "../library/LibraryFilterBar";
+import { NewProjectModal } from "../project/NewProjectModal";
 import { Button } from "../ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../ui/States";
 import { ViewContainer, ViewHeader } from "./ViewHeader";
@@ -21,6 +22,9 @@ export function LibraryView() {
   const { openLibraryDocument } = useAppActions();
   const [field, setField] = useState<LibraryFilterField>(DEFAULT_LIBRARY_FIELD);
   const [filter, setFilter] = useState<LibraryFilter>(EMPTY_LIBRARY_FILTER);
+  const isOwner = useIsOwner();
+  const [creating, setCreating] = useState(false);
+  const closeCreate = useCallback(() => setCreating(false), []);
 
   const documents = useMemo(() => (state.status === "success" ? state.data : []), [state]);
   const kindCounts = useMemo(() => countByKind(documents), [documents]);
@@ -34,15 +38,22 @@ export function LibraryView() {
         title="프로젝트"
         description="최종본까지 끝난 문서를 찾아 엽니다."
         action={
-          state.status === "success" &&
-          documents.length > 0 && (
-            <p className="text-sm text-gray-500">
-              {filtered && <span className="font-semibold text-blue-700">{visible.length}건 / </span>}
-              전체 {documents.length}건
-            </p>
-          )
+          <div className="flex items-center gap-3">
+            {state.status === "success" && documents.length > 0 && (
+              <p className="text-sm text-gray-500">
+                {filtered && <span className="font-semibold text-blue-700">{visible.length}건 / </span>}
+                전체 {documents.length}건
+              </p>
+            )}
+            {isOwner && (
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>
+                새 프로젝트
+              </Button>
+            )}
+          </div>
         }
       />
+      <NewProjectModal open={creating} onClose={closeCreate} />
 
       {state.status === "loading" && <LoadingState />}
       {state.status === "error" && <ErrorState message={state.message} onRetry={reload} />}
