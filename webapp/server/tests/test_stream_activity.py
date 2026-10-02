@@ -44,6 +44,27 @@ def test_stream_activity_uses_only_actual_text_and_labels_tools_safely():
     assert "secret" not in json.dumps(events, ensure_ascii=False)
 
 
+def test_subagent_handback_is_shown_as_its_speech_once():
+    reader = StreamActivity()
+    reader.read(_assistant([{"type": "tool_use", "name": "Agent", "id": "agent-2",
+                             "input": {"description": "아냐 집필 07", "prompt": "비공개 지시"}}]))
+    assert reader.read(_assistant([{"type": "tool_use", "name": "Write", "input": {"file_path": "w/07_final_document.md"}}],
+                                  "agent-2")) == [
+        {"type": "agent.activity", "agentId": "anya", "label": "파일 작성 · 07_final_document.md"},
+    ]
+    assert reader.read(_assistant([{"type": "tool_use", "name": "SubagentHandback",
+                                   "input": {"message": "07을 저장했습니다."}}], "agent-2")) == [
+        {"type": "agent.message", "agentId": "anya", "text": "07을 저장했습니다."},
+    ]
+    # 보고 뒤에 같은 내용을 글로 다시 쓰면 겹치므로 내지 않는다
+    assert reader.read(_assistant([{"type": "text", "text": "07을 저장했습니다(요약)."}], "agent-2")) == []
+    # 이어 받아 새 일을 하면 다시 말이 보인다
+    reader.read(_assistant([{"type": "tool_use", "name": "Read", "input": {"file_path": "w/05.md"}}], "agent-2"))
+    assert reader.read(_assistant([{"type": "text", "text": "퇴고를 시작합니다."}], "agent-2")) == [
+        {"type": "agent.message", "agentId": "anya", "text": "퇴고를 시작합니다."},
+    ]
+
+
 def test_pipeline_commands_show_only_a_fixed_label():
     reader = StreamActivity()
     events = reader.read(_assistant([

@@ -80,6 +80,8 @@ class StreamActivity:
     def __init__(self):
         self._subagent_by_call: dict[str, str | None] = {}
         self._subagent_by_id: dict[str, str] = {}
+        # 보고(SubagentHandback)를 이미 대화로 낸 하위 실행. 그 뒤 같은 내용을 글로 다시 쓰면 겹치므로 내지 않는다.
+        self._handed_back: set[str] = set()
         self.emitted_texts: set[str] = set()
 
     def read(self, message: dict) -> list[dict]:
@@ -102,13 +104,22 @@ class StreamActivity:
                 continue
             if block.get("type") == "text":
                 value = str(block.get("text") or "").strip()
-                if value:
+                if value and parent not in self._handed_back:
                     if agent_id == "loid":
                         self.emitted_texts.add(value)
                     events.append({"type": "agent.message", "agentId": agent_id, "text": value})
             elif block.get("type") == "tool_use":
                 name = str(block.get("name") or "")
                 data = block.get("input") if isinstance(block.get("input"), dict) else {}
+                if parent and name == "SubagentHandback":
+                    # 하위 에이전트의 마지막 보고는 이 도구로만 오기도 한다(뒤따르는 글 없이) — 그 에이전트의 말로 보인다.
+                    report = str(data.get("message") or "").strip()
+                    if report:
+                        self._handed_back.add(parent)
+                        events.append({"type": "agent.message", "agentId": agent_id, "text": report})
+                        continue
+                elif parent:
+                    self._handed_back.discard(parent)  # SendMessage로 이어 받아 새 일을 시작했다
                 if name == "Agent" and isinstance(block.get("id"), str):
                     self._subagent_by_call[block["id"]] = _agent_in(data.get("description"))
                 if name == "SendMessage":
