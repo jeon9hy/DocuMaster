@@ -323,8 +323,16 @@ def test_revise_writes_a_new_07_and_replaces_the_final_in_its_own_session(client
     assert kind == "revise" and session and session != first_session
     # 원래 작업 세션은 그대로다(첨삭이 긴 조사 세션을 이어 쓰지 않는다)
     assert db.execute("SELECT session_id FROM projects WHERE id = ?", (project_id,)).fetchone()[0] == first_session
-    names = {a["name"] for a in client.get(f"/api/projects/{project_id}/artifacts").json()}
-    assert "07_final_document_v02.md" in names
+    artifacts = {a["name"]: a for a in client.get(f"/api/projects/{project_id}/artifacts").json()}
+    assert "07_final_document_v02.md" in artifacts
+    # 이전판은 <ID>_v01.pdf로 남아 내부 작업물, 대표 최종본(<ID>.pdf)은 최신본
+    previous = next(a for name, a in artifacts.items() if name.endswith("_v01.pdf"))
+    assert previous["visibility"] == "internal"
+    created = [e["artifact"] for e in events_of(client, project_id) if e["type"] == "artifact.created"]
+    assert next(a for a in created if a["id"] == previous["id"])["summary"] == "이전 최종본 · v01"
+    library = client.get("/api/library").json()
+    assert [doc["fileName"] for doc in library if doc["projectId"] == project_id] == [
+        previous["name"].replace("_v01.pdf", ".pdf")]
     user_said = [e["text"] for e in events_of(client, project_id) if e["type"] == "user.message"]
     assert user_said[-1].startswith("첨삭 요청\n")
 

@@ -54,17 +54,20 @@ test("라이브러리에서 연 문서는 워크스페이스가 로드되면 그
   assert.equal(loaded.pendingArtifactId, null);
 });
 
-test("최종본 나누기: 최종 폴더 파일만 위로, PDF 먼저 · 렌더 결과와 대기 자리는 작업물", () => {
+test("최종본 나누기: 최종 폴더 파일만 위로, PDF 먼저 · 이전판은 따로 최근 것부터 · 렌더 결과와 대기 자리는 작업물", () => {
   const artifact = (id: string, stageId: Artifact["stageId"], extra: Partial<Artifact> = {}): Artifact => ({
     id, name: id, fileType: "markdown", status: "latest", stageId, agentId: "loid", summary: "", updatedAt: "2026-10-01T00:00:00Z", ...extra,
   });
-  const { finals, others } = splitFinalArtifacts([
+  const { finals, previous, others } = splitFinalArtifacts([
     artifact("00", "requirements"),
     artifact("render", "finalReview", { visibility: "internal", fileType: "pdf" }),
     artifact("pack", "finalReview", { visibility: "primary" }),
     artifact("doc", "finalReview", { visibility: "primary", fileType: "pdf" }),
     artifact("slot", "finalReview", { status: "pending", fileType: "pdf" }),
+    artifact("doc_v01", "finalReview", { visibility: "internal", fileType: "pdf", summary: "이전 최종본 · v01" }),
+    artifact("doc_v02", "finalReview", { visibility: "internal", fileType: "pdf", summary: "이전 최종본 · v02" }),
   ]);
   assert.deepEqual(finals.map((a) => a.id), ["doc", "pack"]);
+  assert.deepEqual(previous.map((a) => a.id), ["doc_v02", "doc_v01"]);
   assert.deepEqual(others.map((a) => a.id), ["00", "render", "slot"]);
 });

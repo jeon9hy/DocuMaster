@@ -56,7 +56,7 @@ git diff --no-index --word-diff=plain 작업/"$ID"/workspace/<이전 07> 작업/
 
 ## 5. 교체와 보고
 ```bash
-python .claude/tools/stage.py finish --id "$ID" --kind <1의 유형 폴더>      # output/$ID.pdf → 최종/<유형>/$ID/ (manifest 줄은 그대로)
+python .claude/tools/stage.py finish --id "$ID" --kind <1의 유형 폴더>      # 이전판을 ${ID}_vNN.pdf로 남기고 output/$ID.pdf → 최종/<유형>/$ID/$ID.pdf (manifest 줄은 그대로)
 python .claude/tools/stage.py log --id "$ID" "첨삭 r$R: 07 v<NN> · 반영 n · 불가 n · 교차 확인 n/n · 아냐 에이전트=<id>"
 ```
-이전 최종 PDF는 git 이력과 이전 07 버전으로 남는다. 보고(CLAUDE.md §7): 최종 경로·07 버전 · **반영한 것** · **반영하지 않은 것과 이유**(새 사실이 필요하면 새 작업으로 조사해야 한다고 쓴다) · 확인 범위 · 모델.
+이전 최종 PDF는 `finish`가 같은 폴더에 `<ID>_vNN.pdf`로 남기고, `<ID>.pdf`는 늘 최신본이다. 보고(CLAUDE.md §7): 최종 경로·07 버전 · **반영한 것** · **반영하지 않은 것과 이유**(새 사실이 필요하면 새 작업으로 조사해야 한다고 쓴다) · 확인 범위 · 모델.

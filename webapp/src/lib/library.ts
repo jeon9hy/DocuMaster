@@ -61,19 +61,32 @@ export function formatShortDate(iso: string): string {
   return `${Number(month)}월 ${Number(day)}일`;
 }
 
+/** 백엔드 scanner.PREVIOUS_FINAL_SUMMARY — 첨삭으로 교체되기 전의 최종본(`<ID>_vNN.pdf`) */
+const PREVIOUS_FINAL_SUMMARY = "이전 최종본";
+
 /**
- * 최종본(`최종/<유형>/<ID>/`의 파일 = finalReview·primary)과 나머지 작업물을 나눈다.
+ * 최종본(`최종/<유형>/<ID>/`의 파일 = finalReview·primary), 첨삭 전 이전판, 나머지 작업물을 나눈다.
  * 판정 기준은 백엔드 runs.py의 finalArtifactId와 같다. 아직 생기지 않은(pending) 자리는 작업물 쪽에 둔다.
  */
-export function splitFinalArtifacts(artifacts: readonly Artifact[]): { finals: Artifact[]; others: Artifact[] } {
+export function splitFinalArtifacts(artifacts: readonly Artifact[]): {
+  finals: Artifact[];
+  previous: Artifact[];
+  others: Artifact[];
+} {
   const finals: Artifact[] = [];
+  const previous: Artifact[] = [];
   const others: Artifact[] = [];
   for (const artifact of artifacts) {
+    if (artifact.stageId === "finalReview" && artifact.summary.startsWith(PREVIOUS_FINAL_SUMMARY)) {
+      previous.push(artifact);
+      continue;
+    }
     const isFinal =
       artifact.stageId === "finalReview" && artifact.visibility !== "internal" && artifact.status !== "pending";
     (isFinal ? finals : others).push(artifact);
   }
-  // 문서 PDF를 맨 앞에(라이브러리의 대표 파일 순서와 같게)
+  // 문서 PDF를 맨 앞에(라이브러리의 대표 파일 순서와 같게), 이전판은 최근 것부터(_v02 → _v01)
   finals.sort((a, b) => Number(b.fileType === "pdf") - Number(a.fileType === "pdf"));
-  return { finals, others };
+  previous.sort((a, b) => b.name.localeCompare(a.name));
+  return { finals, previous, others };
 }

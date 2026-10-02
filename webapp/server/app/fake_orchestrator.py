@@ -198,7 +198,9 @@ def revise_turn(loid: FakeLoid, text: str) -> str:
     pdf = tiny_pdf(f"{loid.id} revised")
     (loid.base / "output").mkdir(parents=True, exist_ok=True)
     (loid.base / "output" / f"{loid.id}.pdf").write_bytes(pdf)
-    for final in loid.final_root.glob(f"*/{loid.id}/{loid.id}.pdf"):
+    for final in loid.final_root.glob(f"*/{loid.id}/{loid.id}.pdf"):  # stage.py finish처럼 이전판을 남긴다
+        kept = len(list(final.parent.glob(f"{loid.id}_v[0-9][0-9].pdf")))
+        final.rename(final.with_name(f"{loid.id}_v{kept + 1:02d}.pdf"))
         final.write_bytes(pdf)
     loid.state("완료", "DOCUMENT")
     return f"첨삭 완료 — 07 v{len(versions) + 1:02d} · 반영 1 · 불가 0 · 가짜 실행이라 실제 모델은 쓰지 않았습니다."

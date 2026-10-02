@@ -111,6 +111,17 @@ def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
     assert read(tmp_path, "상태.md").splitlines()[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{ID}.pdf"
     assert "[분석] `" in (tmp_path / "최종" / "_manifest.md").read_text(encoding="utf-8")
 
+    # 첨삭으로 다시 내보내면 이전판을 <ID>_vNN.pdf로 남기고 <ID>.pdf는 최신본. 같은 파일을 다시 내보내면 남기지 않는다
+    final = tmp_path / "최종" / "분석" / ID
+    run("finish", "--id", ID, "--kind", "분석")
+    assert sorted(path.name for path in final.iterdir()) == [f"{ID}.pdf"]
+    for body in (b"%PDF-v2", b"%PDF-v3"):
+        (output / f"{ID}.pdf").write_bytes(body)
+        run("finish", "--id", ID, "--kind", "분석")
+    assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v3"
+    assert (final / f"{ID}_v01.pdf").read_bytes() == b"%PDF-1.7"
+    assert (final / f"{ID}_v02.pdf").read_bytes() == b"%PDF-v2"
+
 
 def test_log_for_unknown_job_stops_cleanly(tmp_path, stage):
     with pytest.raises(stage.Stop, match="작업 ID를 확인"):

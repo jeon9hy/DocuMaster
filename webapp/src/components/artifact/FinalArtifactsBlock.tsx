@@ -1,6 +1,7 @@
 "use client";
 
-import { BadgeCheck, PenLine } from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, ChevronDown, History, PenLine } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
 import type { Artifact } from "@/types";
@@ -9,6 +10,8 @@ import { ArtifactIcon } from "./ArtifactIcon";
 interface FinalArtifactsBlockProps {
   /** PDF가 앞에 오게 정렬된 최종본(splitFinalArtifacts) */
   finals: Artifact[];
+  /** 첨삭으로 교체되기 전의 최종본(`<ID>_vNN.pdf`), 최근 것부터 */
+  previous: Artifact[];
   selectedId: string | null;
   onSelect: (artifactId: string) => void;
   /** 첨삭은 문서 모드만(아냐가 DOC 전용) */
@@ -21,6 +24,7 @@ interface FinalArtifactsBlockProps {
 /** 최종검수를 통과한 파일만 따로 모은 맨 위 블록. 파일 줄은 전체 폭, 누르면 아래 미리보기에 연다. */
 export function FinalArtifactsBlock({
   finals,
+  previous,
   selectedId,
   onSelect,
   revisable,
@@ -29,6 +33,8 @@ export function FinalArtifactsBlock({
 }: FinalArtifactsBlockProps) {
   // 첨삭 대상은 문서 본문 PDF 한 개 — 맨 앞 파일이 PDF일 때만
   const revisableId = revisable && finals[0]?.fileType === "pdf" ? finals[0].id : null;
+  // 이전판을 보고 있으면 펼친 채로 둔다
+  const [showPrevious, setShowPrevious] = useState(() => previous.some((artifact) => artifact.id === selectedId));
 
   return (
     <section className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 via-white to-white p-4 shadow-sm shadow-blue-900/[0.04]">
@@ -57,8 +63,15 @@ export function FinalArtifactsBlock({
               >
                 <ArtifactIcon fileType={artifact.fileType} className="size-9" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-900" title={artifact.name}>
-                    {artifact.name}
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-medium text-gray-900" title={artifact.name}>
+                      {artifact.name}
+                    </span>
+                    {previous.length > 0 && artifact.fileType === "pdf" && (
+                      <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
+                        최신
+                      </span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-gray-500">{formatTime(artifact.updatedAt)}</span>
                 </span>
@@ -79,6 +92,44 @@ export function FinalArtifactsBlock({
           );
         })}
       </ul>
+
+      {previous.length > 0 && (
+        <div className="mt-2 px-1">
+          <button
+            type="button"
+            onClick={() => setShowPrevious((value) => !value)}
+            aria-expanded={showPrevious}
+            className="flex items-center gap-1.5 py-1 text-xs font-medium text-gray-500 hover:text-blue-700"
+          >
+            <History className="size-3.5" aria-hidden />
+            이전판 {previous.length}개
+            <ChevronDown className={cn("size-3.5 transition-transform", showPrevious && "rotate-180")} aria-hidden />
+          </button>
+          {showPrevious && (
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {previous.map((artifact) => (
+                <li key={artifact.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(artifact.id)}
+                    aria-current={artifact.id === selectedId}
+                    className={cn(
+                      "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
+                      artifact.id === selectedId ? "bg-blue-50/70" : "hover:bg-white",
+                    )}
+                  >
+                    <ArtifactIcon fileType={artifact.fileType} className="size-7" />
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-gray-700" title={artifact.name}>
+                      {artifact.name}
+                    </span>
+                    <span className="shrink-0 text-xs text-gray-400">{formatTime(artifact.updatedAt)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </section>
   );
 }

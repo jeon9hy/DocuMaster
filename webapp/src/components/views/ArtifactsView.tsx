@@ -19,7 +19,7 @@ export function ArtifactsView() {
   const workspace = useWorkspace();
   const { selectedArtifactId } = useAppState();
   const { selectArtifact } = useAppActions();
-  const { finals, others } = useMemo(() => splitFinalArtifacts(workspace.artifacts), [workspace.artifacts]);
+  const { finals, previous, others } = useMemo(() => splitFinalArtifacts(workspace.artifacts), [workspace.artifacts]);
   const selected = workspace.artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? null;
 
   // 유형·날짜·원문 요청은 라이브러리가 최종본 폴더에서 읽는다 — 최종본이 생기면 다시 받는다
@@ -48,6 +48,7 @@ export function ArtifactsView() {
       {finals.length > 0 && (
         <FinalArtifactsBlock
           finals={finals}
+          previous={previous}
           selectedId={selectedArtifactId}
           onSelect={selectArtifact}
           revisable={mode === "document"}

@@ -8,7 +8,7 @@
     python .claude/tools/stage.py done   <단계> --id ID [--output 경로] [--note 비고] [공통 옵션]
     python .claude/tools/stage.py set    --id ID [공통 옵션]
     python .claude/tools/stage.py log    --id ID "<기록 한 줄>"
-    python .claude/tools/stage.py finish --id ID --kind <유형> --manifest "<파일명 · 비고>"   # DOC: output/ID.pdf를 최종/<유형>/ID/로 복사
+    python .claude/tools/stage.py finish --id ID --kind <유형> --manifest "<파일명 · 비고>"   # DOC: output/ID.pdf를 최종/<유형>/ID/로 복사(이전판은 ID_vNN.pdf로 남김)
     python .claude/tools/stage.py finish --id ID --final 최종/발표/ID/파일                     # PPT: promote가 이미 옮긴 파일
 공통 옵션:
     --status "진행 중 03 검증질문"   상태 줄        --next "<한 줄>"   다음에 할 일
@@ -236,8 +236,13 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
             if not rendered.is_file():
                 raise Stop(f"렌더된 PDF가 없다: 작업/{args.id}/output/{args.id}.pdf — render_doc을 먼저 한다")
             args.final = f"최종/{args.kind}/{args.id}/{args.id}.pdf"
-            (root / args.final).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(rendered, root / args.final)
+            target = root / args.final
+            target.parent.mkdir(parents=True, exist_ok=True)
+            # 첨삭으로 다시 내보내면 이전 최종본을 <ID>_vNN.pdf로 남긴다 — 대표 파일 <ID>.pdf는 늘 최신본
+            if target.is_file() and target.read_bytes() != rendered.read_bytes():
+                kept = sorted(target.parent.glob(f"{args.id}_v[0-9][0-9].pdf"))
+                target.rename(target.with_name(f"{args.id}_v{len(kept) + 1:02d}.pdf"))
+            shutil.copy2(rendered, target)
         if not (root / args.final).is_file():
             raise Stop(f"--final 파일이 없다: {args.final} — 이관(promote)을 먼저 한다")
         set_line(lines, "상태:", "완료", limit=5)
