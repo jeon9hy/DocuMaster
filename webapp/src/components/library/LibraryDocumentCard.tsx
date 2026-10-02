@@ -36,12 +36,6 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
 
         <span className="line-clamp-2 text-[15px] leading-snug font-semibold text-gray-900">{doc.title}</span>
 
-        {doc.request && (
-          <span className="line-clamp-2 text-[13px] text-pretty break-keep text-gray-500" title={doc.request}>
-            {doc.request}
-          </span>
-        )}
-
         {doc.fileName && (
           <span className="mt-auto truncate pt-1 text-xs text-gray-400" title={doc.fileName}>
             {doc.fileName}
