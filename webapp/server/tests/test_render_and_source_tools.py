@@ -197,3 +197,21 @@ def test_gate_draft_skips_state_bookkeeping(job):
     run = lambda *extra: subprocess.run([sys.executable, str(TOOLS / "gate_check.py"), ID, "07", *extra],  # noqa: E731
                                         capture_output=True, text=True, encoding="utf-8", env=env, check=False).stdout
     assert "상태.md가 없다" in run() and "상태 기록" not in run("--draft")
+
+
+def test_view05_prints_latest_version_first_line_and_writer_sections(tmp_path, monkeypatch, capsys):
+    """집필 입력(아냐·doc-revise)은 최신 05의 첫 줄·§2·§5뿐이다 — 반려로 생긴 _v02를 v1 대신 읽는다."""
+    ws = tmp_path / "작업" / ID / "workspace"
+    ws.mkdir(parents=True)
+    (ws / "05_verified_research_pack.md").write_text(VERIFIED.replace("16.5%", "옛 값"), encoding="utf-8")
+    (ws / "05_verified_research_pack_v02.md").write_text(
+        VERIFIED.replace("## 5. 출처", "## 3. 근거표\n| S01 | 표 |\n## 4. 로이드가 판단할 것\n- 충돌 메모\n## 5. 출처"),
+        encoding="utf-8")
+    tool = load("workspace_files", monkeypatch, tmp_path)
+    assert tool.main(["view05", ID]) == 0
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "===== 05_verified_research_pack_v02.md (첫 줄 · §2 · §5) ====="
+    assert out.splitlines()[1] == "검증 통과 — 조건부"
+    assert "16.5%" in out and "옛 값" not in out and "S04 | 내부 자료" in out
+    assert "헤더 끝" not in out and "근거표" not in out and "충돌 메모" not in out
+    assert tool.main(["view05", "없는작업"]) == 1

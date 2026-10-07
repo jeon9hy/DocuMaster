@@ -9,7 +9,15 @@ export type ContentResult =
   | { status: "error"; message: string };
 
 // 같은 버전(updatedAt)의 본문은 한 번만 불러온다. 작업물이 갱신되면 키가 바뀌어 다시 부른다.
+// 갱신마다 키가 늘어나므로 오래된 것부터 버린다(긴 실행을 지켜봐도 옛 버전 본문이 쌓이지 않게).
+const CACHE_LIMIT = 40;
 const cache = new Map<string, ArtifactContent>();
+
+function remember(key: string, content: ArtifactContent) {
+  cache.delete(key);
+  cache.set(key, content);
+  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value as string);
+}
 
 /** 미리보기를 열 때만 본문을 불러온다(목록 단계에서는 메타데이터만). */
 export function useArtifactContent(projectId: string, artifact: Artifact | null): ContentResult {
@@ -25,7 +33,7 @@ export function useArtifactContent(projectId: string, artifact: Artifact | null)
       .getArtifactContent(projectId, artifactId)
       .then((content) => {
         // 본문이 아직 없으면(작성 중) 캐시하지 않는다 — 완성되면 updatedAt이 바뀌어 다시 부른다.
-        if (content) cache.set(key, content);
+        if (content) remember(key, content);
         if (cancelled) return;
         setLoaded({ key, result: content ? { status: "success", content } : { status: "empty" } });
       })

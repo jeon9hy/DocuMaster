@@ -19,7 +19,7 @@ ls 작업/"$ID"/workspace/"$DOC"*.md                   # 최신 버전과 다음
 ```
 
 ## 2. 요청 가르기 — 로이드
-최신 07과 05 첫 줄·§2·§5를 읽고(`sed -n '1p;/^## 2\./,/^## 3\./p;/^## 5\./,$p'`) 요청을 항목으로 나눠 하나씩 판정한다.
+최신 07과 05 첫 줄·§2·§5를 읽고(`python .claude/tools/workspace_files.py view05 <ID>` — 최신 버전) 요청을 항목으로 나눠 하나씩 판정한다.
 
 | 판정 | 무엇 |
 | --- | --- |
@@ -38,7 +38,7 @@ ls 작업/"$ID"/workspace/"$DOC"*.md                   # 최신 버전과 다음
 ```
 Agent(subagent_type:"general-purpose", description:"아냐 첨삭 r<R>", model:<아냐 모델>,
   prompt: "너는 아냐다. 먼저 .claude/아냐/첨삭.md 와 .claude/공통/문서규격.md 를 읽고 그대로 따른다.
-          입력(이것만): ./작업/<ID>/workspace/<최신 07> · 00_user_brief.md · 05_verified_research_pack.md(첫 줄·§2·§5만)
+          입력(이것만): ./작업/<ID>/workspace/<최신 07> · 00_user_brief.md · 05(`workspace_files.py view05 <ID>`로 첫 줄·§2·§5만)
           글 유형 파일: .claude/공통/글_<00의 유형>.md · 첨삭 지시: ./작업/<ID>/output/revise_r<R>.md
           출력: ./작업/<ID>/workspace/<$DOC>_v<NN>.md (최신 07을 복사한 뒤 지시 항목만 Edit). 응답은 항목별 처리 3~8줄.")
 ```

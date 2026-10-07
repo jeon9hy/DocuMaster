@@ -121,6 +121,13 @@ def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
     assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v3"
     assert (final / f"{ID}_v01.pdf").read_bytes() == b"%PDF-1.7"
     assert (final / f"{ID}_v02.pdf").read_bytes() == b"%PDF-v2"
+    # 이전판 번호가 비어 있어도(v01 삭제) 개수가 아니라 가장 큰 번호 다음으로 남긴다 — v02를 덮어쓰지 않는다
+    (final / f"{ID}_v01.pdf").unlink()
+    (output / f"{ID}.pdf").write_bytes(b"%PDF-v4")
+    run("finish", "--id", ID, "--kind", "분석")
+    assert (final / f"{ID}_v02.pdf").read_bytes() == b"%PDF-v2"
+    assert (final / f"{ID}_v03.pdf").read_bytes() == b"%PDF-v3"
+    assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v4"
 
     # 최종본이 여러 부면 --file로 그 PDF만 교체한다 — 이전판은 <이름>_vNN.pdf, 다른 PDF는 그대로
     practice = f"{ID}_연습문제.pdf"
@@ -130,7 +137,7 @@ def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
     run("finish", "--id", ID, "--kind", "분석", "--file", practice)
     assert (final / practice).read_bytes() == b"%PDF-p2"
     assert (final / f"{ID}_연습문제_v01.pdf").read_bytes() == b"%PDF-p1"
-    assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v3"
+    assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v4"
     assert read(tmp_path, "상태.md").splitlines()[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{practice}"
 
 

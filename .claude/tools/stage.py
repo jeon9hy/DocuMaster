@@ -246,8 +246,10 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
             target.parent.mkdir(parents=True, exist_ok=True)
             # 첨삭으로 다시 내보내면 이전 최종본을 <이름>_vNN.pdf로 남긴다 — <이름>.pdf는 늘 최신본
             if target.is_file() and target.read_bytes() != rendered.read_bytes():
-                kept = sorted(target.parent.glob(f"{glob.escape(target.stem)}_v[0-9][0-9].pdf"))
-                target.rename(target.with_name(f"{target.stem}_v{len(kept) + 1:02d}.pdf"))
+                kept = [int(path.stem[-2:]) for path in
+                        target.parent.glob(f"{glob.escape(target.stem)}_v[0-9][0-9].pdf")]
+                # 개수가 아니라 가장 큰 번호 + 1 — 중간 번호가 빠져 있어도 이전판을 덮어쓰지 않는다
+                target.rename(target.with_name(f"{target.stem}_v{max(kept, default=0) + 1:02d}.pdf"))
             shutil.copy2(rendered, target)
         if not (root / args.final).is_file():
             raise Stop(f"--final 파일이 없다: {args.final} — 이관(promote)을 먼저 한다")

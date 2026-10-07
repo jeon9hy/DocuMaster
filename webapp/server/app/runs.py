@@ -630,6 +630,7 @@ class RunManager:
     def _finish(self, run_id: str, project_id: str, status: str, stage: str,
                 reason: str = "", error_code: str | None = None) -> None:
         self._set_run(run_id, status=status, finished_at=now_iso(), error_code=error_code)
+        self._model_warnings.pop(run_id, None)  # 끝난 실행의 경고 중복 거르기 — 백엔드가 오래 떠 있어도 쌓이지 않게
         run = self._run_row(run_id)
         paused_revise = status != "completed" and run.get("kind") == "revise"
         if paused_revise:
