@@ -1,23 +1,16 @@
 import type { ButtonHTMLAttributes } from "react";
 import type { LucideIcon } from "lucide-react";
+import { Button as WdsButton, IconButton as WdsIconButton, TextButton } from "@wanteddev/wds";
 import { cn } from "@/lib/cn";
 
+/*
+ * Montage(원티드 디자인 시스템) 버튼을 앱의 이름으로 감싼 것. 화면 코드는 이 API만 안다.
+ * primary = solid·primary · secondary = outlined·assistive · ghost = TextButton · danger = outlined + 빨간 글자
+ */
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md";
 
-const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300",
-  secondary: "border border-line bg-white text-gray-700 hover:bg-gray-50 disabled:text-gray-400",
-  ghost: "text-gray-600 hover:bg-gray-100 disabled:text-gray-300",
-  danger: "border border-red-200 bg-white text-red-600 hover:bg-red-50",
-};
-
-const SIZE_CLASS: Record<ButtonSize, string> = {
-  sm: "h-8 gap-1.5 px-2.5 text-[13px]",
-  md: "h-10 gap-2 px-4 text-sm",
-};
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   icon?: LucideIcon;
@@ -32,42 +25,85 @@ export function Button({
   type = "button",
   ...rest
 }: ButtonProps) {
+  const leadingContent = Icon && <Icon className="size-4" aria-hidden />;
+  const wdsSize = size === "sm" ? "small" : "medium";
+
+  if (variant === "ghost") {
+    return (
+      <TextButton
+        type={type}
+        color="assistive"
+        size={wdsSize}
+        leadingContent={leadingContent}
+        className={cn("shrink-0", className)}
+        {...rest}
+      >
+        {children}
+      </TextButton>
+    );
+  }
+
   return (
-    <button
+    <WdsButton
       type={type}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-colors disabled:cursor-not-allowed",
-        VARIANT_CLASS[variant],
-        SIZE_CLASS[size],
-        className,
-      )}
+      variant={variant === "primary" ? "solid" : "outlined"}
+      color={variant === "primary" ? "primary" : "assistive"}
+      size={wdsSize}
+      leadingContent={leadingContent}
+      sx={variant === "danger" ? (theme) => ({ color: theme.semantic.status.negative }) : undefined}
+      className={cn("shrink-0", className)}
       {...rest}
     >
-      {Icon && <Icon className="size-4" aria-hidden />}
       {children}
-    </button>
+    </WdsButton>
   );
 }
 
-interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "color"> {
   icon: LucideIcon;
   label: string;
+  /** normal = 아이콘만(눌렀을 때 둥근 반응) · outlined = 테두리 있는 네모 버튼 */
+  variant?: "normal" | "outlined";
+  tone?: "default" | "primary";
 }
 
-/** 아이콘만 있는 버튼. label은 스크린리더와 툴팁에 쓴다. */
-export function IconButton({ icon: Icon, label, className, type = "button", ...rest }: IconButtonProps) {
+/**
+ * 아이콘만 있는 버튼. label은 스크린리더와 툴팁에 쓴다.
+ * normal은 Montage IconButton(아이콘 크기만큼, 반응 영역 +16px)을 36px 칸 가운데에 둔다 — className은 그 칸에 붙는다.
+ */
+export function IconButton({
+  icon: Icon,
+  label,
+  variant = "normal",
+  tone = "default",
+  className,
+  type = "button",
+  ...rest
+}: IconButtonProps) {
+  const color = tone === "primary" ? "semantic.primary.normal" : "semantic.label.alternative";
+
+  if (variant === "outlined") {
+    return (
+      <WdsIconButton
+        type={type}
+        variant="outlined"
+        size="medium"
+        color={color}
+        aria-label={label}
+        title={label}
+        className={cn("shrink-0", className)}
+        {...rest}
+      >
+        <Icon aria-hidden />
+      </WdsIconButton>
+    );
+  }
+
   return (
-    <button
-      type={type}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700",
-        className,
-      )}
-      {...rest}
-    >
-      <Icon className="size-[18px]" aria-hidden />
-    </button>
+    <span className={cn("inline-flex size-9 shrink-0 items-center justify-center", className)}>
+      <WdsIconButton type={type} size={18} color={color} aria-label={label} title={label} {...rest}>
+        <Icon aria-hidden />
+      </WdsIconButton>
+    </span>
   );
 }

@@ -1,35 +1,118 @@
+/* Montage(원티드 디자인 시스템) 컴포넌트 스타일은 wds 레이어에 들어간다(MontageProvider).
+ * Tailwind 기본(base)보다 위, 유틸리티보다 아래 — className으로 덮어쓸 수 있다. */
+@layer theme, base, wds, components, utilities;
 @import "tailwindcss";
 
 /*
- * 색은 여기서만 정한다. 로고의 하양·파랑·하늘색에 맞춰 Tailwind의 blue 계열을 덮어써서,
- * 컴포넌트는 평범한 `bg-blue-600`·`text-blue-700`을 쓰고 색 조정은 이 파일에서 한다.
+ * 색은 여기서만 정한다. Tailwind 색 스케일을 Montage 원자 색(@wanteddev/wds/theme.css)으로 덮어써서,
+ * 컴포넌트는 평범한 `bg-blue-600`·`text-gray-500`을 쓰고 색 조정은 이 파일에서 한다.
+ * blue = Montage blue(primary #0066FF), gray·slate = coolNeutral, emerald = green, amber = orange.
  */
 @theme {
-  --color-canvas: #f4f8ff;
-  --color-line: #e3e9f3;
-  --color-navy: #0b2454;
+  --color-canvas: #f7f7f8; /* background.normal.alternative */
+  --color-line: #e1e2e4; /* line.solid.normal */
+  --color-navy: #171719; /* label.normal */
 
-  --color-blue-50: #eef5ff;
-  --color-blue-100: #dcebff;
-  --color-blue-200: #bcd9ff;
-  --color-blue-300: #8cc2ff;
-  --color-blue-400: #5aa8ff;
-  --color-blue-500: #2f8bff;
-  --color-blue-600: #0a6cff;
-  --color-blue-700: #0056dd;
-  --color-blue-800: #0a43ad;
-  --color-blue-900: #0b2454;
+  --color-blue-50: #eaf2fe;
+  --color-blue-100: #c9defe;
+  --color-blue-200: #9ec5ff;
+  --color-blue-300: #69a5ff;
+  --color-blue-400: #3385ff;
+  --color-blue-500: #1a75ff;
+  --color-blue-600: #0066ff;
+  --color-blue-700: #005eeb;
+  --color-blue-800: #0054d1;
+  --color-blue-900: #003e9c;
+  --color-blue-950: #002966;
 
-  --color-gray-900: #0f1d3a;
+  --color-gray-50: #f7f7f8;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #eaebec;
+  --color-gray-300: #dbdcdf;
+  --color-gray-400: #aeb0b6;
+  --color-gray-500: #878a93;
+  --color-gray-600: #70737c;
+  --color-gray-700: #46474c;
+  --color-gray-800: #2e2f33;
+  --color-gray-900: #171719;
+  --color-gray-950: #0f0f10;
 
-  --font-sans: Pretendard, Inter, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  --font-wordmark: var(--font-nunito), Pretendard, system-ui, sans-serif;
+  --color-slate-50: #f7f7f8;
+  --color-slate-100: #f4f4f5;
+  --color-slate-200: #eaebec;
+  --color-slate-300: #dbdcdf;
+  --color-slate-400: #aeb0b6;
+  --color-slate-500: #878a93;
+  --color-slate-600: #70737c;
+  --color-slate-700: #46474c;
+  --color-slate-800: #2e2f33;
+  --color-slate-900: #171719;
+
+  --color-emerald-50: #f2fff6;
+  --color-emerald-100: #d9ffe6;
+  --color-emerald-200: #acfcc7;
+  --color-emerald-300: #7df5a5;
+  --color-emerald-400: #49e57d;
+  --color-emerald-500: #00bf40;
+  --color-emerald-600: #009632;
+  --color-emerald-700: #006e25;
+  --color-emerald-800: #004517;
+  --color-emerald-900: #00240c;
+
+  --color-amber-50: #fef4e6;
+  --color-amber-100: #fee6c6;
+  --color-amber-200: #ffd49c;
+  --color-amber-300: #ffc06e;
+  --color-amber-400: #ffa938;
+  --color-amber-500: #ff9200;
+  --color-amber-600: #d17600;
+  --color-amber-700: #9c5800;
+  --color-amber-800: #663a00;
+  --color-amber-900: #361e00;
+
+  --color-red-50: #feecec;
+  --color-red-100: #fed5d5;
+  --color-red-200: #ffb5b5;
+  --color-red-300: #ff8c8c;
+  --color-red-400: #ff6363;
+  --color-red-500: #ff4242;
+  --color-red-600: #e52222;
+  --color-red-700: #b00c0c;
+  --color-red-800: #730303;
+  --color-red-900: #3b0101;
+
+  --color-violet-50: #f0ecfe;
+  --color-violet-100: #dbd3fe;
+  --color-violet-200: #c0b0ff;
+  --color-violet-300: #9e86fc;
+  --color-violet-400: #7d5ef7;
+  --color-violet-500: #6541f2;
+  --color-violet-600: #5b37ed;
+  --color-violet-700: #4f29e5;
+  --color-violet-800: #3a16c9;
+  --color-violet-900: #23098f;
+
+  /* Montage 둥글기: 버튼·입력 10px, 카드·메뉴 16px */
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+
+  /* Montage elevation.shadow.normal */
+  --shadow-xs: 0px 1px 2px -1px #1717171a;
+  --shadow-sm: 0px 2px 4px -2px #1717170f, 0px 4px 6px -1px #1717170f;
+  --shadow-md: 0px 4px 6px -2px #17171712, 0px 10px 15px -3px #17171712;
+  --shadow-lg: 0px 6px 10px -4px #17171714, 0px 16px 24px -6px #17171714;
+  --shadow-xl: 0px 10px 15px -5px #1717171a, 0px 24px 38px -10px #1717171f;
+
+  /* CDN(pretendardvariable)이 등록하는 이름은 "Pretendard Variable" */
+  --font-sans: "Pretendard Variable", "Pretendard JP Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-wordmark: var(--font-nunito), "Pretendard Variable", system-ui, sans-serif;
 }
 
 /* 사이드바처럼 오래 떠 있는 스크롤 영역: 얇고 옅게 */
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #d4dceb transparent;
+  scrollbar-color: var(--color-gray-300) transparent;
 }
 
 /* 휴식 중 에이전트 프로필의 Zzz — 가볍게 떠오르기만 한다 */

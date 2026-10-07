@@ -121,8 +121,10 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
         <IconButton
           icon={Plus}
           label="새 프로젝트"
+          variant="outlined"
+          tone="primary"
           onClick={() => setCreating(true)}
-          className={cn("border border-line bg-white text-blue-600! hover:text-blue-700!", wide ? "size-9" : "size-10")}
+          className={wide ? "size-9 p-2" : "size-10"}
         />
       )}
       <NewProjectModal open={creating} onClose={closeCreate} />

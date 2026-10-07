@@ -1,23 +1,15 @@
 import type { ReactNode } from "react";
+import { ContentBadge, type ThemeColorsToken } from "@wanteddev/wds";
 import type { BadgeVariant, StatusMeta } from "@/constants/status";
 import { cn } from "@/lib/cn";
 
-const VARIANT_CLASS: Record<BadgeVariant, string> = {
-  neutral: "bg-gray-100 text-gray-600",
-  primary: "bg-blue-50 text-blue-700",
-  success: "bg-emerald-50 text-emerald-700",
-  warning: "bg-amber-50 text-amber-700",
-  danger: "bg-red-50 text-red-700",
-  rest: "bg-violet-50 text-violet-600",
-};
-
-const DOT_CLASS: Record<BadgeVariant, string> = {
-  neutral: "bg-gray-400",
-  primary: "bg-blue-500",
-  success: "bg-emerald-500",
-  warning: "bg-amber-500",
-  danger: "bg-red-500",
-  rest: "bg-violet-300",
+/** 상태 → Montage ContentBadge 색. neutral만 회색 바탕, 나머지는 그 색을 옅게 깐다. */
+const ACCENT: Record<Exclude<BadgeVariant, "neutral">, ThemeColorsToken> = {
+  primary: "semantic.primary.normal",
+  success: "semantic.accent.foreground.green",
+  warning: "semantic.accent.foreground.orange",
+  danger: "semantic.accent.foreground.red",
+  rest: "semantic.accent.foreground.violet",
 };
 
 interface BadgeProps {
@@ -29,16 +21,15 @@ interface BadgeProps {
 
 export function Badge({ variant = "neutral", dot = false, className, children }: BadgeProps) {
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-        VARIANT_CLASS[variant],
-        className,
-      )}
+    <ContentBadge
+      size="small"
+      color={variant === "neutral" ? "neutral" : "accent"}
+      accentColor={variant === "neutral" ? undefined : ACCENT[variant]}
+      leadingContent={dot ? <span className="size-1.5 rounded-full bg-current" aria-hidden /> : undefined}
+      className={cn("shrink-0 whitespace-nowrap", className)}
     >
-      {dot && <span className={cn("size-1.5 rounded-full", DOT_CLASS[variant])} />}
       {children}
-    </span>
+    </ContentBadge>
   );
 }
 

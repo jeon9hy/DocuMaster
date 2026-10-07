@@ -3,6 +3,7 @@ import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
 import type { AgentId } from "@/types";
 import { AgentAvatar } from "../agent/AgentAvatar";
+import { MarkdownLite } from "../artifact/MarkdownLite";
 import { HandoffMessage } from "./HandoffMessage";
 
 interface AgentMessageProps {
@@ -27,14 +28,14 @@ export function AgentMessage({ agentId, toAgentId, text, createdAt }: AgentMessa
             {formatTime(createdAt)}
           </time>
         </header>
-        <p
+        <div
           className={cn(
-            "mt-1.5 inline-block max-w-[640px] break-words rounded-xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-gray-800",
+            "mt-1.5 inline-block max-w-[640px] break-words rounded-2xl rounded-tl-sm px-4 py-3",
             profile.accent.soft,
           )}
         >
-          {text}
-        </p>
+          <MarkdownLite text={text} className="space-y-1 text-sm text-gray-800" />
+        </div>
       </div>
     </article>
   );

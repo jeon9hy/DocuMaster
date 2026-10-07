@@ -10,9 +10,15 @@ if not exist server\.venv (
   python -m venv server\.venv || goto :error
   server\.venv\Scripts\python -m pip install -q -r server\requirements.txt || goto :error
 )
-if not exist node_modules (
-  echo 처음 실행이라 화면에 필요한 파일을 설치합니다...
-  call npm install || goto :error
+rem 원티드 Montage(@wanteddev/wds)는 GitHub Packages에 있어 read:packages 권한 토큰이 필요하다(README 「알아 둘 점」)
+if not exist node_modules\@wanteddev\wds (
+  echo 화면에 필요한 파일을 설치합니다...
+  call npm install || (
+    echo Montage 설치에 GitHub 토큰이 필요할 수 있습니다:
+    echo   gh auth refresh -h github.com -s read:packages
+    echo   그다음 PowerShell에서: npm config set "//npm.pkg.github.com/:_authToken" "$(gh auth token)"
+    goto :error
+  )
 )
 
 rem 로이드가 셸의 python으로 부르는 렌더·검사 도구의 모듈. 없으면 실행 도중 설치하느라 멈추지 않게 미리 설치한다

@@ -10,6 +10,9 @@
     "test": "node --test --experimental-eventsource --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --disable-warning=ExperimentalWarning --import ./tests/register.mjs \"tests/**/*.test.ts\""
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@wanteddev/wds": "3.12.2",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
     "react": "19.2.8",

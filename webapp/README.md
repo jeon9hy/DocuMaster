@@ -79,7 +79,7 @@ PIN을 바꾸려면 설정 → 계정, 또는 `server`에서 `.venv\Scripts\pyth
 
 ```
 src/
-├─ app/                 layout.tsx(폰트·메타) · page.tsx(Provider + AppShell) · globals.css(색 테마)
+├─ app/                 layout.tsx(폰트·메타) · page.tsx(Provider + AppShell) · globals.css(색 테마) · MontageProvider.tsx(원티드 Montage 연결)
 ├─ types/               도메인 타입: Agent · Artifact · Reference · FeedItem · WorkflowEvent · ProjectWorkspace
 ├─ constants/           한곳에서 관리하는 값
 │  ├─ agents.ts         팀 명단(이름·역할·색·기본 모델·avatarSrc)
@@ -100,7 +100,7 @@ src/
 ├─ lib/                 순수 함수: applyWorkflowEvent · eventToFeedItem · progress · stageContext · models …
 ├─ hooks/               useArtifactContent · useStickToBottom · useDismiss
 └─ components/
-   ├─ ui/               Badge · Button · Modal · Drawer · Dropdown · Select · Panel · ProgressBar · States
+   ├─ ui/               Badge · Button · Modal · Drawer · Dropdown · Select · Panel · ProgressBar · States (Button·IconButton·Badge·Modal·SegmentedControl은 Montage 래퍼)
    ├─ layout/           AppShell · TopHeader · LeftSidebar · RightSidebar · MobileTabBar · BrandLogo
    ├─ workflow/         WorkflowStepper · StageDetail · WorkflowSummary · StageStatusIcon
    ├─ chat/             ActivityFeed · AgentMessage · SystemEvent · ArtifactCard · UserMessage · PromptInput
@@ -117,7 +117,8 @@ public/
 
 | 하고 싶은 일 | 고칠 곳 |
 | --- | --- |
-| 색 바꾸기 | `src/app/globals.css`의 `@theme` (blue 계열 = 로고 파랑) |
+| 색 바꾸기 | `src/app/globals.css`의 `@theme` (Tailwind 색 스케일을 Montage 원자 색으로 덮어씀: blue = 원티드 블루 #0066FF, gray = coolNeutral) |
+| 버튼·배지·모달 모양 | `src/components/ui/` — Montage 컴포넌트를 앱 API로 감싼 곳. 화면 코드는 `@wanteddev/wds`를 직접 쓰지 않음 |
 | 로고를 원본 PNG로 | `public/brand/`에 파일 → `constants/brand.ts` 경로 |
 | 캐릭터 실제 이미지 | `public/avatars/`에 파일 → `constants/agents.ts`의 `avatarSrc` |
 | 모델 추가 | `constants/models.ts` |
@@ -170,7 +171,9 @@ API 키는 두지 않습니다 — claude·codex·nlm은 각 CLI에 로그인된
 
 ## 알아 둘 점
 
-- 본문 서체 Pretendard는 CDN에서 불러옵니다(오프라인이면 시스템 서체로 대체). 워드마크 서체 Nunito는 빌드 때 Google Fonts에서 받습니다.
+- 본문 서체 Pretendard는 CDN에서 불러옵니다(등록 이름 `Pretendard Variable` · 오프라인이면 시스템 서체로 대체). 워드마크 서체 Nunito는 빌드 때 Google Fonts에서 받습니다.
+- **UI는 원티드 디자인 시스템 [Montage](https://github.com/wanteddev/montage-web)(`@wanteddev/wds`, MIT)를 씁니다.** Emotion 기반이라 `MontageProvider`가 스타일을 `@layer wds`(Tailwind base와 utilities 사이)에 넣습니다 — Tailwind className이 Montage 스타일을 덮을 수 있습니다. 색 변수는 `@wanteddev/wds/theme.css`만 가져오고 Montage의 리셋(`global.css`)은 쓰지 않습니다(Tailwind preflight와 충돌). `wds-*` 패키지는 모두 같은 버전이어야 해서 `package.json`에 정확한 버전으로 고정합니다.
+- Montage는 공개 npm이 아니라 **GitHub Packages**에 있습니다. 저장소의 `.npmrc`는 레지스트리 주소만 갖고, 토큰은 PC마다 한 번 사용자 npm 설정에 넣습니다: `gh auth refresh -h github.com -s read:packages` → `npm config set "//npm.pkg.github.com/:_authToken" "$(gh auth token)"`. 무료이며 토큰은 저장소에 커밋하지 않습니다.
 - 캐릭터 초상은 머리색·배경색만 따온 단순 SVG입니다. 실제 이미지는 `public/avatars/`에 직접 넣으세요.
 - 목록이 수백 줄 이상 길어지면 `ActivityFeed`의 `FeedRow`를 가상 스크롤 목록에 넣으면 됩니다(행 컴포넌트는 이미 분리·memo 처리됨).
 
