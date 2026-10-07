@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS runs (
   agent_config_json TEXT,              -- 실행 시작 때 고정한 에이전트 설정(실행 중 바꿔도 이 실행에는 적용 안 됨)
   kind            TEXT NOT NULL DEFAULT 'workflow',  -- workflow(조사부터 최종까지) · revise(완료 문서 첨삭)
   session_id      TEXT,                -- revise만: 원래 작업 세션과 따로 연 로이드 세션
+  revise_target   TEXT,                -- revise만: 고치는 최종 PDF 이름(중단 뒤 이어 할 때 같은 대상을 넘긴다)
   started_at      TEXT NOT NULL,
   finished_at     TEXT
 );
@@ -188,6 +189,8 @@ class Database:
             self._conn.execute("ALTER TABLE runs ADD COLUMN kind TEXT NOT NULL DEFAULT 'workflow'")
         if "session_id" not in columns:
             self._conn.execute("ALTER TABLE runs ADD COLUMN session_id TEXT")
+        if "revise_target" not in columns:
+            self._conn.execute("ALTER TABLE runs ADD COLUMN revise_target TEXT")
         project_columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(projects)")}
         if "deleted_at" not in project_columns:
             self._conn.execute("ALTER TABLE projects ADD COLUMN deleted_at TEXT")

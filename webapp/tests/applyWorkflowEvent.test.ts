@@ -105,3 +105,24 @@ test("로컬에서 사라진 작업물은 목록과 피드에서 함께 제거�
   assert.deepEqual(workspace.artifacts, []);
   assert.equal(workspace.feed.some((item) => item.kind === "artifact"), false);
 });
+
+test("끊긴 첨삭: 단계 상태는 그대로 두고 「첨삭 이어서」 대상을 기억했다가 다시 시작하면 지운다", () => {
+  const steps = toEvents([
+    { type: "workflow.stage.completed", stageId: "finalReview" },
+    { type: "workflow.started" },
+    { type: "workflow.stage.started", stageId: "finalReview" },
+    { type: "workflow.failed", stageId: "finalReview", reason: "모델 사용량 한도에 걸렸습니다.", revise: true },
+    { type: "revise.paused", target: "연습문제.pdf" },
+  ]);
+  let workspace = emptyWorkspace(PROJECT);
+  for (const event of steps) workspace = applyWorkflowEvent(workspace, event);
+  assert.equal(workspace.runStatus, "failed");
+  assert.notEqual(workspace.stageStatus.finalReview, "error");
+  assert.equal(workspace.pausedRevise, "연습문제.pdf");
+  const failed = workspace.feed.findLast((item) => item.kind === "system");
+  assert.ok(failed?.kind === "system" && failed.title === "첨삭 중단");
+
+  const [restarted] = toEvents([{ type: "workflow.started" }], 10);
+  workspace = applyWorkflowEvent(workspace, restarted);
+  assert.equal(workspace.pausedRevise, null);
+});

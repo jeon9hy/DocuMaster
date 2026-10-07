@@ -34,8 +34,11 @@ export type WorkflowEventPayload =
   | { type: "workflow.completed"; summary?: RunSummary }
   /** 사용자가 중지를 요청함 — 현재 단계가 끝나면 멈춘다(graceful stop) */
   | { type: "workflow.stop.requested" }
-  | { type: "workflow.stopped"; stageId: WorkflowStageId }
-  | { type: "workflow.failed"; stageId: WorkflowStageId; reason: string }
+  /** revise: 완료 문서의 첨삭 실행이 멈춤 — 원래 작업의 단계 상태는 그대로 둔다 */
+  | { type: "workflow.stopped"; stageId: WorkflowStageId; revise?: boolean }
+  | { type: "workflow.failed"; stageId: WorkflowStageId; reason: string; revise?: boolean }
+  /** 첨삭이 중지·오류(사용량 한도 등)로 끊김 — 실행 버튼이 같은 세션으로 이어 간다. target = 고치던 최종 PDF 이름 */
+  | { type: "revise.paused"; target: string }
   /** 다른 프로젝트가 실행 중이라 예약함 — 앞 실행이 완료·오류로 끝나면 시작한다 */
   | { type: "workflow.queued" }
   /** 예약 취소(사용자 · 시작할 수 없게 됨). 예약이 실제로 시작되면 이 이벤트 없이 workflow.started가 온다 */

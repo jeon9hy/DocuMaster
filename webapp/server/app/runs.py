@@ -63,6 +63,12 @@ REVISE_STATUS = "진행 중 첨삭"
 REVISE_PROMPT = ("완료된 문서의 첨삭 요청이다. `.claude/skills/doc-revise`를 따른다 — 상태 줄은 웹앱이 이미 "
                  f"「{REVISE_STATUS}」으로 두었다. 요르·유리는 부르지 않는다. 대상 밖의 최종 PDF는 건드리지 않는다."
                  "\n\n[첨삭 대상] {target}\n\n[첨삭 요청]\n")
+# 중지·오류(사용량 한도 등)로 끊긴 첨삭을 같은 세션으로 이어 갈 때의 문장
+REVISE_RESUME_PROMPT = ("중단됐던 첨삭(`.claude/skills/doc-revise`)을 이어서 한다 — 상태 줄은 웹앱이 다시 "
+                        f"「{REVISE_STATUS}」으로 두었다. 중단 때 하위 에이전트(아냐)의 작업은 끝나지 않았을 수 있다. "
+                        "작업 폴더의 최신 07 새 버전과 revise 기록을 보고 남은 지시 항목부터 잇는다. "
+                        "대상 밖의 최종 PDF는 건드리지 않는다.\n\n[첨삭 대상] {target}")
+_REVISE_REQUEST_LINE = "첨삭 요청 · "
 
 
 class ConflictError(RuntimeError):
@@ -140,8 +146,10 @@ class RunManager:
                     raise ConflictError("이 프로젝트는 이미 실행 중이거나 응답을 기다리고 있습니다.")
                 raise BusyError("다른 프로젝트가 실행 중입니다. 한 번에 하나만 실행할 수 있습니다.")
             self._drop_from_queue(project_id)
-            first_turn = project["session_id"] is None
             result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
+            if result.finished:  # _check_startable이 끊긴 첨삭이 있을 때만 통과시킨다
+                return self._resume_revise(project, self._paused_revise(project_id))
+            first_turn = project["session_id"] is None
 
             run_id = f"run_{uuid.uuid4().hex[:12]}"
             self._db.execute(
@@ -156,10 +164,11 @@ class RunManager:
 
     def _check_startable(self, project: dict) -> None:
         self._projects.require_writable(project)
-        if project["session_id"] is None and not self._projects.has_undelivered_messages(project["id"]):
+        if (project["session_id"] is None and not self._projects.has_undelivered_messages(project["id"])
+                and not self._paused_revise(project["id"])):
             raise InvalidRequestError("먼저 작업 요청을 입력해 주세요. 요청 문장이 로이드에게 그대로 전달됩니다.")
         result = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
-        if result.finished:
+        if result.finished and not self._paused_revise(project["id"]):
             raise InvalidRequestError("이미 완료된 작업입니다.")
 
     # --- 첨삭 --------------------------------------------------------------------
@@ -189,16 +198,58 @@ class RunManager:
 
             run_id = f"run_{uuid.uuid4().hex[:12]}"
             self._db.execute(
-                "INSERT INTO runs (id, project_id, status, started_at, agent_config_json, kind, session_id)"
-                " VALUES (?, ?, 'running', ?, ?, 'revise', ?)",
-                (run_id, project_id, now_iso(), self._agent_settings.snapshot_json(), str(uuid.uuid4())),
+                "INSERT INTO runs (id, project_id, status, started_at, agent_config_json, kind, session_id, revise_target)"
+                " VALUES (?, ?, 'running', ?, ?, 'revise', ?, ?)",
+                (run_id, project_id, now_iso(), self._agent_settings.snapshot_json(), str(uuid.uuid4()), document.name),
             )
-            self._events.append(project_id, {"type": "user.message", "text": f"첨삭 요청 · {document.name}\n" + text},
-                                run_id)
+            self._events.append(project_id, {"type": "user.message",
+                                             "text": f"{_REVISE_REQUEST_LINE}{document.name}\n" + text}, run_id)
             self._events.append(project_id, {"type": "workflow.started"}, run_id)
             prompt = REVISE_PROMPT.format(target=document.relative_to(work_root).as_posix()) + text
             self._launch(run_id, project_id, prompt, resume=False, progress=Progress.resume_from(result))
             return run_id
+
+    def _paused_revise(self, project_id: str) -> dict | None:
+        """이 프로젝트의 마지막 실행이 중지·오류로 끝난 첨삭이면 그 실행. 새 첨삭·실행이 뒤에 있으면 없다."""
+        row = self._db.one("SELECT * FROM runs WHERE project_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1",
+                           (project_id,))
+        if row is None or row["kind"] != "revise" or row["status"] not in ("stopped", "failed"):
+            return None
+        return dict(row)
+
+    def _paused_revise_target(self, run: dict) -> str | None:
+        """끊긴 첨삭이 고치던 PDF 이름. 열이 생기기 전 실행은 시작 때 남긴 「첨삭 요청 · <PDF>」 줄에서 읽는다."""
+        if run.get("revise_target"):
+            return run["revise_target"]
+        row = self._db.one("SELECT payload_json FROM events WHERE run_id = ? AND type = 'user.message'"
+                           " ORDER BY seq LIMIT 1", (run["id"],))
+        text = json.loads(row["payload_json"]).get("text", "") if row else ""
+        first = text.splitlines()[0] if text else ""
+        if not first.startswith(_REVISE_REQUEST_LINE):
+            return None
+        return first[len(_REVISE_REQUEST_LINE):].strip() or None
+
+    def _resume_revise(self, project: dict, paused: dict | None) -> str:
+        """끊긴 첨삭을 같은 로이드 세션(--resume)으로 잇는다 — 첨삭 요청·반영 판정을 다시 하지 않게."""
+        if paused is None:
+            raise InvalidRequestError("이미 완료된 작업입니다.")
+        project_id = project["id"]
+        document = self._revise_target(project, self._paused_revise_target(paused))
+        work_root = self._projects.work_root(project)
+        self._set_state_line(work_root, project["workspace_id"], REVISE_STATUS, "doc-revise",
+                             note=f"첨삭 이어서 — 중단된 실행 {paused['id']}")
+        result = scan(work_root, project["workspace_id"], project["mode"])
+        run_id = f"run_{uuid.uuid4().hex[:12]}"
+        self._db.execute(
+            "INSERT INTO runs (id, project_id, status, started_at, agent_config_json, kind, session_id, revise_target)"
+            " VALUES (?, ?, 'running', ?, ?, 'revise', ?, ?)",
+            (run_id, project_id, now_iso(), self._agent_settings.snapshot_json(), paused["session_id"], document.name),
+        )
+        self._events.append(project_id, {"type": "workflow.started"}, run_id)
+        prompt = _with_queued(REVISE_RESUME_PROMPT.format(target=document.relative_to(work_root).as_posix()),
+                              self._projects.take_undelivered_messages(project_id))
+        self._launch(run_id, project_id, prompt, resume=True, progress=Progress.resume_from(result))
+        return run_id
 
     def _revise_target(self, project: dict, target: str | None) -> Path:
         """완료된 문서 모드일 때 최종/<유형>/<ID>/의 최종 PDF(이전판 제외) 중 고칠 것 하나(발표는 아냐 대상이 아니다)."""
@@ -490,11 +541,12 @@ class RunManager:
                          reason="모델 실행값이 홈페이지 설정과 달라 중단했습니다. " + " ".join(model_problems),
                          error_code="model_config_mismatch")
             return
-        if turn.stop_requested:
+        code = classify_error(result) if result.exit_code != 0 or result.is_error else None
+        # 중지 요청 뒤라도 한도에 걸려 끝났으면 그 이유(풀리는 시각)를 알린다 — 「중지」로만 보이지 않게
+        if turn.stop_requested and code != "usage_limit":
             self._finish(turn.run_id, turn.project_id, "stopped", stage)
             return
-        if result.exit_code != 0 or result.is_error:
-            code = classify_error(result)
+        if code:
             if code == "permission_check_unavailable" and turn.permission_retries < 1:
                 self._retry_after_permission_outage(turn, stage)
                 return
@@ -578,7 +630,9 @@ class RunManager:
     def _finish(self, run_id: str, project_id: str, status: str, stage: str,
                 reason: str = "", error_code: str | None = None) -> None:
         self._set_run(run_id, status=status, finished_at=now_iso(), error_code=error_code)
-        if status != "completed" and self._run_row(run_id).get("kind") == "revise":
+        run = self._run_row(run_id)
+        paused_revise = status != "completed" and run.get("kind") == "revise"
+        if paused_revise:
             self._restore_after_revise(run_id, project_id)
         if status == "completed":
             payload = {"type": "workflow.completed"}
@@ -589,7 +643,11 @@ class RunManager:
         else:
             payload = {"stopped": {"type": "workflow.stopped", "stageId": stage},
                        "failed": {"type": "workflow.failed", "stageId": stage, "reason": reason}}[status]
+            if paused_revise:
+                payload["revise"] = True  # 첨삭이 멈춘 것 — 원래 작업의 단계 상태는 그대로다
         self._events.append(project_id, payload, run_id)
+        if paused_revise:
+            self._announce_paused_revise(run, project_id)
         if status == "completed":
             self._sync_to_git(run_id, project_id)
         if status in ("completed", "failed"):
@@ -603,7 +661,8 @@ class RunManager:
         if scan(work_root, project["workspace_id"], project["mode"]).finished:
             return  # 로이드가 이미 교체하고 닫았다
         try:
-            self._set_state_line(work_root, project["workspace_id"], "완료", "없음 — 첨삭 중단, 최종본은 이전 그대로",
+            self._set_state_line(work_root, project["workspace_id"], "완료",
+                                 "없음 — 첨삭 중단(웹앱 「첨삭 이어서」로 같은 세션 재개), 최종본은 이전 그대로",
                                  note=f"첨삭 실행 {run_id} 중단 — 최종본 교체 전")
         except InvalidRequestError:
             log.exception("첨삭 중단 뒤 상태를 되돌리지 못했습니다: %s", run_id)
@@ -611,6 +670,11 @@ class RunManager:
                 "type": "workflow.warning", "stageId": "finalReview",
                 "message": "첨삭을 멈춘 뒤 상태 파일을 「완료」로 되돌리지 못했습니다. 최종본은 이전 그대로입니다.",
             }, run_id)
+
+    def _announce_paused_revise(self, run: dict, project_id: str) -> None:
+        """화면이 「첨삭 이어서」 버튼을 켜도록 알린다. 이어 가기는 start()가 같은 세션으로 한다."""
+        target = self._paused_revise_target(run)
+        self._events.append(project_id, {"type": "revise.paused", "target": target or ""}, run["id"])
 
     def _sync_to_git(self, run_id: str, project_id: str) -> None:
         """완료된 프로젝트의 작업·최종 파일과 manifest만 커밋·푸시한다. 실패는 대화에 경고로만 남긴다."""
@@ -711,6 +775,13 @@ class RunManager:
                 "message": "백엔드가 다시 시작되어 진행 중이던 실행이 중단되었습니다. 「워크플로우 실행」으로 이어서 할 수 있습니다.",
             }, run["id"])
             self._finish(run["id"], run["project_id"], "stopped", stage)
+        # 이 기능 전에 끊긴 첨삭도 화면에서 이어 갈 수 있게 알림을 한 번 채운다
+        for project in self._db.query("SELECT DISTINCT r.project_id FROM runs r JOIN projects p ON p.id = r.project_id"
+                                      " WHERE r.kind = 'revise' AND p.deleted_at IS NULL"):
+            paused = self._paused_revise(project["project_id"])
+            if paused and not self._db.one("SELECT 1 FROM events WHERE run_id = ? AND type = 'revise.paused'",
+                                           (paused["id"],)):
+                self._announce_paused_revise(paused, project["project_id"])
 
     def shutdown(self) -> None:
         """백엔드를 끌 때 로이드 프로세스를 남겨 두지 않는다(보이지 않는 곳에서 비용이 나지 않게)."""

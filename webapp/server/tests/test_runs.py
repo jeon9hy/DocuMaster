@@ -384,3 +384,54 @@ def test_stopped_revise_restores_finished_state(client, settings):
     wait_until(lambda: "workflow.stopped" in types_of(client, project_id))
     state = next((settings.repo_root / "webapp" / ".data" / "sandbox" / "작업").glob("*/상태.md"))
     assert "상태: 완료" in state.read_text(encoding="utf-8")
+
+
+def test_revise_cut_by_usage_limit_resumes_in_the_same_session(client, settings):
+    project_id = finished_document(client)
+    final = next((settings.repo_root / "webapp" / ".data" / "sandbox" / "최종").glob("*/*/*.pdf")).parent
+    workspace_id = final.name
+    practice = f"{workspace_id}_연습문제.pdf"
+    (final / practice).write_bytes(b"%PDF-1.4 practice")
+    response = client.post(f"/api/projects/{project_id}/revise",
+                           json={"text": "수식을 한 줄로 [revise-limit]", "target": practice})
+    first_run = response.json()["runId"]
+    failed = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "workflow.failed"), None))
+    # 한도 이유와 풀리는 시각을 알리고, 원래 작업의 단계는 건드리지 않는다
+    assert "사용량 한도" in failed["reason"] and "3:10pm (Asia/Seoul)" in failed["reason"] and failed["revise"] is True
+    paused = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "revise.paused"), None))
+    assert paused["target"] == practice
+    state = next((settings.repo_root / "webapp" / ".data" / "sandbox" / "작업").glob("*/상태.md"))
+    assert "상태: 완료" in state.read_text(encoding="utf-8")
+
+    # 완료된 작업이어도 실행 버튼이 같은 세션으로 첨삭을 잇는다. 기다리는 동안 보낸 지시도 함께 넘긴다
+    assert client.post(f"/api/projects/{project_id}/messages", json={"text": "하던 작업 이어서"}).status_code == 201
+    response = client.post(f"/api/projects/{project_id}/runs")
+    assert response.status_code == 202, response.text
+    second_run = response.json()["runId"]
+    wait_until(lambda: [e for e in events_of(client, project_id)
+                        if e["type"] == "workflow.completed" and e.get("runId") == second_run])
+    db = sqlite3.connect(settings.db_path)
+    rows = dict(db.execute("SELECT id, session_id FROM runs WHERE id IN (?, ?)", (first_run, second_run)).fetchall())
+    assert rows[first_run] == rows[second_run]
+    assert db.execute("SELECT kind, revise_target FROM runs WHERE id = ?", (second_run,)).fetchone() == (
+        "revise", practice)
+    # 고르던 PDF만 새 버전이 된다
+    assert (final / f"{workspace_id}_연습문제_v01.pdf").read_bytes() == b"%PDF-1.4 practice"
+    assert not list(final.glob(f"{workspace_id}_v*.pdf"))
+    # 끝난 뒤에는 다시 「이미 완료」
+    assert client.post(f"/api/projects/{project_id}/runs").status_code == 400
+
+
+def test_restart_backfills_paused_revise_from_older_runs(settings):
+    with owner_client(settings) as client:
+        project_id = finished_document(client)
+        client.post(f"/api/projects/{project_id}/revise", json={"text": "고쳐줘 [revise-limit]"})
+        wait_until(lambda: "revise.paused" in types_of(client, project_id))
+    db = sqlite3.connect(settings.db_path)
+    # 이 기능 전의 기록처럼: 대상 열과 알림이 없다
+    db.execute("UPDATE runs SET revise_target = NULL WHERE kind = 'revise'")
+    db.execute("DELETE FROM events WHERE type = 'revise.paused'")
+    db.commit()
+    with owner_client(settings) as client:
+        paused = next(e for e in events_of(client, project_id) if e["type"] == "revise.paused")
+        assert paused["target"].endswith(".pdf")

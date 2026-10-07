@@ -19,6 +19,8 @@ interface PromptInputProps {
   /** 다른 프로젝트가 끝나면 시작하도록 예약됨 */
   queued?: boolean;
   isComplete: boolean;
+  /** 중지·오류(사용량 한도 등)로 끊긴 첨삭이 고치던 PDF 이름 — 있으면 완료된 작업이어도 「첨삭 이어서」 */
+  pausedRevise?: string | null;
   /** 기존 CLI 작업을 읽기 전용으로 연 프로젝트 */
   readOnly?: boolean;
 }
@@ -28,9 +30,17 @@ interface PromptInputProps {
  * - 「지시 보내기」: 메시지만 남긴다. 실행 중이면 현재 단계가 끝난 뒤 반영된다.
  * - 「워크플로우 실행」: 입력한 지시가 있으면 먼저 보낸 뒤 멈춘 단계부터 실행한다.
  * - 실행 중에는 「중지 요청」: 현재 단계가 끝나면 멈춘다(graceful stop).
+ * - 끊긴 첨삭이 있으면 완료된 작업이어도 「첨삭 이어서」 — 같은 로이드 세션으로 멈춘 곳부터 잇는다.
  * - 다른 프로젝트가 실행 중이면 「끝나면 자동 시작 예약」을 제안하고, 예약 중에는 「예약 취소」.
  */
-export function PromptInput({ teamIds, runStatus, queued = false, isComplete, readOnly = false }: PromptInputProps) {
+export function PromptInput({
+  teamIds,
+  runStatus,
+  queued = false,
+  isComplete,
+  pausedRevise = null,
+  readOnly = false,
+}: PromptInputProps) {
   const { sendMessage, runWorkflow, queueWorkflow, cancelQueuedWorkflow, stopWorkflow } = useAppActions();
   const [offerQueue, setOfferQueue] = useState(false);
   const isOwner = useIsOwner();
@@ -111,6 +121,8 @@ export function PromptInput({ teamIds, runStatus, queued = false, isComplete, re
   }
 
   const isActive = runStatus === "running" || runStatus === "awaitingInput";
+  const resumeRevise = isComplete && pausedRevise !== null;
+  const done = isComplete && !resumeRevise;
 
   return (
     <div className="border-t border-line bg-white px-3 py-3 md:px-5">
@@ -182,13 +194,19 @@ export function PromptInput({ teamIds, runStatus, queued = false, isComplete, re
           ) : (
             <Button
               variant="primary"
-              icon={isComplete ? CheckCircle2 : Play}
+              icon={done ? CheckCircle2 : Play}
               onClick={handleRun}
-              disabled={isComplete}
-              title="입력한 지시가 있으면 먼저 보낸 뒤, 멈춘 단계부터 워크플로우를 실행합니다."
+              disabled={done}
+              title={
+                resumeRevise
+                  ? `입력한 지시가 있으면 먼저 보낸 뒤, 멈춘 ${pausedRevise || "최종본"} 첨삭을 같은 세션으로 이어서 합니다.`
+                  : "입력한 지시가 있으면 먼저 보낸 뒤, 멈춘 단계부터 워크플로우를 실행합니다."
+              }
             >
-              <span className="sm:hidden">{isComplete ? "완료됨" : "실행"}</span>
-              <span className="hidden sm:inline">{isComplete ? "완료됨" : "워크플로우 실행"}</span>
+              <span className="sm:hidden">{done ? "완료됨" : resumeRevise ? "이어서" : "실행"}</span>
+              <span className="hidden sm:inline">
+                {done ? "완료됨" : resumeRevise ? "첨삭 이어서" : "워크플로우 실행"}
+              </span>
             </Button>
           )}
         </div>

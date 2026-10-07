@@ -226,6 +226,11 @@ def main() -> int:
     prompt = sys.stdin.buffer.read().decode("utf-8")
     loid = FakeLoid(args.work_root, args.session_id, args.step_seconds, args.workspace_id)
     emit({"type": "system", "subtype": "init", "session_id": args.session_id, "model": "fake-orchestrator"})
+    if args.revise and "[revise-limit]" in prompt:  # 첨삭 도중 사용량 한도(claude 실측 문구) — 이어 가는 턴에는 이 표시가 없다
+        loid.write("07_final_document_v02.md", "# 최종 문서\n## 요약\n고치다 만 요약")
+        emit({"type": "result", "subtype": "success", "is_error": True, "api_error_status": 429,
+              "result": "You've hit your session limit · resets 3:10pm (Asia/Seoul)", "session_id": args.session_id})
+        return 1
     if args.revise:
         text = revise_turn(loid, prompt)
     else:

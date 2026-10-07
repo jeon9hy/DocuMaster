@@ -19,12 +19,16 @@ function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): Projec
       return {
         ...workspace,
         queued: false,
+        pausedRevise: null,
         runStatus: "running",
         agents: setAgentStatus(workspace.agents, () => true, "idle"),
       };
 
     case "workflow.completed":
-      return { ...workspace, runStatus: "completed", pendingInputs: [] };
+      return { ...workspace, runStatus: "completed", pendingInputs: [], pausedRevise: null };
+
+    case "revise.paused":
+      return { ...workspace, pausedRevise: event.target };
 
     case "workflow.stop.requested":
       return { ...workspace, runStatus: "stopping" };
@@ -35,7 +39,7 @@ function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): Projec
         runStatus: "stopped",
         pendingInputs: [],
         stageStatus:
-          workspace.stageStatus[event.stageId] === "running"
+          !event.revise && workspace.stageStatus[event.stageId] === "running"
             ? { ...workspace.stageStatus, [event.stageId]: "pending" }
             : workspace.stageStatus,
         agents: setAgentStatus(workspace.agents, (agent) => agent.status === "working", "idle"),
@@ -58,7 +62,7 @@ function applyToState(workspace: ProjectWorkspace, event: WorkflowEvent): Projec
         ...workspace,
         runStatus: "failed",
         pendingInputs: [],
-        stageStatus: { ...workspace.stageStatus, [event.stageId]: "error" },
+        stageStatus: event.revise ? workspace.stageStatus : { ...workspace.stageStatus, [event.stageId]: "error" },
         agents: setAgentStatus(workspace.agents, (agent) => agent.status === "working", "error"),
       };
 

@@ -57,6 +57,8 @@ export interface ProjectWorkspace {
   pendingInputs: UserInputRequest[];
   /** 실행 예약됨(다른 프로젝트가 끝나면 시작). 없으면 false */
   queued?: boolean;
+  /** 끊긴 첨삭이 고치던 최종 PDF 이름(있으면 실행 버튼이 「첨삭 이어서」). 없으면 null/undefined */
+  pausedRevise?: string | null;
   /** 이 상태에 반영된 마지막 이벤트 번호. 이어 받기(replay)와 중복 제거에 쓴다. */
   lastEventSeq: number;
 }

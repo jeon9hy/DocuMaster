@@ -416,7 +416,8 @@ ERROR_MESSAGES = {
     "claude_auth_required": "Claude Code 로그인이 필요합니다. 터미널에서 `claude`를 실행해 로그인한 뒤 다시 시도하세요.",
     "codex_auth_required": "Codex 로그인이 필요합니다. 터미널에서 `codex login`을 완료한 뒤 다시 시도하세요.",
     "notebooklm_login_required": "NotebookLM 로그인이 필요합니다. 터미널에서 `nlm login`을 완료한 뒤 다시 시도하세요.",
-    "usage_limit": "모델 사용량 한도에 걸렸습니다. 한도가 풀린 뒤 「워크플로우 실행」으로 이어서 하세요(모델은 바꾸지 않습니다).",
+    "usage_limit": ("모델 사용량 한도에 걸렸습니다. 한도가 풀린 뒤 입력창 오른쪽 실행 버튼으로 멈춘 곳부터 이어서 하세요"
+                    "(같은 세션 · 모델은 바꾸지 않습니다)."),
     "permission_check_unavailable": ("Claude Code의 명령 안전 검사(auto 모드, Anthropic 서버 쪽)가 응답하지 않아 명령을 실행하지 "
                                      "못했습니다. 일시 장애입니다 — 잠시 뒤 「워크플로우 실행」으로 이어서 하세요."),
     "agent_process_error": "에이전트 프로세스가 오류로 끝났습니다.",
@@ -436,6 +437,12 @@ def classify_error(result: TurnResult) -> str:
 
 def describe_error(code: str, result: TurnResult | None = None) -> str:
     message = ERROR_MESSAGES.get(code, ERROR_MESSAGES["agent_process_error"])
+    if code == "usage_limit" and result:
+        # 「You've hit your session limit · resets 3:10pm (Asia/Seoul)」 — 풀리는 시각만 옮긴다
+        reset = re.search(r"resets\s+([^\n·]+?)\s*$", f"{result.result_text}\n{result.stderr_tail}".strip(),
+                          re.IGNORECASE | re.MULTILINE)
+        if reset:
+            message += f" 풀리는 시각: {reset.group(1)}"
     if code == "agent_process_error" and result:
         detail = (result.result_text or result.stderr_tail).strip().splitlines()
         if detail:

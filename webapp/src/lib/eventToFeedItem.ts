@@ -96,9 +96,15 @@ export function eventToFeedItem(
         ...base,
         kind: "system",
         tone: "warning",
-        title: "실행 중지",
-        detail: `다시 실행하면 ${STAGE_BY_ID[event.stageId].label} 단계부터 이어서 합니다.`,
+        title: event.revise ? "첨삭 중지" : "실행 중지",
+        detail: event.revise
+          ? "최종본은 이전 그대로입니다. 「첨삭 이어서」로 멈춘 곳부터 같은 세션으로 이어서 합니다."
+          : `다시 실행하면 ${STAGE_BY_ID[event.stageId].label} 단계부터 이어서 합니다.`,
       };
+
+    // 상태만 바꾼다(버튼) — 알림 문구는 바로 앞의 중지·실패 줄이 한다
+    case "revise.paused":
+      return null;
 
     case "project.mode.decided":
       return {
@@ -141,8 +147,8 @@ export function eventToFeedItem(
         ...base,
         kind: "system",
         tone: "error",
-        title: `${STAGE_BY_ID[event.stageId].label} 단계 실패`,
-        detail: event.reason,
+        title: event.revise ? "첨삭 중단" : `${STAGE_BY_ID[event.stageId].label} 단계 실패`,
+        detail: event.revise ? `${event.reason} 최종본은 이전 그대로입니다.` : event.reason,
       };
 
     case "agent.started":

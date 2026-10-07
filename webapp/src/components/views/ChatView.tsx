@@ -34,6 +34,7 @@ export function ChatView() {
         runStatus={workspace.runStatus}
         queued={workspace.queued ?? false}
         isComplete={isWorkflowComplete(workspace.stageStatus)}
+        pausedRevise={workspace.pausedRevise ?? null}
         readOnly={workspace.project.readOnly}
       />
     </div>
