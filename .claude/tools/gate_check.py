@@ -355,11 +355,11 @@ SENTENCE_END = re.compile(r"(?<=\S)[.!?]+(?=\s|$)")
 
 
 def sentences_of(paragraph: str) -> list[str]:
-    """문단에서 본문 문장만 — 표·제목·블록·코드 줄은 뺀다."""
+    """문단에서 본문 문장만 — 표·제목·블록·코드·수식(`$$`) 줄은 뺀다."""
     out = []
     for line in paragraph.splitlines():
         line = re.sub(r"\[S\d+\]", "", line).strip()
-        if not line or line.startswith(("|", "#", ":::", "---", "```", "!", "<!--")):
+        if not line or line.startswith(("|", "#", ":::", "---", "```", "!", "<!--", "$$")):
             continue
         line = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", line)  # 링크는 보이는 글자만 센다
         start = 0
@@ -450,7 +450,7 @@ OPENER_LIMIT = 5
 def check_openers(target: str) -> None:
     """문단을 같은 말로 여는 버릇(문서규격 §2 리듬) — 10-02 회사생존법: 11개 문단이 「가령」으로 시작했다.
 
-    캡션(`자료:` 등)·숫자로 시작하는 말(연도)·한 글자 지시어(이·그)는 세지 않는다.
+    캡션(`자료:` 등)·수식 블록(`$$…$$`)·숫자로 시작하는 말(연도)·한 글자 지시어(이·그)는 세지 않는다.
     """
     body = re.split(r"^:::\s*sources\b", target, maxsplit=1, flags=re.M)[0]
     body = re.sub(r"```.*?```", "", body, flags=re.S)
@@ -458,7 +458,7 @@ def check_openers(target: str) -> None:
     counts: Counter = Counter()
     for paragraph in re.split(r"\n\s*\n", body):
         paragraph = paragraph.strip()
-        if not paragraph or paragraph.startswith(("#", "|", "-", "*", ">", ":::", "!", "<!--")) \
+        if not paragraph or paragraph.startswith(("#", "|", "-", "*", ">", ":::", "!", "<!--", "$$")) \
                 or re.match(r"\d+\.", paragraph):
             continue
         word = re.match(r"[^\s,.:]+", paragraph)
