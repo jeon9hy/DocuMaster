@@ -58,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         active = {row["id"] for row in services.db.query(f"SELECT id FROM runs WHERE status IN {ACTIVE_STATUSES}")}
         prune_run_logs(settings.log_dir, settings.log_retention_days, active)
         import_existing_projects(services)
+        services.projects.reconcile_modes()
         app.state.services = services
         try:
             yield

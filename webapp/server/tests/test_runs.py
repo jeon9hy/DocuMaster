@@ -100,7 +100,8 @@ def test_run_requires_a_request_and_blocks_duplicates(settings):
 
 
 def test_graceful_stop_waits_for_the_current_stage_then_resumes(settings):
-    with owner_client(replace(settings, fake_step_seconds=0.5)) as client:
+    # 단계가 짧으면 중지 요청이 도착하기 전에 가짜 로이드가 01까지 써 버려, 재개 때 기획 확인 질문이 나오지 않는다(느린 PC에서 재현)
+    with owner_client(replace(settings, fake_step_seconds=2.0)) as client:
         project_id = create_project(client)
         start(client, project_id, "보고서를 써줘")
         wait_until(lambda: "agent.started" in types_of(client, project_id))

@@ -60,13 +60,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialAppState);
   const { projectId, reloadToken } = state;
 
-  const loadProjects = useCallback(async (selectId?: string) => {
+  const loadProjects = useCallback(async (selectId?: string, keepView = false) => {
     const projects = await workspaceService.listProjects();
     dispatch({ type: "projects/loaded", projects });
     // 처음 열 때는 아무것도 고르지 않는다. 주소의 프로젝트(새로고침)나 방금 만든 프로젝트만 선택하고,
     // 없는 프로젝트(삭제·다른 DB의 주소)면 선택을 비운다
     const target = projects.some((project) => project.id === selectId) ? selectId : undefined;
-    dispatch(target ? { type: "project/selected", projectId: target } : { type: "project/cleared" });
+    dispatch(target ? { type: "project/selected", projectId: target, keepView } : { type: "project/cleared" });
   }, []);
 
   const applySession = useCallback((session: AuthSession) => dispatch({ type: "session/changed", session }), []);
@@ -79,7 +79,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // 새로고침이면 주소의 화면으로, 처음 열면 홈(DEFAULT_VIEW)으로. 프로젝트는 주소에서 이어받는다
     const fromUrl = readUrlState();
     if (fromUrl.view) dispatch({ type: "view/changed", view: fromUrl.view });
-    loadProjects(fromUrl.projectId).catch(() => dispatch({ type: "workspace/failed" }));
+    loadProjects(fromUrl.projectId, true).catch(() => dispatch({ type: "workspace/failed" }));
     // 백엔드가 없으면 로그인 확인도 실패한다 — 그때는 Guest(읽기 전용)로 둔다
     refreshSession().catch(() =>
       applySession({ configured: false, authenticated: false, pinManagedByEnv: false, profile: null }),

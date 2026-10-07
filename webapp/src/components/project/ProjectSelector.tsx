@@ -2,11 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { ChevronDown, Folder, Plus } from "lucide-react";
-import { PROJECT_MODE_LABEL } from "@/constants/navigation";
 import { cn } from "@/lib/cn";
 import { useAppActions, useAppState, useIsOwner } from "@/state/WorkspaceProvider";
 import type { ProjectSummary } from "@/types";
-import { Badge } from "../ui/Badge";
+import { ModeBadge } from "./ModeBadge";
 import { IconButton } from "../ui/Button";
 import { Dropdown, DropdownItem } from "../ui/Dropdown";
 import { NewProjectModal } from "./NewProjectModal";
@@ -87,7 +86,7 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
                         }}
                       >
                         <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                        <Badge>{PROJECT_MODE_LABEL[project.mode]}</Badge>
+                        <ModeBadge mode={project.mode} />
                       </DropdownItem>
                     ))}
                     {hidden > 0 && (

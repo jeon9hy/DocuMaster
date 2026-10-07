@@ -17,7 +17,7 @@ from .config import Settings
 from .db import Database, now_iso
 from .events import EventStore
 from .files import FileStore, UnsafePathError, reference_kind_of
-from . import git_sync, scanner
+from . import contract, git_sync, scanner
 
 log = logging.getLogger(__name__)
 
@@ -71,9 +71,30 @@ class ProjectService:
 
     def list(self) -> list[dict]:
         rows = self._db.query(
-            "SELECT p.*, (SELECT MAX(created_at) FROM events e WHERE e.project_id = p.id) AS last_activity_at"
+            # 열람만으로 생기는 정리 기록(없어진 파일 카드 제거)은 활동이 아니다 — 열어 본 프로젝트가 「최근」으로 뛰지 않게
+            "SELECT p.*, (SELECT MAX(created_at) FROM events e WHERE e.project_id = p.id"
+            " AND e.type != 'artifact.removed') AS last_activity_at"
             " FROM projects p WHERE p.deleted_at IS NULL ORDER BY p.source = 'imported', p.created_at DESC")
         return [summary_of(row) for row in rows]
+
+    def reconcile_modes(self) -> int:
+        """모드가 판정되지 않은(auto) 프로젝트의 모드를 작업 폴더의 상태.md 헤더(`모드: DOCUMENT|PRESENTATION`)에서 채운다.
+        00에 모드 줄이 없어도 상태.md에는 늘 있다. 판정 이벤트는 만들지 않는다(대화·마지막 활동에 안 뜨게)."""
+        decided = 0
+        for row in self._db.query(
+                "SELECT * FROM projects WHERE mode = 'auto' AND deleted_at IS NULL"
+                " AND workspace_id IS NOT NULL AND work_root IS NOT NULL"):
+            state = self.work_root(dict(row)) / "작업" / row["workspace_id"] / "상태.md"
+            try:
+                head = state.read_text(encoding="utf-8", errors="replace")[:2000]
+            except OSError:
+                continue
+            mode = contract.mode_from_brief(head)
+            if mode:
+                self._db.execute("UPDATE projects SET mode = ?, updated_at = ? WHERE id = ?",
+                                 (mode, now_iso(), row["id"]))
+                decided += 1
+        return decided
 
     def get(self, project_id: str) -> dict:
         row = self._db.one("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,))

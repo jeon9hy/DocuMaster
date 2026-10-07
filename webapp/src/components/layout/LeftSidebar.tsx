@@ -1,11 +1,11 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { GLOBAL_NAV, PROJECT_MODE_LABEL, PROJECT_NAV, type ViewId } from "@/constants/navigation";
+import { GLOBAL_NAV, PROJECT_NAV, type ViewId } from "@/constants/navigation";
 import { useAppActions, useAppState, useIsOwner } from "@/state/WorkspaceProvider";
 import { AddReferenceButton } from "../reference/AddReferenceButton";
 import { ReferenceList } from "../reference/ReferenceList";
-import { Badge } from "../ui/Badge";
+import { ModeBadge } from "../project/ModeBadge";
 import { Button } from "../ui/Button";
 import { SectionLabel } from "../ui/Panel";
 import { WorkflowSummary } from "../workflow/WorkflowSummary";
@@ -31,13 +31,10 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <div>
             <SectionLabel>현재 프로젝트</SectionLabel>
             <div className="rounded-xl border border-line bg-surface p-2">
-              <div className="px-3 pt-1 pb-3">
-                <div className="flex items-center gap-2">
-                  <p className="min-w-0 truncate text-sm font-semibold text-label">
-                    {workspace.project.name}
-                  </p>
-                  <Badge variant="primary">{PROJECT_MODE_LABEL[workspace.project.mode]}</Badge>
-                </div>
+              {/* 제목과 형식은 메뉴와 같은 파란 바탕 상자에 담아, 아래 메뉴 줄과 같은 폭·왼쪽선으로 맞춘다 */}
+              <div className="mb-1 flex items-center gap-2 rounded-lg bg-primary/8 px-3 py-2.5">
+                <p className="min-w-0 truncate text-sm font-semibold text-primary-heavy">{workspace.project.name}</p>
+                <ModeBadge mode={workspace.project.mode} variant="primary" className="bg-surface" />
               </div>
               <NavList items={PROJECT_NAV} activeView={view} onSelect={navigate} />
             </div>

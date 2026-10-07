@@ -12,6 +12,7 @@ import { StatusBadge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { ProgressBar } from "../ui/ProgressBar";
 import { StageStatusIcon } from "../workflow/StageStatusIcon";
+import { RecentActivity } from "./RecentActivity";
 import { ViewContainer, ViewHeader } from "./ViewHeader";
 
 function StatCard({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
@@ -101,6 +102,10 @@ export function DashboardView() {
           })}
         </ol>
       </section>
+
+      <div className="mt-6">
+        <RecentActivity workspace={workspace} />
+      </div>
     </ViewContainer>
   );
 }

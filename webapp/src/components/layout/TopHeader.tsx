@@ -28,7 +28,7 @@ export function TopHeader({ onOpenLeft, onToggleRight, rightCollapsed }: TopHead
     <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-3 px-3 md:h-16 md:px-5">
         {/* lg 이상에서는 왼쪽 사이드바 폭(260px) − 헤더 여백 20px − 간격 12px만큼 채워 프로젝트 선택의 왼쪽 끝이 사이드바 경계선(가운데 화면의 모서리)에 맞는다 */}
-        <div className="flex items-center gap-3 lg:w-[228px] lg:shrink-0">
+        <div className="flex shrink-0 items-center gap-3 lg:w-[228px]">
           <IconButton icon={Menu} label="메뉴 열기" onClick={onOpenLeft} className="lg:hidden" />
           <BrandLogo onHome={() => setView("home")} />
         </div>

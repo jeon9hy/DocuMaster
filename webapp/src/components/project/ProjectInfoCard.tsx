@@ -36,9 +36,11 @@ export function ProjectInfoCard({ project, doc }: ProjectInfoCardProps) {
               {documentKindLabel(doc.kind)}
             </span>
           )}
-          <span className="rounded-md bg-fill px-1.5 py-0.5 font-medium text-label-alternative">
-            {PROJECT_MODE_LABEL[mode]}
-          </span>
+          {mode !== "auto" && (
+            <span className="rounded-md bg-fill px-1.5 py-0.5 font-medium text-label-alternative">
+              {PROJECT_MODE_LABEL[mode]}
+            </span>
+          )}
           {doc && (
             <time dateTime={doc.date} className="text-label-alternative">
               {formatShortDate(doc.date)}

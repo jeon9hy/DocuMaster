@@ -1,4 +1,4 @@
-import { DEFAULT_VIEW, type ViewId } from "@/constants/navigation";
+import { DEFAULT_VIEW, GLOBAL_NAV, type ViewId } from "@/constants/navigation";
 import { applyWorkflowEvent } from "@/lib/applyWorkflowEvent";
 import type { ConnectionState } from "@/services/WorkspaceService";
 import type {
@@ -35,7 +35,8 @@ export interface AppState {
 export type AppAction =
   | { type: "projects/loaded"; projects: ProjectSummary[] }
   | { type: "session/changed"; session: AuthSession }
-  | { type: "project/selected"; projectId: string }
+  /** keepView: 처음 열 때 주소의 프로젝트를 이어받는 경우 — 보던 화면을 바꾸지 않는다 */
+  | { type: "project/selected"; projectId: string; keepView?: boolean }
   | { type: "library/opened"; projectId: string; artifactId: string | null }
   | { type: "project/cleared" }
   | { type: "workspace/loaded"; workspace: ProjectWorkspace }
@@ -76,10 +77,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "session/changed":
       return { ...state, session: action.session };
 
-    case "project/selected":
-      if (action.projectId === state.projectId) return state;
+    case "project/selected": {
+      // 프로젝트를 골라 들어오면 기본 화면은 대시보드. 이미 프로젝트 안 화면(대화·작업물…)에 있으면 그대로 둔다
+      const view =
+        !action.keepView && GLOBAL_NAV.some((item) => item.id === state.view) ? "dashboard" : state.view;
+      if (action.projectId === state.projectId) return view === state.view ? state : { ...state, view };
       return {
         ...state,
+        view,
         projectId: action.projectId,
         workspace: null,
         workspaceStatus: "loading",
@@ -87,6 +92,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         selectedArtifactId: null,
         pendingArtifactId: null,
       };
+    }
 
     case "library/opened":
       // 같은 프로젝트면 워크스페이스를 다시 받지 않고 고르기만 한다

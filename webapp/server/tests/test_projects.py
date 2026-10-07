@@ -120,3 +120,32 @@ def test_delete_failure_keeps_project_visible(settings, monkeypatch):
         assert response.json()["detail"]["code"] == "delete_failed"
         assert client.get(f"/api/projects/{project_id}/workspace").status_code == 200
         assert work.exists()
+
+
+def test_opening_a_project_does_not_make_it_the_latest_activity(client):
+    """열람만으로 생기는 정리 기록(artifact.removed)은 「마지막 활동」이 아니다 — 열어 본 프로젝트가 최근으로 뛰지 않는다."""
+    project_id = create_project(client, "열어 보기")
+    client.post(f"/api/projects/{project_id}/messages", json={"text": "시작"})
+    before = next(p for p in client.get("/api/projects").json() if p["id"] == project_id)["lastActivityAt"]
+
+    services = client.app.state.services
+    services.events.append(project_id, {"type": "artifact.removed", "artifactId": "art_missing"})
+
+    after = next(p for p in client.get("/api/projects").json() if p["id"] == project_id)["lastActivityAt"]
+    assert after == before
+
+
+def test_reconcile_modes_fills_auto_from_status_header(settings, client):
+    """00에 모드 줄이 없어 auto로 남은 프로젝트도 작업 폴더의 상태.md 헤더에서 문서/발표를 채운다."""
+    project_id = create_project(client, "모드 보정")  # auto
+    services = client.app.state.services
+    row = services.projects.get(project_id)
+    state = services.projects.work_root(row) / "작업" / row["workspace_id"] / "상태.md"
+    state.parent.mkdir(parents=True, exist_ok=True)
+    state.write_text("# 모드보정 — 테스트 · 모드: PRESENTATION\n상태: 완료\n", encoding="utf-8")
+
+    assert services.projects.reconcile_modes() == 1
+    assert services.projects.get(project_id)["mode"] == "presentation"
+    # 판정 이벤트는 만들지 않는다(대화·마지막 활동에 안 뜬다), 다시 돌려도 바뀔 것이 없다
+    assert "project.mode.decided" not in [e["type"] for e in events_of(client, project_id)]
+    assert services.projects.reconcile_modes() == 0
