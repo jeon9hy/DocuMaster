@@ -1,0 +1,24 @@
+# L2 Subsurface Exploration / In-situ Test (51p) — 교안 직독 노트 전반부 (쪽=PDF쪽=슬라이드 번호)
+- p2 지반조사 정의: 구조물 하부 지층(퇴적층)과 그 물리적 특성을 파악하는 과정. 목적 4: 층서 파악, 기반암 깊이, 층별 설계정수(강도·강성 위주), 지하수위
+- p3 측정법 분류도: 현장(저변형률: 표면탄성파[굴절·반사·Rayleigh/SASW]·공내법[suspension·cross-hole·down-hole·seismic cone] / 고변형률: SPT·Becker·Cone·Dilatometer·Pressuremeter), 실내(저변형률: 공진주·초음파·벤더엘리먼트 / 고변형률: 반복삼축·반복DSS·반복비틂전단), 모형시험(진동대·원심기)
+- p4 현장시험 장비 그림: SPT·CPT·DMT·PMT·VST [그림 p4 크롭 후보]
+- p5~6 SPT(ASTM D1586): 63.5 kg 해머 76 cm 낙하, 스플릿스푼 샘플러 외경 50.8 mm(2 in), 길이 76 cm, 3회 15 cm 관입. 첫 15 cm 타격수는 무시(공저 교란), 둘째·셋째 15 cm(총 30 cm) 합 = N. 1.5~2 m마다 실시. 에너지효율 45~78%, 보통 60% 기준 → N60 [그림 p5]
+- p7 보정: N60 = N·ηH·ηB·ηS·ηR / 60 (ηH 해머효율%, ηB 시추공경, ηS 샘플러, ηR 로드길이). (N1)60 = CN·N60, CN=√(1/σ'vo) (σ'vo는 atm 단위, 1 atm=1 bar=100 kPa), 표에서는 CN=(Pa/σ'vo)^0.5, 단 ≤2. [그림 p7: Bazaara·Seed·Liao&Whitman]
+- p8 보정계수표: ηH 안전해머 0.6~0.85 / 도넛해머 0.3~0.6 / 자동해머 0.85~1.0; ηB 65~115 mm 1.00 / 150 mm 1.05 / 200 mm 1.15; ηS 표준샘플러 1.0 / 라이너 없음 1.1~1.3; ηR 10~30 m 1.0 / 6~10 m 0.95 / 4~6 m 0.85 / 3~4 m 0.75
+- p9 사질토 상관: Wolff(1989) φ'=27.1+0.3N60−0.00054N60²; Kulhawy&Mayne(1990) φ'=tan⁻¹[N60/(12.2+20.3(σ'0/pa))]^0.34; Hatanaka&Uchida(1996) φ'=√(20(N1)60)+20. Dr과도 상관
+- p10 점토 Table 2.3 N60 → 연경도 / qu(kPa): 0–2 매우연약 0–25; 2–5 연약 25–50; 5–10 보통 50–100; 10–20 견고 100–200; 20–30 매우견고 200–400; >30 고결 >400 [그림 p10 표]
+- p11 스플릿스푼 시료: 점토는 일부 특성 유지, 모래는 다져져서 Dr 결정 불가. 면적비 Ar(%)=(Do²−Di²)/Di², 스플릿스푼 Ar=110%, Ar<10% → 불교란시료
+- p12 Shelby tube: 이음매 없는 강관, 불교란 점토 채취, 외경 50.8 mm(2 in)·76.2 mm(3 in), 압밀·전단 실내시험용. 2 in tube Ar=13% (슬라이드에 Do=50.8 cm, Di=47.63 cm로 표기 — 단위 오기, mm가 맞음: (50.8²−47.63²)/47.63²=13.8%≈13%) 
+- p13~14 **예제 17.1(SPT, 모래)**: 지하수위는 10.5 m 안에서 미관찰, 평균 γ=17.3 kN/m³, pa≈100 kPa. 자료 z=1.5/3.0/4.5/6.0/7.5 m, N60=8/7/12/14/13. 풀이: σ'0=γz=25.95/51.90/77.85/103.80/129.75 kPa; CN=[1/(σ'0/pa)]^0.5=1.96/1.39/1.13/0.98/0.87; (N1)60=CN·N60≈16/10/14/14/11
+- p15 **예제 17.2**: 17.1 자료로 Kulhawy&Mayne 식 φ' 평균 추정 → φ'=37.5/33.8/36.9/36.7/34.6°, 평균≈36°. 비교로 Hatanaka&Uchida도 표시
+- p16 φ'–깊이 그래프: Wolff는 29~31°대로 작음, Kulhawy&Mayne와 Hatanaka&Uchida는 비슷(34~38°) [그림]
+- p17~18 CPT(ASTM D5778): 원통 프로브+원뿔 팁, 관입속도 2 cm/s, 팁저항 qc, 주면마찰 fs, 간극수압 u 연속 측정(10~50 mm 간격 읽기), 선단 60°. 일부는 지오폰 장착(Vs). qt=qc+(1−an)u [그림 p17]
+- p19 CPT: 원래 Dutch cone; 60° 콘, 밑면적 1,000 mm², 직경 35.7 mm; qc와 fc 측정, 모래에서 N60과 상관
+- p20 토질 분류도: Robertson & Campanella(1983) qc–Fr(%) (Sands/Silty sands/Sandy silts/Clayey silts/Silty clays/Clays/Peat), Robertson et al.(1986) 12 zone [그림 p20]
+- p21 정규화 분류도: Olsen&Malone(1988), Robertson(1990) SBT 1~9 (Normalized Q–FR) [그림]
+- p22 CPT 상관: cu=(qc−σo)/Nk, Nk=15(전기식 콘), 범위 10~20 ; su/σ'vo=((qc−σvo)/σ'vo)(1/Nk). 사질토 φ'=tan⁻¹[0.1+0.38 log(qc/σ'o)] (Kulhawy&Mayne 1990). E: Schmertmann(1970) Es=2qc; Trofimenkov(1974) Es=3qc(사질토)·7qc(점토)
+- p23 CPT 프로파일(qc, fs, u, su) [그림]; Robertson(1990) Fr chart
+- p25 Seismic CPT: 4개 독립 측정 — 팁저항 qt, 간극수압 u, 주면마찰 fs, 하향 전단파 도달시간 ts(→Vs)
+- p26 VST(ASTM D2573): 4날 베인 D=62.5 mm, H=130 mm(H/D=2), 6°/분 회전, 최대 토크 Tmax → Suv=6Tmax/(7πD³)(H/D=2), 이후 10회전 후 잔류토크로 예민비 St=Suv(peak)/Suv(remolded). [그림 p26]
+- p27 VST 보정: Su(mobilized=design)=μ·Su(VST); μ=1.7−0.54 log(PI) (Bjerrum 1973). 보정이유: 전단방향, 파괴시간, 교란, 진행파괴 [그림 p27]
+- 예제 17.1 검산: 25.95/100→CN=1/√0.2595=1.963 ✓, ×8=15.7≈16 ✓; 3.0 m: 1/√0.519=1.388, ×7=9.7≈10 ✓
