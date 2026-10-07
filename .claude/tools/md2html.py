@@ -123,6 +123,8 @@ hr { border: none; border-top: 0.6pt solid var(--rule); margin: 18pt 0; }
 code { font-family: "Consolas", monospace; font-size: 8.8pt; background: #f2f3f5;
        padding: 0.5pt 3pt; border-radius: 2pt; }
 pre { background: #f6f7f8; border-radius: 3pt; padding: 8pt 10pt; page-break-inside: avoid; }
+.math-block { margin: 7pt 0; text-align: center; page-break-inside: avoid; }
+math { font-size: 1.08em; }
 pre code { background: none; padding: 0; font-size: 8.4pt; line-height: 1.5; }
 
 /* 표 — 세로선 없이 가로 괘선만 */
@@ -266,16 +268,35 @@ def number_sources(md):
         SOURCE_NO.setdefault(sid, len(SOURCE_NO) + 1)
 
 
+# 수식: `$…$`(문장 속) · `$$…$$`(별도 블록)을 MathML로 바꾼다 — 브라우저가 직접 그리므로 네트워크·글꼴 파일이 필요 없다.
+# 여는 `$` 바로 뒤와 닫는 `$` 바로 앞은 공백이 아니어야 한다(「$5와 $10」 같은 금액은 수식이 아니다).
+RE_MATH = re.compile(r"(?<![\\$])\$(?=\S)([^$\n]*?\S)\$(?!\d)")
+
+
+def math_html(tex, display=False):
+    """LaTeX → MathML. 못 바꾸면 경고를 남기고 코드 조각으로 둔다."""
+    try:
+        from latex2mathml.converter import convert
+        return convert(tex.strip(), display="block" if display else "inline")
+    except Exception as error:  # 라이브러리 없음·문법 오류 모두 — 문서는 계속 굽는다
+        WARNINGS.append("수식 변환 실패(%s): %s" % (type(error).__name__, tex.strip()[:60]))
+        return "<code>%s</code>" % html.escape(tex.strip())
+
+
 def inline(text):
-    """인라인 문법을 HTML로. 코드 조각은 먼저 빼 두어 굵게/링크 치환에 오염되지 않게 한다."""
+    """인라인 문법을 HTML로. 코드·수식 조각은 먼저 빼 두어 굵게/링크 치환에 오염되지 않게 한다."""
     out = html.escape(text)
     kept = []
 
-    def stash(m):
-        kept.append("<code>" + m.group(1) + "</code>")
+    def stash_raw(rendered):
+        kept.append(rendered)
         return "\x00%d\x00" % (len(kept) - 1)
 
+    def stash(m):
+        return stash_raw("<code>" + m.group(1) + "</code>")
+
     out = RE_CODE.sub(stash, out)
+    out = RE_MATH.sub(lambda m: stash_raw(math_html(html.unescape(m.group(1)))), out)
     # 「정치·경제」「1~3일」처럼 기호로 붙은 말은 한 덩어리 — 브라우저는 「정치 / ·경제」로 끊는다
     out = RE_JOINED.sub(lambda m: "⁠" + m.group(0) + "⁠", out)
     out = RE_BOLD.sub(r"<strong>\1</strong>", out)
@@ -663,6 +684,18 @@ def convert(md, accent=DEFAULT_ACCENT):
             close_lists()
             out.append('<div class="pagebreak"></div>')
             i += 1
+            continue
+
+        if s.startswith("$$"):
+            close_lists()
+            buf = [s[2:]]
+            while not buf[-1].rstrip().endswith("$$") and i + 1 < len(lines):
+                i += 1
+                buf.append(lines[i].rstrip())
+            i += 1
+            tex = "\n".join(buf).rstrip()
+            tex = tex[:-2] if tex.endswith("$$") else tex
+            out.append('<div class="math-block">%s</div>' % math_html(tex, True))
             continue
 
         if s.startswith("```"):

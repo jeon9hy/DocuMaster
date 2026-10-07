@@ -2,3 +2,4 @@
 pymupdf>=1.28      # make_pdf · nlm_pipeline 검사 · 참고자료 판독(fitz)
 pillow>=12         # 모아보기 · fetch_images
 python-pptx>=1.0   # nlm_pipeline --slides-pptx 검사
+latex2mathml>=3.77  # md2html 수식($…$·$$…$$ → MathML, 순수 파이썬)

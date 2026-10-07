@@ -47,3 +47,13 @@ def test_front_matter_title_is_visible_without_cover(tmp_path, monkeypatch):
     assert md2html.main() == 0
     rendered = output.read_text(encoding="utf-8")
     assert "<h1>판단 메모</h1>" in rendered
+
+
+def test_math_renders_as_mathml_and_leaves_money_and_code_alone():
+    inline = md2html.inline(r"계수 $K_a = \frac{1-\sin\phi}{1+\sin\phi}$, 금액 $5와 $10, 코드 `$x$`")
+    assert inline.count("<math") == 1 and "<mfrac>" in inline
+    assert "$5와 $10" in inline and "<code>$x$</code>" in inline
+    md2html.WARNINGS.clear()
+    assert "<code>" in md2html.math_html("x^")  # 못 바꾸는 식은 경고 + 코드 조각
+    assert any("수식 변환 실패" in warning for warning in md2html.WARNINGS)
+    md2html.WARNINGS.clear()
