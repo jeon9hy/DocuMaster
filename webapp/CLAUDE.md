@@ -33,11 +33,3 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 `npx tsc --noEmit` → `npm run lint` → `npm test` → `npm run build`(dev 서버가 꺼져 있을 때만 — `.next`를 같이 써서 켜진 화면이 깨진다) · 백엔드 `server/.venv/Scripts/python -m pytest`.
 실제 에이전트(`DOCUMASTER_ORCHESTRATOR=claude`)는 사용자 승인 없이 돌리지 않는다.
 화면은 `npx next start -p 3123` 후 Edge 헤드리스(DevTools 프로토콜로 몇 초 뒤) 캡처. 끝나면 서버를 끈다.
-
-## 현재 상태 (세션 끝에 이 절만 고친다)
-- A~E 완료: fake 전체 경로 · 실제 Claude 실행(09-20 PPT 이전 흐름, 09-26 소형 DOCUMENT) 6단계 완료. 증거는 README 「Phase E 인수인계」.
-- 09-27: 요르는 `yor.py`로만 호출, 진행은 `yor_feed.py`가 로그를 읽어 피드로. Claude 사용량은 haiku 최소 호출로 실시간.
-- 09-28: 커밋 전 훅(`.githooks`) · 대화 정리(단계 구분선·전달문 접기·완료 카드·확인 대기 알림) · 실행 예약(`run_queue`) · 요르 `--json` · 로그 30일 보존.
-- 10-01: 문서 라이브러리(`/api/library` · `LibraryView`) — 최종본을 제목·날짜·유형으로 거르고 카드에서 작업물 화면으로 연다.
-- 10-07: 프로젝트 메뉴 「레퍼런스」 탭(`ReferencesView`, 모바일 탭 겸용) · 여러 파일 드래그 업로드(`FileDropZone` + `useReferenceFileUpload`, 서버는 한 건씩 차례로).
-- 10-07: 최종 PDF가 여러 부면 완료 카드에 모두(`finalArtifactIds`) · 첨삭은 PDF마다(`revise` body `target`, 이전판 `<이름>_vNN.pdf`).
