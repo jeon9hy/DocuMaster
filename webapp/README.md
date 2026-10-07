@@ -169,6 +169,10 @@ Agent Message / System Event / Artifact Card / User Message 구분 · @에이전
 `.env.example` 참고. 화면은 `NEXT_PUBLIC_API_URL`(없으면 목업)만 읽고, `DOCUMASTER_*`는 백엔드 전용입니다.
 API 키는 두지 않습니다 — claude·codex·nlm은 각 CLI에 로그인된 계정을 씁니다.
 
+모델 선택 직후 저장이 거절되면 `codex --version`을 확인하고 `npm install -g @openai/codex@latest`로 CLI를 업데이트한 뒤 설정을 새로고침합니다.
+Codex 앱과 PATH의 CLI는 같은 모델 캐시를 사용합니다. 구형 CLI의 사용량 조회가 최신 모델을 목록에서 지울 수 있습니다.
+2026-10-07에는 CLI 0.154.0의 사용량 조회로 GPT-6.1 Sol이 사라지는 현상을 재현했고, 0.160.1에서 목록 유지와 설정 저장을 확인했습니다.
+
 ## 알아 둘 점
 
 - 본문 서체 Pretendard는 CDN에서 불러옵니다(등록 이름 `Pretendard Variable` · 오프라인이면 시스템 서체로 대체). 워드마크 서체 Nunito는 빌드 때 Google Fonts에서 받습니다.

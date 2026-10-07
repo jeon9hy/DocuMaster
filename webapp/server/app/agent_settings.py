@@ -155,6 +155,16 @@ class AgentSettingsService:
         if agent_id not in contract.DEFAULT_AGENT_CONFIGS:
             raise KeyError(agent_id)
         if not is_supported(agent_id, config, self._codex_home):
+            if agent_id == "yor" and config.get("provider") == "openai":
+                models = codex_models(self._codex_home)
+                model, effort = config.get("modelId"), config.get("reasoningLevel")
+                if model not in models:
+                    raise UnsupportedConfigError(
+                        f"Codex 모델 목록에 {model!r}이 없습니다. PATH의 Codex CLI를 업데이트한 뒤 "
+                        "설정을 새로고침하세요. Codex 앱과 구형 CLI가 같은 모델 캐시를 덮어쓸 수 있습니다."
+                    )
+                raise UnsupportedConfigError(f"{model}의 추론 강도 {effort!r}은 지원하지 않습니다. "
+                                             f"지원 값: {', '.join(models[model])}")
             raise UnsupportedConfigError(UNSUPPORTED_MESSAGE)
         self._save(agent_id, config)
 

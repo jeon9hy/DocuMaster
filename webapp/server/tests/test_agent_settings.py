@@ -72,7 +72,9 @@ def test_unsupported_settings_are_refused_not_substituted(client):
     for agent_id, config in cases:
         response = client.patch(f"/api/settings/agents/{agent_id}", json=config)
         assert response.status_code == 400, (agent_id, config)
-        assert response.json()["detail"]["message"] == "현재 선택한 모델 설정을 사용할 수 없습니다."
+        message = response.json()["detail"]["message"]
+        assert ("Codex 모델 목록" in message if agent_id == "yor"
+                else message == "현재 선택한 모델 설정을 사용할 수 없습니다.")
     assert all(not row["overridden"] for row in client.get("/api/settings/agents").json())
     assert client.patch("/api/settings/agents/nobody", json=OPUS_HIGH).status_code == 404
 
@@ -119,6 +121,25 @@ def test_codex_models_come_from_local_cache(tmp_path):
     assert codex_models(tmp_path / "none") == {"gpt-5.6-sol": ["xhigh"]}  # 목록이 없으면 기본값만
     write_codex_cache(tmp_path)
     assert codex_models(tmp_path) == {"gpt-5.6-sol": ["low", "xhigh", "ultra"], "gpt-5.5": ["high"]}
+
+
+def test_yor_catalog_replacement_explains_missing_model_and_recovers(client, tmp_path):
+    service = client.app.state.services.agent_settings
+    service._codex_home = tmp_path
+    cache = tmp_path / "models_cache.json"
+    modern = {"models": [{"slug": "gpt-6.1-sol", "visibility": "list",
+                          "supported_reasoning_levels": [{"effort": "xhigh"}]}]}
+    cache.write_text(json.dumps(modern), encoding="utf-8")
+    config = {"provider": "openai", "modelId": "gpt-6.1-sol", "reasoningLevel": "xhigh"}
+    assert "gpt-6.1-sol" in by_agent(client.get("/api/settings/agents").json())["yor"]["modelIds"]
+    write_codex_cache(tmp_path)  # 사용량 조회 중 구형 CLI가 최신 캐시를 덮어쓴 상황
+    failed = client.patch("/api/settings/agents/yor", json=config)
+    assert failed.status_code == 400 and "CLI를 업데이트" in failed.json()["detail"]["message"]
+    cache.write_text(json.dumps(modern), encoding="utf-8")
+    saved = client.patch("/api/settings/agents/yor", json=config)
+    assert saved.status_code == 200 and by_agent(saved.json())["yor"]["config"] == config
+    failed = client.patch("/api/settings/agents/yor", json={**config, "reasoningLevel": "low"})
+    assert failed.status_code == 400 and "지원 값: xhigh" in failed.json()["detail"]["message"]
 
 
 def test_yor_accepts_only_listed_model_and_effort(settings, tmp_path):
