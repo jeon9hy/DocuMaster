@@ -5,7 +5,7 @@ import { useServiceData } from "@/hooks/useServiceData";
 import { splitFinalArtifacts } from "@/lib/library";
 import { workspaceService } from "@/services";
 import { useAppActions, useAppState, useIsOwner, useWorkspace } from "@/state/WorkspaceProvider";
-import type { LibraryDocument } from "@/types";
+import type { Artifact, LibraryDocument } from "@/types";
 import { ArtifactList } from "../artifact/ArtifactList";
 import { ArtifactPreview } from "../artifact/ArtifactPreview";
 import { FinalArtifactsBlock } from "../artifact/FinalArtifactsBlock";
@@ -34,7 +34,7 @@ export function ArtifactsView() {
   const mode = doc?.mode ?? workspace.project.mode;
 
   const isOwner = useIsOwner();
-  const [revising, setRevising] = useState(false);
+  const [revising, setRevising] = useState<Artifact | null>(null);
   const busy = ["running", "awaitingInput", "stopping"].includes(workspace.runStatus);
   const reviseBlockedReason = !isOwner
     ? "로그인하면 첨삭할 수 있습니다"
@@ -53,7 +53,7 @@ export function ArtifactsView() {
           onSelect={selectArtifact}
           revisable={mode === "document"}
           reviseBlockedReason={reviseBlockedReason}
-          onRevise={() => setRevising(true)}
+          onRevise={setRevising}
         />
       )}
       <div className="grid gap-4 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -68,7 +68,7 @@ export function ArtifactsView() {
           <ArtifactPreview projectId={workspace.project.id} artifact={selected} tall />
         </Panel>
       </div>
-      {revising && <ReviseModal open onClose={() => setRevising(false)} />}
+      {revising && <ReviseModal open target={revising} onClose={() => setRevising(null)} />}
     </ViewContainer>
   );
 }

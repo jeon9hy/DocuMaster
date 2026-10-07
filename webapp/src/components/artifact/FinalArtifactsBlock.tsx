@@ -10,7 +10,7 @@ import { ArtifactIcon } from "./ArtifactIcon";
 interface FinalArtifactsBlockProps {
   /** PDF가 앞에 오게 정렬된 최종본(splitFinalArtifacts) */
   finals: Artifact[];
-  /** 첨삭으로 교체되기 전의 최종본(`<ID>_vNN.pdf`), 최근 것부터 */
+  /** 첨삭으로 교체되기 전의 최종본(`<이름>_vNN.pdf`), 최근 것부터 */
   previous: Artifact[];
   selectedId: string | null;
   onSelect: (artifactId: string) => void;
@@ -18,7 +18,14 @@ interface FinalArtifactsBlockProps {
   revisable: boolean;
   /** 첨삭 버튼을 못 누르는 이유(로그인 전·실행 중). 없으면 누를 수 있다 */
   reviseBlockedReason: string | null;
-  onRevise: () => void;
+  /** 최종 PDF마다 따로 첨삭한다(본문 + 연습문제처럼 여러 부일 때) */
+  onRevise: (artifact: Artifact) => void;
+}
+
+/** `<이름>.pdf`의 이전판(`<이름>_vNN.pdf`)이 있는가 */
+function hasPrevious(artifact: Artifact, previous: Artifact[]): boolean {
+  const stem = artifact.name.replace(/\.pdf$/i, "");
+  return previous.some((item) => item.name.replace(/_v\d{2}\.pdf$/i, "") === stem);
 }
 
 /** 최종검수를 통과한 파일만 따로 모은 맨 위 블록. 파일 줄은 전체 폭, 누르면 아래 미리보기에 연다. */
@@ -31,8 +38,6 @@ export function FinalArtifactsBlock({
   reviseBlockedReason,
   onRevise,
 }: FinalArtifactsBlockProps) {
-  // 첨삭 대상은 문서 본문 PDF 한 개 — 맨 앞 파일이 PDF일 때만
-  const revisableId = revisable && finals[0]?.fileType === "pdf" ? finals[0].id : null;
   // 이전판을 보고 있으면 펼친 채로 둔다
   const [showPrevious, setShowPrevious] = useState(() => previous.some((artifact) => artifact.id === selectedId));
 
@@ -67,7 +72,7 @@ export function FinalArtifactsBlock({
                     <span className="truncate text-sm font-medium text-gray-900" title={artifact.name}>
                       {artifact.name}
                     </span>
-                    {previous.length > 0 && artifact.fileType === "pdf" && (
+                    {artifact.fileType === "pdf" && hasPrevious(artifact, previous) && (
                       <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
                         최신
                       </span>
@@ -76,12 +81,12 @@ export function FinalArtifactsBlock({
                   <span className="block truncate text-xs text-gray-500">{formatTime(artifact.updatedAt)}</span>
                 </span>
               </button>
-              {artifact.id === revisableId && (
+              {revisable && artifact.fileType === "pdf" && (
                 <button
                   type="button"
-                  onClick={onRevise}
+                  onClick={() => onRevise(artifact)}
                   disabled={reviseBlockedReason !== null}
-                  title={reviseBlockedReason ?? "문장·구조를 고쳐 최종본을 새 버전으로 바꿉니다"}
+                  title={reviseBlockedReason ?? "문장·구조를 고쳐 이 PDF를 새 버전으로 바꿉니다"}
                   className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-50 disabled:text-blue-700/50"
                 >
                   <PenLine className="size-3.5" aria-hidden />

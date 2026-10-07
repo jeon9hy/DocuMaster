@@ -334,7 +334,35 @@ def test_revise_writes_a_new_07_and_replaces_the_final_in_its_own_session(client
     assert [doc["fileName"] for doc in library if doc["projectId"] == project_id] == [
         previous["name"].replace("_v01.pdf", ".pdf")]
     user_said = [e["text"] for e in events_of(client, project_id) if e["type"] == "user.message"]
-    assert user_said[-1].startswith("첨삭 요청\n")
+    assert user_said[-1].startswith(f"첨삭 요청 · {previous['name'].replace('_v01.pdf', '.pdf')}\n")
+
+
+def test_revise_targets_one_of_several_final_pdfs(client, settings):
+    project_id = finished_document(client)
+    final = next((settings.repo_root / "webapp" / ".data" / "sandbox" / "최종").glob("*/*/*.pdf")).parent
+    workspace_id = final.name
+    practice = f"{workspace_id}_연습문제.pdf"
+    (final / practice).write_bytes(b"%PDF-1.4 practice")
+    main_before = (final / f"{workspace_id}.pdf").read_bytes()
+
+    bad = client.post(f"/api/projects/{project_id}/revise", json={"text": "고쳐줘", "target": "없는파일.pdf"})
+    assert bad.status_code == 400
+    response = client.post(f"/api/projects/{project_id}/revise", json={"text": "풀이를 더 쉽게", "target": practice})
+    assert response.status_code == 202, response.text
+    run_id = response.json()["runId"]
+    completed = wait_until(lambda: next((e for e in events_of(client, project_id) if e["type"] == "workflow.completed"
+                                         and e.get("runId") == run_id), None))
+
+    # 고른 PDF만 새 버전이 되고 이전판을 남긴다 — 본문 PDF는 그대로
+    assert (final / f"{workspace_id}_연습문제_v01.pdf").read_bytes() == b"%PDF-1.4 practice"
+    assert (final / practice).read_bytes() != b"%PDF-1.4 practice"
+    assert (final / f"{workspace_id}.pdf").read_bytes() == main_before
+    assert not list(final.glob(f"{workspace_id}_v*.pdf"))
+    artifacts = {a["name"]: a for a in client.get(f"/api/projects/{project_id}/artifacts").json()}
+    assert artifacts[f"{workspace_id}_연습문제_v01.pdf"]["visibility"] == "internal"
+    # 완료 카드는 최종 PDF를 모두 싣는다
+    finals = completed["summary"]["finalArtifactIds"]
+    assert sorted(artifacts[name]["id"] for name in (f"{workspace_id}.pdf", practice)) == sorted(finals)
 
 
 def test_revise_only_for_finished_documents(client):

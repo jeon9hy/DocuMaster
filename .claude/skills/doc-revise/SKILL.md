@@ -8,12 +8,14 @@ user-invocable: true
 
 요르·유리를 부르지 않는다. 검증 라운드가 없으므로 **05에 없는 사실은 첨삭으로 들어오지 못한다**(CLAUDE.md §3). PPT는 대상이 아니다.
 `R` = 이 작업의 첨삭 회차(`output/revise_r*.md` 수 + 1). 07 원문 전체는 이 절차에서 한 번만 읽는다.
+**대상** = 요청의 `[첨삭 대상]` PDF(없으면 `<ID>.pdf`). `$PDF` = 그 이름(확장자 없이), `$DOC` = 그 PDF의 원고 07 —
+`<ID>.pdf`면 `07_final_document`, 그 밖이면 `상태.md` 07 칸·`기록.md`에서 찾는다(못 찾으면 묻는다). 최종본이 여러 부여도 대상 하나만 고친다.
 
 ## 1. 시작
 ```bash
 python .claude/tools/stage.py set --id "$ID" --status "진행 중 첨삭 r$R" --next "doc-revise"   # 웹앱은 이미 해 두었다
 ls -d 최종/*/"$ID"                                   # 유형 폴더 = finish --kind 값
-ls 작업/"$ID"/workspace/07_final_document*.md         # 최신 버전과 다음 번호(_v02, _v03 …)
+ls 작업/"$ID"/workspace/"$DOC"*.md                   # 최신 버전과 다음 번호(_v02, _v03 …)
 ```
 
 ## 2. 요청 가르기 — 로이드
@@ -38,12 +40,12 @@ Agent(subagent_type:"general-purpose", description:"아냐 첨삭 r<R>", model:<
   prompt: "너는 아냐다. 먼저 .claude/아냐/첨삭.md 와 .claude/공통/문서규격.md 를 읽고 그대로 따른다.
           입력(이것만): ./작업/<ID>/workspace/<최신 07> · 00_user_brief.md · 05_verified_research_pack.md(첫 줄·§2·§5만)
           글 유형 파일: .claude/공통/글_<00의 유형>.md · 첨삭 지시: ./작업/<ID>/output/revise_r<R>.md
-          출력: ./작업/<ID>/workspace/07_final_document_v<NN>.md (최신 07을 복사한 뒤 지시 항목만 Edit). 응답은 항목별 처리 3~8줄.")
+          출력: ./작업/<ID>/workspace/<$DOC>_v<NN>.md (최신 07을 복사한 뒤 지시 항목만 Edit). 응답은 항목별 처리 3~8줄.")
 ```
 
 ## 4. 확인 — 로이드, 바뀐 구간만
 ```bash
-python .claude/tools/render_doc.py "$ID"     # 최신 07로 기계 검사 + PDF·contact.png
+python .claude/tools/render_doc.py "$ID" --doc "$DOC" --name "$PDF"   # 최신 $DOC로 기계 검사 + output/$PDF.pdf·contact.png
 git diff --no-index --word-diff=plain 작업/"$ID"/workspace/<이전 07> 작업/"$ID"/workspace/<새 07>
 ```
 - 종료 코드 1·「경고:」는 doc-finish §1과 같이 닫는다. 3이면 멈추고 보고한다.
@@ -56,7 +58,7 @@ git diff --no-index --word-diff=plain 작업/"$ID"/workspace/<이전 07> 작업/
 
 ## 5. 교체와 보고
 ```bash
-python .claude/tools/stage.py finish --id "$ID" --kind <1의 유형 폴더>      # 이전판을 ${ID}_vNN.pdf로 남기고 output/$ID.pdf → 최종/<유형>/$ID/$ID.pdf (manifest 줄은 그대로)
+python .claude/tools/stage.py finish --id "$ID" --kind <1의 유형 폴더> --file "$PDF.pdf"   # 이전판을 ${PDF}_vNN.pdf로 남기고 output/$PDF.pdf → 최종/<유형>/$ID/ (manifest 줄은 그대로)
 python .claude/tools/stage.py log --id "$ID" "첨삭 r$R: 07 v<NN> · 반영 n · 불가 n · 교차 확인 n/n · 아냐 에이전트=<id>"
 ```
-이전 최종 PDF는 `finish`가 같은 폴더에 `<ID>_vNN.pdf`로 남기고, `<ID>.pdf`는 늘 최신본이다. 보고(CLAUDE.md §7): 최종 경로·07 버전 · **반영한 것** · **반영하지 않은 것과 이유**(새 사실이 필요하면 새 작업으로 조사해야 한다고 쓴다) · 확인 범위 · 모델.
+이전 최종 PDF는 `finish`가 같은 폴더에 `<$PDF>_vNN.pdf`로 남기고, `<$PDF>.pdf`는 늘 최신본이다. 다른 최종 PDF는 그대로 둔다. 보고(CLAUDE.md §7): 최종 경로·07 버전 · **반영한 것** · **반영하지 않은 것과 이유**(새 사실이 필요하면 새 작업으로 조사해야 한다고 쓴다) · 확인 범위 · 모델.

@@ -122,6 +122,17 @@ def test_finish_with_kind_copies_rendered_pdf(tmp_path, stage):
     assert (final / f"{ID}_v01.pdf").read_bytes() == b"%PDF-1.7"
     assert (final / f"{ID}_v02.pdf").read_bytes() == b"%PDF-v2"
 
+    # 최종본이 여러 부면 --file로 그 PDF만 교체한다 — 이전판은 <이름>_vNN.pdf, 다른 PDF는 그대로
+    practice = f"{ID}_연습문제.pdf"
+    (output / practice).write_bytes(b"%PDF-p1")
+    assert run("finish", "--id", ID, "--kind", "분석", "--file", practice) == f"stage finish: {ID} · 완료"
+    (output / practice).write_bytes(b"%PDF-p2")
+    run("finish", "--id", ID, "--kind", "분석", "--file", practice)
+    assert (final / practice).read_bytes() == b"%PDF-p2"
+    assert (final / f"{ID}_연습문제_v01.pdf").read_bytes() == b"%PDF-p1"
+    assert (final / f"{ID}.pdf").read_bytes() == b"%PDF-v3"
+    assert read(tmp_path, "상태.md").splitlines()[2] == f"다음에 할 일: 없음 — 최종/분석/{ID}/{practice}"
+
 
 def test_log_for_unknown_job_stops_cleanly(tmp_path, stage):
     with pytest.raises(stage.Stop, match="작업 ID를 확인"):

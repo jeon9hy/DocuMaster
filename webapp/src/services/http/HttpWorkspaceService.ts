@@ -159,8 +159,8 @@ export class HttpWorkspaceService implements WorkspaceService {
     await this.request(`/api/projects/${projectId}/messages`, { method: "POST", json: { text } });
   }
 
-  async reviseDocument(projectId: string, text: string): Promise<void> {
-    await this.request(`/api/projects/${projectId}/revise`, { method: "POST", json: { text } });
+  async reviseDocument(projectId: string, text: string, target?: string): Promise<void> {
+    await this.request(`/api/projects/${projectId}/revise`, { method: "POST", json: { text, target } });
   }
 
   async addReference(projectId: string, input: NewReferenceInput): Promise<void> {

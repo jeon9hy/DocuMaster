@@ -37,7 +37,8 @@ from .orchestrator import (
     describe_error,
 )
 from .projects import InvalidRequestError, NotFoundError, ProjectService
-from .scanner import ArtifactSync, Progress, final_dirs, find_new_workspace, scan, track_progress, turn_outcome
+from .scanner import (ArtifactSync, Progress, final_dirs, find_new_workspace, previous_final_version, scan,
+                      track_progress, turn_outcome)
 from .yor_feed import YorLogFollower
 
 log = logging.getLogger(__name__)
@@ -60,7 +61,8 @@ MAX_REVISE_CHARS = 4000
 # 첨삭 실행이 시작될 때·멈출 때 상태.md에 쓰는 줄(루트 skills/doc-revise §1)
 REVISE_STATUS = "진행 중 첨삭"
 REVISE_PROMPT = ("완료된 문서의 첨삭 요청이다. `.claude/skills/doc-revise`를 따른다 — 상태 줄은 웹앱이 이미 "
-                 f"「{REVISE_STATUS}」으로 두었다. 요르·유리는 부르지 않는다.\n\n[첨삭 요청]\n")
+                 f"「{REVISE_STATUS}」으로 두었다. 요르·유리는 부르지 않는다. 대상 밖의 최종 PDF는 건드리지 않는다."
+                 "\n\n[첨삭 대상] {target}\n\n[첨삭 요청]\n")
 
 
 class ConflictError(RuntimeError):
@@ -162,10 +164,11 @@ class RunManager:
 
     # --- 첨삭 --------------------------------------------------------------------
 
-    def revise(self, project_id: str, text: str) -> str:
+    def revise(self, project_id: str, text: str, target: str | None = None) -> str:
         """완료된 문서(DOC 최종본)를 첨삭한다 — 원래 작업 세션과 따로 새 로이드 세션을 연다(긴 조사 맥락을 다시 싣지 않게).
 
         요르·유리 없이 로이드·아냐만 쓴다(skills/doc-revise). 예약은 받지 않는다 — 다른 실행이 돌고 있으면 거절한다.
+        target은 고칠 최종 PDF의 파일 이름이다(최종본이 여러 부일 때). 없으면 <ID>.pdf, 그것도 없으면 하나뿐인 PDF.
         """
         text = text.strip()
         if not text:
@@ -174,7 +177,7 @@ class RunManager:
             raise InvalidRequestError(f"첨삭 요청은 {MAX_REVISE_CHARS}자 이하로 써 주세요.")
         with self._lock:
             project = self._projects.get(project_id)
-            self._check_revisable(project)
+            document = self._revise_target(project, target)
             active = self.active_run()
             if active:
                 if active["project_id"] == project_id:
@@ -190,23 +193,36 @@ class RunManager:
                 " VALUES (?, ?, 'running', ?, ?, 'revise', ?)",
                 (run_id, project_id, now_iso(), self._agent_settings.snapshot_json(), str(uuid.uuid4())),
             )
-            self._events.append(project_id, {"type": "user.message", "text": "첨삭 요청\n" + text}, run_id)
+            self._events.append(project_id, {"type": "user.message", "text": f"첨삭 요청 · {document.name}\n" + text},
+                                run_id)
             self._events.append(project_id, {"type": "workflow.started"}, run_id)
-            self._launch(run_id, project_id, REVISE_PROMPT + text, resume=False, progress=Progress.resume_from(result))
+            prompt = REVISE_PROMPT.format(target=document.relative_to(work_root).as_posix()) + text
+            self._launch(run_id, project_id, prompt, resume=False, progress=Progress.resume_from(result))
             return run_id
 
-    def _check_revisable(self, project: dict) -> None:
-        """완료됐고, 문서 모드이고, 최종/<유형>/<ID>/<ID>.pdf가 있을 때만(발표는 아냐 대상이 아니다)."""
+    def _revise_target(self, project: dict, target: str | None) -> Path:
+        """완료된 문서 모드일 때 최종/<유형>/<ID>/의 최종 PDF(이전판 제외) 중 고칠 것 하나(발표는 아냐 대상이 아니다)."""
         workspace_id = project["workspace_id"]
         if not workspace_id:
             raise InvalidRequestError("아직 작업 폴더가 없는 프로젝트입니다.")
         work_root = self._projects.work_root(project)
         if not scan(work_root, workspace_id, project["mode"]).finished:
             raise InvalidRequestError("최종본까지 끝난 문서만 첨삭할 수 있습니다.")
-        documents = [folder for folder in final_dirs(work_root, workspace_id)
-                     if folder.parent.name != "발표" and (folder / f"{workspace_id}.pdf").is_file()]
+        # 본문(<ID>.pdf)이 앞에 — 대상을 고르지 않은 옛 요청은 본문을 고친다
+        documents = sorted(
+            (path for folder in final_dirs(work_root, workspace_id) if folder.parent.name != "발표"
+             for path in folder.glob("*.pdf") if path.is_file() and previous_final_version(path) is None),
+            key=lambda path: (path.stem != workspace_id, path.name))
         if project["mode"] == "presentation" or not documents:
             raise InvalidRequestError("첨삭은 문서 최종본(PDF)이 있는 문서 프로젝트만 할 수 있습니다.")
+        if not target:
+            if len(documents) > 1 and documents[0].stem != workspace_id:
+                raise InvalidRequestError("최종본이 여러 개입니다. 첨삭할 PDF를 골라 주세요.")
+            return documents[0]
+        chosen = next((path for path in documents if path.name == target), None)
+        if chosen is None:
+            raise InvalidRequestError(f"첨삭할 수 있는 최종본이 아닙니다: {target}")
+        return chosen
 
     def _set_state_line(self, work_root: Path, workspace_id: str, status: str, next_step: str, note: str = "") -> None:
         """상태.md는 루트 규칙대로 stage.py로만 쓴다(CLAUDE.md §6)."""
@@ -627,11 +643,13 @@ class RunManager:
         configs = self._run_configs(run_id)
         summary["models"] = {agent: config.get("modelId") for agent, config in configs.items()
                              if isinstance(config, dict) and config.get("modelId")}
-        final = self._db.one(
-            # 최종/<유형>/<ID>/의 파일만 finalReview·primary다(output/ 렌더 결과는 internal)
+        finals = self._db.query(
+            # 최종/<유형>/<ID>/의 파일만 finalReview·primary다(output/ 렌더 결과·이전판은 internal)
             "SELECT id FROM artifacts WHERE project_id = ? AND stage_id = 'finalReview' AND visibility = 'primary'"
-            " AND file_type = 'pdf' ORDER BY updated_at DESC LIMIT 1", (project_id,))
-        summary["finalArtifactId"] = final["id"] if final else None
+            " AND file_type = 'pdf' ORDER BY name", (project_id,))
+        # 최종본이 여러 부면(본문 + 연습문제 등) 모두 싣는다. finalArtifactId는 예전 이벤트와 같은 모양을 지키는 첫 파일
+        summary["finalArtifactIds"] = [row["id"] for row in finals]
+        summary["finalArtifactId"] = finals[0]["id"] if finals else None
         project = self._projects.get(project_id)
         scanned = scan(self._projects.work_root(project), project["workspace_id"], project["mode"])
         latest_05 = next((found.path for found in scanned.files

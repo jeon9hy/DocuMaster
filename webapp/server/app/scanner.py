@@ -75,6 +75,18 @@ def workspace_dir(work_root: Path, workspace_id: str) -> Path:
     return work_root / "작업" / workspace_id
 
 
+# 첨삭 뒤 stage.py finish가 남긴 이전판 — <이름>_vNN.pdf 옆에 최신본 <이름>.pdf가 있다
+_PREVIOUS_FINAL = re.compile(r"(?P<stem>.+)_v(?P<version>\d{2})\.pdf")
+
+
+def previous_final_version(path: Path) -> int | None:
+    """최종 폴더의 파일이 첨삭 전 이전판이면 그 번호(최종본이 여러 부여도 PDF마다 따로 남는다)."""
+    match = _PREVIOUS_FINAL.fullmatch(path.name)
+    if match and path.with_name(match["stem"] + ".pdf").is_file():
+        return int(match["version"])
+    return None
+
+
 def final_dirs(work_root: Path, workspace_id: str) -> list[Path]:
     """최종본이 놓이는 곳 — 글 유형 폴더 아래(최종/<유형>/<ID>)와 옛 평면 배치(최종/<ID>)."""
     final_root = work_root / "최종"
@@ -126,15 +138,14 @@ def scan(work_root: Path, workspace_id: str | None, mode: str) -> ScanResult:
     for path in sorted((base / "output").glob("*")):
         if path.is_file():
             result.files.append(FoundFile(path, "finalReview", "loid", "internal", 1, "렌더 결과"))
-    # 첨삭 뒤 stage.py finish가 남긴 이전판(<ID>_vNN.pdf)은 내부 작업물 — 대표 최종본은 늘 <ID>.pdf
-    previous = re.compile(re.escape(workspace_id) + r"_v(\d{2})\.pdf") if workspace_id else None
+    # 이전판(<이름>_vNN.pdf)은 내부 작업물 — 최종본은 늘 <이름>.pdf
     for path in sorted(p for folder in final_dirs(work_root, workspace_id) for p in folder.glob("*")):
         if not path.is_file():
             continue
-        kept = previous.fullmatch(path.name) if previous else None
-        if kept:
-            result.files.append(FoundFile(path, "finalReview", "loid", "internal", int(kept[1]),
-                                          PREVIOUS_FINAL_SUMMARY + f" · v{kept[1]}"))
+        kept = previous_final_version(path)
+        if kept is not None:
+            result.files.append(FoundFile(path, "finalReview", "loid", "internal", kept,
+                                          PREVIOUS_FINAL_SUMMARY + f" · v{kept:02d}"))
         else:
             result.files.append(FoundFile(path, "finalReview", "loid", "primary", 1, "최종본"))
     return result

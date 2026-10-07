@@ -16,7 +16,10 @@ export interface RunSummary {
   cautionCount?: number | null;
   /** 실행 시작 때 고정한 에이전트별 모델 ID */
   models?: Partial<Record<AgentId, string>>;
+  /** 첫 최종 PDF(예전 이벤트도 이 값만 있다) */
   finalArtifactId?: string | null;
+  /** 최종 PDF 전부(본문 + 연습문제처럼 여러 부일 수 있다) */
+  finalArtifactIds?: string[];
 }
 
 /**

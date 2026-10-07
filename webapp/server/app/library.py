@@ -15,7 +15,7 @@ from .db import Database
 from .events import EventStore
 from .files import FileStore
 from .projects import ProjectService
-from .scanner import ArtifactSync, artifact_id, final_dirs, scan
+from .scanner import ArtifactSync, artifact_id, final_dirs, previous_final_version, scan
 
 _ID_DATE = re.compile(r"_(\d{4})(\d{2})(\d{2})$")
 _REQUEST = re.compile(r"^-\s*원문 요청\s*[:：]\s*(?P<text>.+?)\s*$", re.MULTILINE)
@@ -46,7 +46,8 @@ def _request_of(work_root: Path, workspace_id: str) -> str:
 
 
 def _primary_file(folder: Path, workspace_id: str) -> Path | None:
-    files = [path for path in folder.iterdir() if path.is_file() and path.suffix.lower() in _PRIMARY_ORDER]
+    files = [path for path in folder.iterdir() if path.is_file() and path.suffix.lower() in _PRIMARY_ORDER
+             and previous_final_version(path) is None]
     if not files:
         return None
     # 작업 ID와 같은 이름(문서 본문) → 작업 ID로 시작하는 이름(슬라이드) → 확장자 순서

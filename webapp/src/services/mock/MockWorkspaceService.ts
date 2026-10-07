@@ -200,9 +200,9 @@ export class MockWorkspaceService implements WorkspaceService {
   }
 
   /** 목업은 파일을 고치지 않는다 — 요청과 로이드의 답만 대화에 남긴다 */
-  async reviseDocument(projectId: string, text: string): Promise<void> {
+  async reviseDocument(projectId: string, text: string, target?: string): Promise<void> {
     const store = this.getStore(projectId);
-    this.emit(projectId, { type: "user.message", text: `첨삭 요청
+    this.emit(projectId, { type: "user.message", text: `첨삭 요청${target ? ` · ${target}` : ""}
 ${text}` });
     this.later(store, REPLY_DELAY_MS, () =>
       this.emit(projectId, {

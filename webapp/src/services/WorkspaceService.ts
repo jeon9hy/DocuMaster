@@ -59,8 +59,11 @@ export interface WorkspaceService {
   respondToInput(projectId: string, promptId: string, answer: string): Promise<void>;
 
   sendMessage(projectId: string, text: string, mentionedAgentId?: AgentId): Promise<void>;
-  /** 완료된 문서 최종본을 첨삭한다(로이드·아냐만). 다른 실행이 돌고 있으면 code "busy"로 실패한다 */
-  reviseDocument(projectId: string, text: string): Promise<void>;
+  /**
+   * 완료된 문서 최종본을 첨삭한다(로이드·아냐만). target은 고칠 최종 PDF의 파일 이름(여러 부일 때) — 없으면 본문.
+   * 다른 실행이 돌고 있으면 code "busy"로 실패한다
+   */
+  reviseDocument(projectId: string, text: string, target?: string): Promise<void>;
   addReference(projectId: string, input: NewReferenceInput): Promise<void>;
   removeReference(projectId: string, referenceId: string): Promise<void>;
 

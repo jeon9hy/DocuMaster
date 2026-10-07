@@ -30,6 +30,12 @@ class NewMessage(BaseModel):
     text: str
 
 
+class ReviseRequest(BaseModel):
+    text: str
+    # 고칠 최종 PDF의 파일 이름(최종본이 여러 부일 때). 없으면 본문 <ID>.pdf
+    target: str | None = None
+
+
 class InputResponse(BaseModel):
     answer: str
 
@@ -151,9 +157,9 @@ def start_run(project_id: str, request: Request):
 
 
 @router.post("/projects/{project_id}/revise", status_code=202, dependencies=OWNER)
-def revise_document(project_id: str, body: NewMessage, request: Request):
-    """완료된 문서 최종본을 첨삭한다(로이드·아냐만 — 루트 skills/doc-revise)."""
-    return {"runId": _guard(lambda: _services(request).runs.revise(project_id, body.text))}
+def revise_document(project_id: str, body: ReviseRequest, request: Request):
+    """완료된 문서 최종본(여러 부면 그중 target 하나)을 첨삭한다(로이드·아냐만 — 루트 skills/doc-revise)."""
+    return {"runId": _guard(lambda: _services(request).runs.revise(project_id, body.text, body.target))}
 
 
 @router.post("/projects/{project_id}/queue", status_code=202, dependencies=OWNER)

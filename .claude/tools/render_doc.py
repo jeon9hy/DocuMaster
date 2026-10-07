@@ -1,6 +1,9 @@
 """DOC 07 굽기 — 기계 검사 · HTML · PDF · 모아보기를 한 번에 돌리고 판단할 것만 출력한다(doc-finish §1).
 
-    python .claude/tools/render_doc.py <작업ID> [--pages 3,7] [--no-gate]
+    python .claude/tools/render_doc.py <작업ID> [--pages 3,7] [--no-gate] [--doc <07 이름> --name <PDF 이름>]
+
+`--doc`·`--name`은 최종본이 여러 부일 때 두 번째 원고(예: `--doc 07_practice_document --name <ID>_연습문제`)를
+`output/<PDF 이름>.pdf`로 굽는다. 기본은 `07_final_document` → `output/<ID>.pdf`.
 
 왜 이게 있는가 — 로이드가 세 도구를 따로 부르고 각 출력을 다시 읽느라 렌더에만 턴 열 번 가까이 썼다(10-01 실측).
   1. gate_check.py <ID> 07 — FAIL·CHECK만 그대로 보이고 OK는 개수만 센다
@@ -38,8 +41,18 @@ def run(*args: str) -> tuple[int, str]:
     return done.returncode, (done.stdout or "") + (done.stderr or "")
 
 
-def gate(job_id: str) -> tuple[int, list[str]]:
-    code, out = run(str(TOOLS / "gate_check.py"), job_id, "07")
+def option(args: list[str], flag: str) -> str | None:
+    """`flag 값`을 args에서 빼고 값을 돌려준다."""
+    if flag not in args:
+        return None
+    i = args.index(flag)
+    value = args[i + 1] if i + 1 < len(args) else ""
+    del args[i:i + 2]
+    return value
+
+
+def gate(job_id: str, doc: Path) -> tuple[int, list[str]]:
+    code, out = run(str(TOOLS / "gate_check.py"), job_id, "07", "--file", str(doc))
     lines = out.splitlines()
     ok = sum(1 for line in lines if line.startswith("OK"))
     shown = [line for line in lines if line.startswith(("FAIL", "CHECK", "[중단]", "Traceback"))]
@@ -49,30 +62,29 @@ def gate(job_id: str) -> tuple[int, list[str]]:
 
 def main() -> int:
     args = sys.argv[1:]
-    pages = ""
-    if "--pages" in args:
-        i = args.index("--pages")
-        pages = args[i + 1] if i + 1 < len(args) else ""
-        del args[i:i + 2]
+    pages = option(args, "--pages") or ""
+    doc_base, name = option(args, "--doc"), option(args, "--name")
     skip_gate = "--no-gate" in args
     args = [a for a in args if a != "--no-gate"]
     if len(args) != 1:
         print(__doc__)
         return 2
     job_id = args[0]
+    doc_base = (doc_base or DOC_BASE).removesuffix(".md")
+    name = (name or job_id).removesuffix(".pdf")
     base = ROOT / "작업" / job_id
-    doc = latest(base / "workspace", DOC_BASE)
+    doc = latest(base / "workspace", doc_base)
     if doc is None:
-        print(f"[중단] 07이 없다: 작업/{job_id}/workspace/{DOC_BASE}.md")
+        print(f"[중단] 07이 없다: 작업/{job_id}/workspace/{doc_base}.md")
         return 2
     out_dir = base / "output"
     out_dir.mkdir(parents=True, exist_ok=True)
-    html, pdf = out_dir / f"{job_id}.html", out_dir / f"{job_id}.pdf"
-    print(f"# render_doc · {job_id} · {doc.name}")
+    html, pdf = out_dir / f"{name}.html", out_dir / f"{name}.pdf"
+    print(f"# render_doc · {job_id} · {doc.name} → output/{pdf.name}")
 
     gate_code = 0
     if not skip_gate:
-        gate_code, lines = gate(job_id)
+        gate_code, lines = gate(job_id, doc)
         print("\n## 1. 기계 검사 (gate_check 07)")
         print("\n".join(lines))
 
@@ -86,7 +98,7 @@ def main() -> int:
     print("\n".join(dict.fromkeys(warnings)) or "경고 없음")
 
     print("\n## 3. PDF")
-    command = [str(TOOLS / "make_pdf.py"), str(html), str(pdf), "--label", job_id, "--contact"]
+    command = [str(TOOLS / "make_pdf.py"), str(html), str(pdf), "--label", name, "--contact"]
     if pages:
         command += ["--pages", pages]
     code, out = run(*command)

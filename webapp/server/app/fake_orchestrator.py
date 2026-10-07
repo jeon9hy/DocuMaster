@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import date, datetime
@@ -193,14 +194,19 @@ def revise_turn(loid: FakeLoid, text: str) -> str:
     if "[revise-none]" in text:
         loid.state("사용자 승인 대기 · 첨삭 r1", "DOCUMENT")
         return "요청은 모두 05에 없는 새 사실이 필요해 반영할 수 없습니다. 요청을 바꾸시겠어요, 새 작업으로 조사할까요?"
-    versions = sorted(loid.workspace.glob("07_final_document*.md"))
-    loid.write(f"07_final_document_v{len(versions) + 1:02d}.md", "# 최종 문서\n## 요약\n첨삭을 반영한 요약입니다.")
+    # 웹앱이 적은 [첨삭 대상] PDF만 바꾼다 — 본문이 아니면 원고도 연습문제처럼 따로 있다고 친다
+    target = re.search(r"^\[첨삭 대상\] (.+)$", text, re.MULTILINE)
+    name = Path(target[1]).name if target else f"{loid.id}.pdf"
+    doc = "07_final_document" if name == f"{loid.id}.pdf" else "07_practice_document"
+    versions = sorted(loid.workspace.glob(f"{doc}*.md"))
+    loid.write(f"{doc}_v{len(versions) + 1:02d}.md", "# 최종 문서\n## 요약\n첨삭을 반영한 요약입니다.")
     pdf = tiny_pdf(f"{loid.id} revised")
     (loid.base / "output").mkdir(parents=True, exist_ok=True)
-    (loid.base / "output" / f"{loid.id}.pdf").write_bytes(pdf)
-    for final in loid.final_root.glob(f"*/{loid.id}/{loid.id}.pdf"):  # stage.py finish처럼 이전판을 남긴다
-        kept = len(list(final.parent.glob(f"{loid.id}_v[0-9][0-9].pdf")))
-        final.rename(final.with_name(f"{loid.id}_v{kept + 1:02d}.pdf"))
+    (loid.base / "output" / name).write_bytes(pdf)
+    stem = Path(name).stem
+    for final in loid.final_root.glob(f"*/{loid.id}/{name}"):  # stage.py finish처럼 이전판을 남긴다
+        kept = len(list(final.parent.glob(f"{stem}_v[0-9][0-9].pdf")))
+        final.rename(final.with_name(f"{stem}_v{kept + 1:02d}.pdf"))
         final.write_bytes(pdf)
     loid.state("완료", "DOCUMENT")
     return f"첨삭 완료 — 07 v{len(versions) + 1:02d} · 반영 1 · 불가 0 · 가짜 실행이라 실제 모델은 쓰지 않았습니다."

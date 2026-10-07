@@ -25,15 +25,17 @@ function Stat({ label, children }: { label: string; children: ReactNode }) {
 interface RunSummaryCardProps {
   projectId: string;
   summary: RunSummary;
-  finalArtifact?: Artifact;
+  /** 최종 PDF 전부(여러 부면 줄마다 따로 연다) */
+  finalArtifacts: Artifact[];
   createdAt: string;
   onSelectArtifact: (artifactId: string) => void;
 }
 
 /** 완료 카드: 최종본 · 판정 · REMOVE/CAUTION 수 · 걸린 시간 · 비용 · 모델을 한곳에. 값은 백엔드가 모은 것만 쓴다. */
-export function RunSummaryCard({ projectId, summary, finalArtifact, createdAt, onSelectArtifact }: RunSummaryCardProps) {
-  const [open, setOpen] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
+export function RunSummaryCard({ projectId, summary, finalArtifacts, createdAt, onSelectArtifact }: RunSummaryCardProps) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const close = useCallback(() => setOpenId(null), []);
+  const opened = finalArtifacts.find((artifact) => artifact.id === openId);
   const mode = useAppState().workspace?.project.mode ?? "auto";
   const verdict = summary.verdict ? VERDICT_STATUS[summary.verdict] : null;
   const models = AGENT_IDS.filter((id) => summary.models?.[id] && !isRestingInMode(id, mode));
@@ -78,23 +80,29 @@ export function RunSummaryCard({ projectId, summary, finalArtifact, createdAt, o
         </p>
       )}
 
-      {finalArtifact && (
-        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
-          <FileText className="size-4 shrink-0 text-gray-400" aria-hidden />
-          <span className="min-w-0 flex-1 truncate text-[13px] text-gray-700">{finalArtifact.name}</span>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => {
-              onSelectArtifact(finalArtifact.id);
-              setOpen(true);
-            }}
-          >
-            최종 PDF 열기
-          </Button>
-        </div>
+      {finalArtifacts.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+          {finalArtifacts.map((artifact) => (
+            <li key={artifact.id} className="flex items-center gap-2">
+              <FileText className="size-4 shrink-0 text-gray-400" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-[13px] text-gray-700" title={artifact.name}>
+                {artifact.name}
+              </span>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => {
+                  onSelectArtifact(artifact.id);
+                  setOpenId(artifact.id);
+                }}
+              >
+                {finalArtifacts.length > 1 ? "열기" : "최종 PDF 열기"}
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
-      {open && finalArtifact && <ArtifactPreviewModal projectId={projectId} artifact={finalArtifact} onClose={close} />}
+      {opened && <ArtifactPreviewModal projectId={projectId} artifact={opened} onClose={close} />}
     </section>
   );
 }

@@ -9,6 +9,7 @@
     python .claude/tools/stage.py set    --id ID [공통 옵션]
     python .claude/tools/stage.py log    --id ID "<기록 한 줄>"
     python .claude/tools/stage.py finish --id ID --kind <유형> --manifest "<파일명 · 비고>"   # DOC: output/ID.pdf를 최종/<유형>/ID/로 복사(이전판은 ID_vNN.pdf로 남김)
+    python .claude/tools/stage.py finish --id ID --kind <유형> --file <이름>.pdf             # DOC 두 번째 PDF: output/<이름>.pdf(이전판은 <이름>_vNN.pdf)
     python .claude/tools/stage.py finish --id ID --final 최종/발표/ID/파일                     # PPT: promote가 이미 옮긴 파일
 공통 옵션:
     --status "진행 중 03 검증질문"   상태 줄        --next "<한 줄>"   다음에 할 일
@@ -22,6 +23,7 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import re
 import shutil
@@ -204,6 +206,7 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
     where.add_argument("--kind", choices=DOC_KINDS, help="DOC: output/<ID>.pdf를 최종/<유형>/<ID>/로 복사")
     where.add_argument("--final", help="이미 이관된 최종 파일(PPT promote)")
     finish.add_argument("--manifest")
+    finish.add_argument("--file", help="DOC: output/의 PDF 이름(기본 <ID>.pdf) — 최종본이 여러 부일 때")
     args = parser.parse_args(argv)
     today = today or date.today().isoformat()
 
@@ -232,16 +235,19 @@ def run(argv: list[str], root: Path = ROOT, today: str | None = None) -> str:
             raise Stop("세션 칸의 자리표시자를 실제 ID 또는 `해당 없음(이유)`으로 닫아야 한다 — "
                        "`stage.py set --session \"이름=값\"`")
         if args.kind:  # 최종 경로를 손으로 쓰지 않는다 — 유형 폴더 계약(CLAUDE.md §4)대로 도구가 옮긴다
-            rendered = base / "output" / f"{args.id}.pdf"
+            name = Path(args.file or f"{args.id}.pdf").name
+            if not name.lower().endswith(".pdf"):
+                raise Stop(f"--file은 PDF 이름이어야 한다: {name}")
+            rendered = base / "output" / name
             if not rendered.is_file():
-                raise Stop(f"렌더된 PDF가 없다: 작업/{args.id}/output/{args.id}.pdf — render_doc을 먼저 한다")
-            args.final = f"최종/{args.kind}/{args.id}/{args.id}.pdf"
+                raise Stop(f"렌더된 PDF가 없다: 작업/{args.id}/output/{name} — render_doc을 먼저 한다")
+            args.final = f"최종/{args.kind}/{args.id}/{name}"
             target = root / args.final
             target.parent.mkdir(parents=True, exist_ok=True)
-            # 첨삭으로 다시 내보내면 이전 최종본을 <ID>_vNN.pdf로 남긴다 — 대표 파일 <ID>.pdf는 늘 최신본
+            # 첨삭으로 다시 내보내면 이전 최종본을 <이름>_vNN.pdf로 남긴다 — <이름>.pdf는 늘 최신본
             if target.is_file() and target.read_bytes() != rendered.read_bytes():
-                kept = sorted(target.parent.glob(f"{args.id}_v[0-9][0-9].pdf"))
-                target.rename(target.with_name(f"{args.id}_v{len(kept) + 1:02d}.pdf"))
+                kept = sorted(target.parent.glob(f"{glob.escape(target.stem)}_v[0-9][0-9].pdf"))
+                target.rename(target.with_name(f"{target.stem}_v{len(kept) + 1:02d}.pdf"))
             shutil.copy2(rendered, target)
         if not (root / args.final).is_file():
             raise Stop(f"--final 파일이 없다: {args.final} — 이관(promote)을 먼저 한다")

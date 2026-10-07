@@ -19,6 +19,8 @@ interface FeedRowProps {
   projectId: string;
   item: FeedItem;
   artifact?: Artifact;
+  /** 완료 카드의 최종 PDF들 */
+  finalArtifacts?: Artifact[];
   inputPending?: boolean;
   /** Guest면 응답 버튼 대신 로그인 안내 */
   canRespond: boolean;
@@ -34,6 +36,7 @@ const FeedRow = memo(function FeedRow({
   projectId,
   item,
   artifact,
+  finalArtifacts,
   inputPending = false,
   canRespond,
   onSelectArtifact,
@@ -52,7 +55,7 @@ const FeedRow = memo(function FeedRow({
           <RunSummaryCard
             projectId={projectId}
             summary={item.summary}
-            finalArtifact={artifact}
+            finalArtifacts={finalArtifacts ?? []}
             createdAt={item.createdAt}
             onSelectArtifact={onSelectArtifact}
           />
@@ -177,19 +180,25 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
     [artifacts],
   );
   const blocks = useMemo(() => groupFeed(feed), [feed]);
+  // 완료 카드마다 최종 PDF 전부 — 배열을 렌더마다 새로 만들면 memo된 줄이 다시 그려진다
+  const finalsBySummary = useMemo(() => {
+    const map = new Map<string, Artifact[]>();
+    for (const item of feed) {
+      if (item.kind !== "system" || !item.summary) continue;
+      const ids = item.summary.finalArtifactIds
+        ?? (item.summary.finalArtifactId ? [item.summary.finalArtifactId] : []);
+      map.set(item.id, ids.flatMap((id) => artifactById.get(id) ?? []));
+    }
+    return map;
+  }, [feed, artifactById]);
 
   const renderRow = (item: FeedItem) => (
     <li key={item.id}>
       <FeedRow
         projectId={projectId}
         item={item}
-        artifact={
-          item.kind === "artifact"
-            ? artifactById.get(item.artifactId)
-            : item.kind === "system" && item.summary?.finalArtifactId
-              ? artifactById.get(item.summary.finalArtifactId)
-              : undefined
-        }
+        artifact={item.kind === "artifact" ? artifactById.get(item.artifactId) : undefined}
+        finalArtifacts={item.kind === "system" ? finalsBySummary.get(item.id) : undefined}
         inputPending={item.kind === "input" && pendingPromptIds.includes(item.request.promptId)}
         onSelectArtifact={selectArtifact}
         onRespond={respondToInput}

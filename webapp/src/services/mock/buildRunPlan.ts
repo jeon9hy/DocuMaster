@@ -143,6 +143,7 @@ export function buildRunPlan(workspace: ProjectWorkspace): PlannedEvent[] {
       summary: {
         verdict: verdict?.type === "validation.verdict" ? verdict.verdict : null,
         finalArtifactId: finalPdf?.type === "artifact.created" ? finalPdf.artifact.id : null,
+        finalArtifactIds: finalPdf?.type === "artifact.created" ? [finalPdf.artifact.id] : [],
       },
     },
   });
