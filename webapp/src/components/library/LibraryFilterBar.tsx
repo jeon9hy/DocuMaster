@@ -26,7 +26,7 @@ interface LibraryFilterBarProps {
 
 const CHIP = "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors";
 const DATE_INPUT =
-  "h-10 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm text-label-neutral [color-scheme:light] hover:border-line focus:border-primary focus:ring-2 focus:ring-primary/16 focus:outline-none";
+  "h-10 w-full min-w-0 rounded-[12px] border border-line bg-surface px-3 text-sm text-label-neutral [color-scheme:light] hover:border-line focus:border-primary focus:ring-2 focus:ring-primary/16 focus:outline-none";
 
 /** 드롭다운으로 필터 종류(제목·날짜·유형)를 고르고, 고른 종류에 맞는 입력을 보여 준다. 세 조건은 함께 적용된다. */
 export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange, kindCounts }: LibraryFilterBarProps) {
@@ -45,7 +45,7 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
               aria-expanded={open}
               aria-label={`필터 종류: ${current.label}`}
               className={cn(
-                "flex h-10 w-full items-center gap-2 rounded-lg border bg-primary/4 px-3 text-sm font-semibold text-primary-strong transition-colors @lg:w-28",
+                "flex h-10 w-full items-center gap-2 rounded-[12px] border bg-primary/4 px-3 text-sm font-semibold text-primary-strong transition-colors @lg:w-28",
                 open ? "border-primary" : "border-primary/16 hover:border-primary/43",
               )}
             >
@@ -77,6 +77,7 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
         <div className="min-w-0 flex-1">
           {field === "title" && (
             <SearchField
+              size="small"
               autoFocus
               value={filter.title}
               onChange={(event) => update({ title: event.target.value })}

@@ -23,6 +23,10 @@ export function TextArea({ invalid, ...rest }: TextAreaFieldProps) {
 }
 
 /** 검색창. 지우기(x) 버튼은 Montage가 그리고, 눌리면 onClear를 부른다. */
-export function SearchField({ onClear, ...rest }: FieldProps & { onClear: () => void }) {
-  return <WdsSearchField width="100%" size="medium" onReset={() => onClear()} {...rest} />;
+export function SearchField({
+  onClear,
+  size = "medium",
+  ...rest
+}: FieldProps & { onClear: () => void; size?: "medium" | "small" }) {
+  return <WdsSearchField width="100%" size={size} onReset={() => onClear()} {...rest} />;
 }

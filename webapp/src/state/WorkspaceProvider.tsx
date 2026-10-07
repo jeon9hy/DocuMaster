@@ -63,8 +63,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const loadProjects = useCallback(async (selectId?: string) => {
     const projects = await workspaceService.listProjects();
     dispatch({ type: "projects/loaded", projects });
-    // 없는 프로젝트(삭제·다른 DB의 주소)면 첫 프로젝트로
-    const target = projects.some((project) => project.id === selectId) ? selectId : projects[0]?.id;
+    // 처음 열 때는 아무것도 고르지 않는다. 주소의 프로젝트(새로고침)나 방금 만든 프로젝트만 선택하고,
+    // 없는 프로젝트(삭제·다른 DB의 주소)면 선택을 비운다
+    const target = projects.some((project) => project.id === selectId) ? selectId : undefined;
     dispatch(target ? { type: "project/selected", projectId: target } : { type: "project/cleared" });
   }, []);
 
@@ -138,7 +139,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       },
       deleteProject: async (id) => {
         await mutate(() => workspaceService.deleteProject(id));
-        // 지금 보던 프로젝트를 지웠으면 첫 프로젝트로(없으면 빈 화면)
+        // 지금 보던 프로젝트를 지웠으면 선택을 비운다
         await loadProjects(id === projectId ? undefined : (projectId ?? undefined));
       },
       reloadWorkspace: () => {
