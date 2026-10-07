@@ -5,6 +5,7 @@ import {
   Home,
   LayoutDashboard,
   MessagesSquare,
+  Paperclip,
   FileText,
   Settings,
   Users,
@@ -19,6 +20,7 @@ export type ViewId =
   | "dashboard"
   | "chat"
   | "artifacts"
+  | "references"
   | "members"
   | "projectSettings";
 
@@ -39,6 +41,7 @@ export const PROJECT_NAV: readonly NavItem[] = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard },
   { id: "chat", label: "대화", icon: MessagesSquare },
   { id: "artifacts", label: "작업물", icon: FileText },
+  { id: "references", label: "레퍼런스", icon: Paperclip },
   { id: "members", label: "멤버", icon: Users },
   { id: "projectSettings", label: "프로젝트 설정", icon: FolderCog },
 ];

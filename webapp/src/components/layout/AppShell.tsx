@@ -4,15 +4,12 @@ import { useCallback, useState, type ReactElement, type ReactNode } from "react"
 import type { MobileTab } from "@/constants/navigation";
 import { useAttentionSignals } from "@/hooks/useAttentionSignals";
 import { cn } from "@/lib/cn";
-import { useAppActions, useAppState, useIsOwner, useWorkspace } from "@/state/WorkspaceProvider";
-import { FolderPlus, Plus } from "lucide-react";
-import { AddReferenceButton } from "../reference/AddReferenceButton";
-import { ReferenceList } from "../reference/ReferenceList";
-import { Button } from "../ui/Button";
+import { useAppActions, useAppState } from "@/state/WorkspaceProvider";
+import { FolderPlus } from "lucide-react";
 import { Drawer } from "../ui/Drawer";
-import { Panel } from "../ui/Panel";
 import { EmptyState, ErrorState, LoadingState } from "../ui/States";
 import { ArtifactsView } from "../views/ArtifactsView";
+import { ReferencesView } from "../views/ReferencesView";
 import { ProgressPanel } from "../views/ChatView";
 import { GLOBAL_VIEWS, VIEWS } from "../views/viewRegistry";
 import { LeftSidebar } from "./LeftSidebar";
@@ -20,35 +17,10 @@ import { MobileTabBar } from "./MobileTabBar";
 import { RightSidebar } from "./RightSidebar";
 import { TopHeader } from "./TopHeader";
 
-function MobileReferencesPanel() {
-  const workspace = useWorkspace();
-  const canEdit = useIsOwner() && !workspace.project.readOnly;
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-3">
-      <Panel
-        title={`레퍼런스 (${workspace.references.length})`}
-        action={
-          canEdit && (
-          <AddReferenceButton>
-            {(open) => (
-              <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-7 text-blue-600">
-                추가
-              </Button>
-            )}
-          </AddReferenceButton>
-          )
-        }
-      >
-        <ReferenceList references={workspace.references} />
-      </Panel>
-    </div>
-  );
-}
-
 /** 모바일 하단 탭 중 「대화」가 아닌 탭의 내용 */
 const MOBILE_PANELS: Record<Exclude<MobileTab, "chat">, () => ReactElement> = {
   progress: ProgressPanel,
-  references: MobileReferencesPanel,
+  references: ReferencesView,
   artifacts: ArtifactsView,
 };
 

@@ -6,6 +6,7 @@ import { DashboardView } from "./DashboardView";
 import { HomeView } from "./HomeView";
 import { LibraryView } from "./LibraryView";
 import { PlaceholderView } from "./PlaceholderView";
+import { ReferencesView } from "./ReferencesView";
 import { SettingsView } from "./SettingsView";
 import { AgentsView, MembersView } from "./TeamView";
 
@@ -17,6 +18,7 @@ export const VIEWS: Record<ViewId, ComponentType> = {
   chat: ChatView,
   dashboard: DashboardView,
   artifacts: ArtifactsView,
+  references: ReferencesView,
   members: MembersView,
   agents: AgentsView,
   settings: SettingsView,

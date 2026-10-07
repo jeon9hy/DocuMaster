@@ -36,3 +36,7 @@ export const DEFAULT_APPLY_POLICY: ReferenceApplyPolicy = "nextStage";
 export const APPLY_POLICY_LABEL = Object.fromEntries(
   APPLY_POLICIES.map((policy) => [policy.id, policy.label]),
 ) as Record<ReferenceApplyPolicy, string>;
+
+/** 파일 선택 창에서 먼저 보여 줄 형식. 끌어다 놓은 다른 형식도 받는다(종류는 「파일」로 표시). */
+export const REFERENCE_FILE_ACCEPT = ".pdf,.png,.jpg,.jpeg,.gif,.webp,.md,.txt";
+export const REFERENCE_FILE_HINT = "PDF · 이미지 · Markdown · 텍스트 — 여러 개를 한꺼번에 끌어다 놓을 수 있습니다";

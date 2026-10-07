@@ -39,3 +39,4 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 - 09-27: 요르는 `yor.py`로만 호출, 진행은 `yor_feed.py`가 로그를 읽어 피드로. Claude 사용량은 haiku 최소 호출로 실시간.
 - 09-28: 커밋 전 훅(`.githooks`) · 대화 정리(단계 구분선·전달문 접기·완료 카드·확인 대기 알림) · 실행 예약(`run_queue`) · 요르 `--json` · 로그 30일 보존.
 - 10-01: 문서 라이브러리(`/api/library` · `LibraryView`) — 최종본을 제목·날짜·유형으로 거르고 카드에서 작업물 화면으로 연다.
+- 10-07: 프로젝트 메뉴 「레퍼런스」 탭(`ReferencesView`, 모바일 탭 겸용) · 여러 파일 드래그 업로드(`FileDropZone` + `useReferenceFileUpload`, 서버는 한 건씩 차례로).
