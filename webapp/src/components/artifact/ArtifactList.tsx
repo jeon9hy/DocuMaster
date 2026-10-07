@@ -34,13 +34,13 @@ const ArtifactListItem = memo(function ArtifactListItem({
         aria-current={selected}
         className={cn(
           "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
-          selected ? "bg-blue-50/70" : "hover:bg-gray-50",
+          selected ? "bg-primary/5" : "hover:bg-fill-alt",
         )}
       >
         <ArtifactIcon fileType={artifact.fileType} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-gray-900">{artifact.name}</span>
-          <span className="block truncate text-xs text-gray-500">{meta}</span>
+          <span className="block truncate text-sm font-medium text-label">{artifact.name}</span>
+          <span className="block truncate text-xs text-label-alternative">{meta}</span>
         </span>
         <StatusBadge meta={ARTIFACT_STATUS[artifact.status]} dot={false} />
       </button>
@@ -89,7 +89,7 @@ export function ArtifactList({ artifacts, selectedId, onSelect, collapseInternal
         <button
           type="button"
           onClick={() => setShowInternal((value) => !value)}
-          className="mt-1 px-2 text-xs font-medium text-blue-600 hover:underline"
+          className="mt-1 px-2 text-xs font-medium text-primary hover:underline"
         >
           {showInternal ? "주요 작업물만 보기" : `내부 작업물 ${internalCount}개 보기`}
         </button>

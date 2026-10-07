@@ -19,13 +19,13 @@ export function Drawer({ open, side, label, onClose, children }: DrawerProps) {
 
   return (
     <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-gray-900/30" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-dimmer" onClick={onClose} aria-hidden />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={label}
         className={cn(
-          "absolute top-0 bottom-0 flex w-[320px] max-w-[88vw] flex-col overflow-y-auto bg-canvas shadow-lg",
+          "absolute top-0 bottom-0 flex w-[320px] max-w-[88vw] flex-col overflow-y-auto bg-surface-alt shadow-lg",
           side === "left" ? "left-0" : "right-0",
         )}
       >

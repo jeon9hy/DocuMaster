@@ -28,7 +28,7 @@ export function Panel({
   const [open, setOpen] = useState(defaultOpen);
   const isOpen = !collapsible || open;
   return (
-    <section className={cn("rounded-xl border border-line bg-white", className)}>
+    <section className={cn("rounded-xl border border-line bg-surface", className)}>
       <header className={cn("flex items-center justify-between gap-2 px-4 pt-3.5", isOpen ? "pb-2" : "pb-3.5")}>
         {collapsible ? (
           <button
@@ -38,13 +38,13 @@ export function Panel({
             className="flex min-w-0 items-center gap-1.5 text-left"
           >
             <ChevronDown
-              className={cn("size-4 shrink-0 text-gray-400 transition-transform", !open && "-rotate-90")}
+              className={cn("size-4 shrink-0 text-label-assistive transition-transform", !open && "-rotate-90")}
               aria-hidden
             />
-            <h2 className="text-[15px] font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-[15px] font-semibold text-label">{title}</h2>
           </button>
         ) : (
-          <h2 className="text-[15px] font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-[15px] font-semibold text-label">{title}</h2>
         )}
         {isOpen && action}
       </header>
@@ -57,7 +57,7 @@ export function Panel({
 export function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex items-center justify-between px-3 pb-1.5">
-      <h3 className="text-xs font-medium text-gray-500">{children}</h3>
+      <h3 className="text-xs font-medium text-label-alternative">{children}</h3>
       {action}
     </div>
   );

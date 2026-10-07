@@ -21,8 +21,8 @@ export function NavList({ items, activeView, onSelect }: NavListProps) {
             className={cn(
               "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
               activeView === id
-                ? "bg-blue-50 font-medium text-blue-700"
-                : "text-gray-700 hover:bg-gray-100",
+                ? "bg-primary/8 font-medium text-primary-strong"
+                : "text-label-neutral hover:bg-fill",
             )}
           >
             <Icon className="size-4" aria-hidden />

@@ -38,19 +38,19 @@ function ProfileMenu({ profile }: { profile: OwnerProfile }) {
         onClick={() => setPinned((value) => !value)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2 rounded-lg py-1 pr-1.5 pl-1 hover:bg-gray-100"
+        className="flex items-center gap-2 rounded-lg py-1 pr-1.5 pl-1 hover:bg-fill"
       >
         <OwnerAvatar profile={profile} />
-        <span className="hidden max-w-[120px] truncate text-sm font-medium text-gray-800 xl:block">
+        <span className="hidden max-w-[120px] truncate text-sm font-medium text-label-neutral xl:block">
           {profile.nickname}
         </span>
-        <ChevronDown className={cn("size-4 text-gray-400 transition-transform", open && "rotate-180")} aria-hidden />
+        <ChevronDown className={cn("size-4 text-label-assistive transition-transform", open && "rotate-180")} aria-hidden />
       </button>
       {open && (
         // pt로 버튼과 메뉴 사이의 틈을 메워, 마우스로 옮겨 가는 동안 닫히지 않게 한다
         <div className="absolute top-full right-0 z-30 pt-1.5">
-          <div role="menu" className="min-w-44 rounded-xl border border-line bg-white p-1.5 shadow-lg">
-            <p className="truncate px-2.5 pt-1 pb-2 text-xs text-gray-500">{profile.nickname} · Owner</p>
+          <div role="menu" className="min-w-44 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+            <p className="truncate px-2.5 pt-1 pb-2 text-xs text-label-alternative">{profile.nickname} · Owner</p>
             <button
               type="button"
               role="menuitem"
@@ -58,9 +58,9 @@ function ProfileMenu({ profile }: { profile: OwnerProfile }) {
                 close();
                 setEditing(true);
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-label-neutral hover:bg-fill-alt"
             >
-              <UserPen className="size-4 text-gray-500" aria-hidden />
+              <UserPen className="size-4 text-label-alternative" aria-hidden />
               정보 변경
             </button>
             <button
@@ -70,9 +70,9 @@ function ProfileMenu({ profile }: { profile: OwnerProfile }) {
                 close();
                 void logout();
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-label-neutral hover:bg-fill-alt"
             >
-              <LogOut className="size-4 text-gray-500" aria-hidden />
+              <LogOut className="size-4 text-label-alternative" aria-hidden />
               로그아웃
             </button>
           </div>

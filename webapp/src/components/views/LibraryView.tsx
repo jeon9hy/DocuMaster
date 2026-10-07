@@ -40,8 +40,8 @@ export function LibraryView() {
         action={
           <div className="flex items-center gap-3">
             {state.status === "success" && documents.length > 0 && (
-              <p className="text-sm text-gray-500">
-                {filtered && <span className="font-semibold text-blue-700">{visible.length}건 / </span>}
+              <p className="text-sm text-label-alternative">
+                {filtered && <span className="font-semibold text-primary-strong">{visible.length}건 / </span>}
                 전체 {documents.length}건
               </p>
             )}
@@ -59,7 +59,7 @@ export function LibraryView() {
       {state.status === "error" && <ErrorState message={state.message} onRetry={reload} />}
 
       {state.status === "success" && documents.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white">
+        <div className="rounded-2xl border border-dashed border-line bg-surface">
           <EmptyState
             icon={Library}
             title="아직 완성된 문서가 없습니다"
@@ -79,7 +79,7 @@ export function LibraryView() {
           />
 
           {visible.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-white">
+            <div className="rounded-2xl border border-dashed border-line bg-surface">
               <EmptyState
                 icon={SearchX}
                 title="조건에 맞는 문서가 없습니다"
@@ -94,9 +94,9 @@ export function LibraryView() {
           ) : (
             groups.map((group) => (
               <section key={group.key} aria-label={group.label}>
-                <h2 className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <h2 className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-label-neutral">
                   {group.label}
-                  <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-400 ring-1 ring-line">
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-label-alternative ring-1 ring-line">
                     {group.items.length}
                   </span>
                 </h2>

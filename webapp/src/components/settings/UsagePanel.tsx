@@ -38,12 +38,12 @@ function ProviderUsageRow({ usage }: { usage: ProviderUsage }) {
   return (
     <li className="@container px-2 py-3">
       <div className="mb-2 flex items-center gap-2">
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{usage.label}</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-label">{usage.label}</p>
         <StatusBadgeFor usage={usage} />
       </div>
       <UsageTiles usage={usage} showBar />
       {/* 값이 있으면 막대만. 못 읽었을 때만 이유를 적는다 */}
-      {!usage.available && <p className="text-[13px] leading-relaxed text-gray-500">{usage.note}</p>}
+      {!usage.available && <p className="text-[13px] leading-relaxed text-label-alternative">{usage.note}</p>}
     </li>
   );
 }
@@ -58,10 +58,10 @@ export function UsagePanel() {
     <Panel
       title={
         <span className="flex items-center gap-1.5">
-          <Gauge className="size-4 text-gray-400" aria-hidden />
+          <Gauge className="size-4 text-label-assistive" aria-hidden />
           사용량
           {data && refreshing && (
-            <span className="flex items-center gap-1 text-xs font-normal text-gray-400">
+            <span className="flex items-center gap-1 text-xs font-normal text-label-alternative">
               <Loader2 className="size-3 animate-spin" aria-hidden />
               새 값 확인 중{receivedAt && ` · ${formatTime(receivedAt)} 값`}
             </span>
@@ -77,11 +77,11 @@ export function UsagePanel() {
       {data && (
         <>
           {error && !refreshing && (
-            <p className="mx-2 mb-1 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <p className="mx-2 mb-1 rounded-lg bg-caution/8 px-3 py-2 text-xs text-caution-strong">
               새 값을 받지 못해{receivedAt && ` ${formatTime(receivedAt)}에 받은`} 이전 값을 보여 줍니다. ({error})
             </p>
           )}
-          <ul className={cn("divide-y divide-gray-100 transition-opacity", refreshing && "opacity-50")} aria-busy={refreshing}>
+          <ul className={cn("divide-y divide-line-alt transition-opacity", refreshing && "opacity-50")} aria-busy={refreshing}>
             {data.map((usage) => (
               <ProviderUsageRow key={usage.provider} usage={usage} />
             ))}

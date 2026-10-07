@@ -18,7 +18,7 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 | 계산 | `lib/progress · stageContext · models · mentions · references · format.ts` |
 | 화면 | `components/views/*` + `viewRegistry.tsx` · 뼈대 `components/layout/AppShell.tsx` |
 | 부품 | `components/{ui,chat,workflow,artifact,reference,agent,project}/` — 이름 = 역할 |
-| 색·서체 | `app/globals.css`의 `@theme`(Tailwind 색 스케일 = Montage 원자 색) · `app/layout.tsx` · Montage 연결 `app/MontageProvider.tsx` |
+| 색·서체 | `app/globals.css`의 `@theme`(Montage 시멘틱 색을 용도 이름으로) · `app/layout.tsx` · Montage 연결 `app/MontageProvider.tsx` |
 | 이미지 | `public/brand/`(로고) · `public/avatars/`(캐릭터) · `public/mock/` |
 
 ## 지킬 것
@@ -26,7 +26,8 @@ Next.js 문서(AGENTS.md)는 처음 쓰는 API가 있을 때만 해당 파일을
 - 진행·완료·전달 같은 문구는 코드에서 만든다. UI 때문에 LLM을 부르지 않는다. LLM 문장은 `agent.message`뿐.
 - 반복 값은 `constants/`, 목업은 `data/mock/`. 컴포넌트에 문자열·목업을 박지 않는다. 모델명에 묶인 컴포넌트를 만들지 않는다.
 - 의존성은 `next · react · tailwind · lucide-react` + Montage(`@wanteddev/wds` 버전 고정 · `@emotion/*`)만. 더하기 전에 묻는다.
-- Montage 컴포넌트는 `ui/` 래퍼로만 쓴다(화면 코드에서 직접 import 금지). 스펙은 montage-web 저장소 `docs/data/components`. 스타일은 `@layer wds`라 className이 이긴다.
+- Montage는 `ui/` 래퍼로만 쓴다(화면 코드에서 직접 import 금지). 스펙은 montage-web `docs/data/components`. 스타일이 `@layer wds`라 className이 이긴다.
+- 색은 용도 토큰만: `text-label[-neutral|-alternative]` · `bg-fill`·`bg-surface[-alt]` · `border-line` · `*-primary` · `*-positive|caution|negative` · `*-accent-*`. `gray-*`·`blue-*`·`#hex` 금지.
 - `Button`/`IconButton`에 `hidden md:…`를 직접 주지 않는다(`inline-flex`와 충돌) — 감싼 `span`에 준다.
 - 커밋 안 된 변경을 `restore`·`checkout --`·`reset --hard`·`clean`·`stash`로 버리지 않는다. 끝난 변경은 바로 커밋.
 

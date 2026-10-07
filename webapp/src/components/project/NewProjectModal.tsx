@@ -5,6 +5,7 @@ import { PROJECT_MODE_LABEL } from "@/constants/navigation";
 import { useAppActions } from "@/state/WorkspaceProvider";
 import type { ProjectModeChoice } from "@/types";
 import { Button } from "../ui/Button";
+import { TextField } from "../ui/Field";
 import { Modal } from "../ui/Modal";
 import { SegmentedControl } from "../ui/SegmentedControl";
 
@@ -46,21 +47,20 @@ function NewProjectForm({ onDone }: { onDone: () => void }) {
   return (
     <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium text-gray-800">프로젝트 이름</span>
-        <input
+        <span className="text-sm font-medium text-label-neutral">프로젝트 이름</span>
+        <TextField
           autoFocus
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="예: 수질 관리 사례 보고서"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
         />
       </label>
       <div className="space-y-1.5">
-        <span className="text-sm font-medium text-gray-800">결과물 형식</span>
+        <span className="text-sm font-medium text-label-neutral">결과물 형식</span>
         <SegmentedControl label="결과물 형식" options={MODE_OPTIONS} value={mode} onChange={setMode} />
-        <p className="text-xs text-gray-500">{MODE_HINT[mode]}</p>
+        <p className="text-xs text-label-alternative">{MODE_HINT[mode]}</p>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-negative-fg">{error}</p>}
     </form>
   );
 }

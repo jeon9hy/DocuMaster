@@ -30,15 +30,15 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
         <>
           <div>
             <SectionLabel>현재 프로젝트</SectionLabel>
-            <div className="rounded-xl border border-line bg-white p-2">
+            <div className="rounded-xl border border-line bg-surface p-2">
               <div className="px-2 pt-1 pb-2">
                 <div className="flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+                  <p className="min-w-0 flex-1 truncate text-sm font-semibold text-label">
                     {workspace.project.name}
                   </p>
                   <Badge variant="primary">{PROJECT_MODE_LABEL[workspace.project.mode]}</Badge>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-gray-500">{workspace.project.description}</p>
+                <p className="mt-0.5 truncate text-xs text-label-alternative">{workspace.project.description}</p>
               </div>
               <NavList items={PROJECT_NAV} activeView={view} onSelect={navigate} />
             </div>
@@ -50,7 +50,7 @@ export function LeftSidebar({ onNavigate }: { onNavigate?: () => void }) {
                 isOwner && !workspace.project.readOnly && (
                 <AddReferenceButton>
                   {(open) => (
-                    <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-6 px-1.5 text-blue-600">
+                    <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-6 px-1.5 text-primary">
                       추가
                     </Button>
                   )}

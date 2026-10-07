@@ -11,7 +11,7 @@ interface MobileTabBarProps {
 /** 휴대폰 화면 하단 탭. 패널을 동시에 다 보여 주지 않고 하나씩 바꿔 보여 준다. */
 export function MobileTabBar({ active, onChange }: MobileTabBarProps) {
   return (
-    <nav aria-label="모바일 탭" className="flex shrink-0 border-t border-line bg-white md:hidden">
+    <nav aria-label="모바일 탭" className="flex shrink-0 border-t border-line bg-surface md:hidden">
       {MOBILE_TABS.map((tab) => (
         <button
           key={tab.id}
@@ -20,7 +20,7 @@ export function MobileTabBar({ active, onChange }: MobileTabBarProps) {
           aria-current={active === tab.id ? "page" : undefined}
           className={cn(
             "flex-1 py-3 text-[13px] font-medium",
-            active === tab.id ? "text-blue-600" : "text-gray-500",
+            active === tab.id ? "text-primary" : "text-label-alternative",
           )}
         >
           {tab.label}

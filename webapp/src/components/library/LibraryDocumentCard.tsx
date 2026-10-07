@@ -14,7 +14,7 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full w-full items-center gap-3.5 rounded-xl border border-line bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-900/5 focus-visible:border-blue-400 focus-visible:ring-2 focus-visible:ring-blue-100 focus-visible:outline-none"
+      className="group flex h-full w-full items-center gap-3.5 rounded-xl border border-line bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/43 hover:shadow-md hover:shadow-primary-heavy/5 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/16 focus-visible:outline-none"
     >
       <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl", tone.tile)}>
         <Icon className="size-5" aria-hidden />
@@ -25,17 +25,17 @@ export function LibraryDocumentCard({ doc, onOpen }: { doc: LibraryDocument; onO
           <span className={cn("inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-semibold", tone.pill)}>
             {documentKindLabel(doc.kind)}
           </span>
-          <time dateTime={doc.date} className="text-gray-400">
+          <time dateTime={doc.date} className="text-label-alternative">
             {formatShortDate(doc.date)}
           </time>
           <ArrowUpRight
-            className="ml-auto size-4 text-gray-300 transition-colors group-hover:text-blue-600"
+            className="ml-auto size-4 text-label-disable transition-colors group-hover:text-primary"
             aria-hidden
           />
         </span>
 
         <span
-          className="line-clamp-2 text-[15px] leading-snug font-semibold text-balance break-keep text-gray-900"
+          className="line-clamp-2 text-[15px] leading-snug font-semibold text-balance break-keep text-label"
           title={doc.fileName ?? doc.title}
         >
           {doc.title}

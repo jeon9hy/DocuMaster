@@ -8,7 +8,7 @@ export function BrandLogo({ onHome }: { onHome: () => void }) {
       type="button"
       onClick={onHome}
       aria-label={`${BRAND.name} 홈으로`}
-      className="flex shrink-0 items-center gap-2 rounded-lg p-0.5 focus-visible:outline-2 focus-visible:outline-blue-500"
+      className="flex shrink-0 items-center gap-2 rounded-lg p-0.5 focus-visible:outline-2 focus-visible:outline-primary"
     >
       <img src={BRAND.markSrc} alt="" className="size-9" />
       <span className="hidden leading-none lg:block">
@@ -16,8 +16,8 @@ export function BrandLogo({ onHome }: { onHome: () => void }) {
           <img src={BRAND.wordmarkSrc} alt="" className="h-6 w-auto" />
         ) : (
           <span className="font-wordmark text-[22px] font-extrabold tracking-tight">
-            <span className="text-blue-600">docu</span>
-            <span className="text-navy">master</span>
+            <span className="text-primary">docu</span>
+            <span className="text-label">master</span>
           </span>
         )}
       </span>

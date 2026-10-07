@@ -3,11 +3,11 @@ import { cn } from "@/lib/cn";
 import type { ArtifactFileType } from "@/types";
 
 const ICONS: Record<ArtifactFileType, { icon: LucideIcon; className: string }> = {
-  markdown: { icon: FileText, className: "bg-blue-50 text-blue-600" },
-  pdf: { icon: FileText, className: "bg-red-50 text-red-600" },
-  image: { icon: FileImage, className: "bg-emerald-50 text-emerald-600" },
-  pptx: { icon: Presentation, className: "bg-orange-50 text-orange-600" },
-  file: { icon: File, className: "bg-gray-100 text-gray-600" },
+  markdown: { icon: FileText, className: "bg-primary/8 text-primary" },
+  pdf: { icon: FileText, className: "bg-negative/8 text-negative-fg" },
+  image: { icon: FileImage, className: "bg-positive/8 text-positive-fg" },
+  pptx: { icon: Presentation, className: "bg-accent-orange/8 text-accent-orange" },
+  file: { icon: File, className: "bg-fill text-label-alternative" },
 };
 
 export function ArtifactIcon({ fileType, className }: { fileType: ArtifactFileType; className?: string }) {

@@ -16,14 +16,14 @@ export function StageStatusIcon({ status, index, size = "md" }: StageStatusIconP
 
   if (status === "completed") {
     return (
-      <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white", box)}>
+      <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-positive text-white", box)}>
         <Check className={icon} strokeWidth={3} aria-hidden />
       </span>
     );
   }
   if (status === "error") {
     return (
-      <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-red-500 text-white", box)}>
+      <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-negative text-white", box)}>
         <AlertCircle className={icon} aria-hidden />
       </span>
     );
@@ -34,8 +34,8 @@ export function StageStatusIcon({ status, index, size = "md" }: StageStatusIconP
         "flex shrink-0 items-center justify-center rounded-full font-semibold",
         box,
         status === "running"
-          ? "bg-blue-600 text-white ring-4 ring-blue-100"
-          : "border border-gray-300 bg-white text-gray-400",
+          ? "bg-primary text-white ring-4 ring-primary/16"
+          : "border border-line bg-surface text-label-assistive",
       )}
     >
       {index}

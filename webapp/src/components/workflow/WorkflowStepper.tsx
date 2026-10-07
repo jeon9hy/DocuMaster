@@ -10,10 +10,10 @@ import { Button } from "../ui/Button";
 import { StageStatusIcon } from "./StageStatusIcon";
 
 const STATUS_TEXT_CLASS = {
-  completed: "text-emerald-600",
-  running: "text-blue-600",
-  pending: "text-gray-400",
-  error: "text-red-600",
+  completed: "text-positive-fg",
+  running: "text-primary",
+  pending: "text-label-assistive",
+  error: "text-negative-fg",
 } as const;
 
 interface WorkflowStepperProps {
@@ -26,7 +26,7 @@ export function WorkflowStepper({ stageStatus, openStageId }: WorkflowStepperPro
   const { toggleStage, setView } = useAppActions();
 
   return (
-    <div className="flex items-center gap-3 border-b border-line bg-white px-3 py-3 md:px-5">
+    <div className="flex items-center gap-3 border-b border-line bg-surface px-3 py-3 md:px-5">
       <ol className="flex min-w-0 flex-1 items-center overflow-x-auto">
         {WORKFLOW_STAGES.map((stage, index) => {
           const status = stageStatus[stage.id];
@@ -37,13 +37,13 @@ export function WorkflowStepper({ stageStatus, openStageId }: WorkflowStepperPro
                 onClick={() => toggleStage(stage.id)}
                 aria-expanded={openStageId === stage.id}
                 className={cn(
-                  "flex shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-gray-50",
-                  openStageId === stage.id && "bg-gray-50",
+                  "flex shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-fill-alt",
+                  openStageId === stage.id && "bg-fill-alt",
                 )}
               >
                 <StageStatusIcon status={status} index={index + 1} />
                 <span className="hidden flex-col leading-tight sm:flex">
-                  <span className="text-[13px] font-semibold text-gray-800">{stage.label}</span>
+                  <span className="text-[13px] font-semibold text-label-neutral">{stage.label}</span>
                   <span className={cn("text-[11px]", STATUS_TEXT_CLASS[status])}>
                     {STAGE_STATUS[status].label}
                   </span>
@@ -53,7 +53,7 @@ export function WorkflowStepper({ stageStatus, openStageId }: WorkflowStepperPro
                 <span
                   className={cn(
                     "mx-1.5 h-px min-w-3 flex-1",
-                    status === "completed" ? "bg-emerald-300" : "bg-gray-200",
+                    status === "completed" ? "bg-positive/43" : "bg-fill-strong",
                   )}
                   aria-hidden
                 />

@@ -7,7 +7,7 @@ export function PlaceholderView({ title, description }: { title: string; descrip
   return (
     <ViewContainer>
       <ViewHeader title={title} />
-      <div className="rounded-xl border border-dashed border-gray-300 bg-white">
+      <div className="rounded-xl border border-dashed border-line bg-surface">
         <EmptyState icon={Construction} title="준비 중인 화면입니다" description={description} />
       </div>
     </ViewContainer>

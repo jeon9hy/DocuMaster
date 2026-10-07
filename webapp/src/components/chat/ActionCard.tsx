@@ -50,28 +50,28 @@ export function ActionCard({ request, pending, canRespond, createdAt, onRespond 
       aria-label={`사용자 확인 필요: ${request.title}`}
       className={cn(
         "ml-[52px] rounded-xl border px-4 py-3",
-        pending ? "border-amber-300 bg-amber-50/70 shadow-sm" : "border-line bg-white opacity-80",
+        pending ? "border-caution/43 bg-caution/5 shadow-sm" : "border-line bg-surface opacity-80",
       )}
     >
       <header className="flex items-center gap-2">
         {pending ? (
-          <CircleAlert className="size-4 shrink-0 text-amber-600" aria-hidden />
+          <CircleAlert className="size-4 shrink-0 text-caution-fg" aria-hidden />
         ) : (
-          <CheckCircle2 className="size-4 shrink-0 text-emerald-500" aria-hidden />
+          <CheckCircle2 className="size-4 shrink-0 text-positive-fg" aria-hidden />
         )}
-        <h3 className="min-w-0 flex-1 text-sm font-semibold text-gray-900">
+        <h3 className="min-w-0 flex-1 text-sm font-semibold text-label">
           {pending ? "사용자 확인 필요" : "응답 완료"} · {request.title}
         </h3>
-        <span className="shrink-0 text-[11px] text-gray-400">{formatTime(createdAt)}</span>
+        <span className="shrink-0 text-[11px] text-label-alternative">{formatTime(createdAt)}</span>
       </header>
 
       {pending && (
         <div className="mt-2 space-y-3">
-          <div className="max-h-80 overflow-y-auto text-sm text-gray-700">
+          <div className="max-h-80 overflow-y-auto text-sm text-label-neutral">
             <MarkdownLite text={request.message} />
           </div>
           {!canRespond && (
-            <p className="flex items-center gap-1.5 text-xs text-gray-500">
+            <p className="flex items-center gap-1.5 text-xs text-label-alternative">
               <Lock className="size-3.5 shrink-0" aria-hidden />
               로그인하면 여기서 답할 수 있습니다.
             </p>
@@ -93,14 +93,14 @@ export function ActionCard({ request, pending, canRespond, createdAt, onRespond 
                 onChange={(event) => setText(event.target.value)}
                 placeholder="직접 답하기…"
                 aria-label="직접 답하기"
-                className="field-sizing-content max-h-32 min-h-8 flex-1 resize-none rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className="field-sizing-content max-h-32 min-h-8 flex-1 resize-none rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none"
               />
               <Button size="sm" variant="primary" type="submit" disabled={!text.trim() || sending}>
                 답변 보내기
               </Button>
             </form>
           )}
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-negative-fg">{error}</p>}
         </div>
       )}
     </section>

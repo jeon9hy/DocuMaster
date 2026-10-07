@@ -1,3 +1,4 @@
+import { ProgressIndicator } from "@wanteddev/wds";
 import { cn } from "@/lib/cn";
 
 interface ProgressBarProps {
@@ -9,21 +10,15 @@ interface ProgressBarProps {
   size?: "default" | "thick";
 }
 
+/** Montage ProgressIndicator. 기본 2px 선을 앱 크기(8·16px)의 둥근 막대로 키운다. */
 export function ProgressBar({ value, label, className, size = "default" }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, value));
   return (
-    <div
-      role="progressbar"
+    <ProgressIndicator
+      percent={clamped}
       aria-label={label}
-      aria-valuenow={clamped}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      className={cn(size === "thick" ? "h-4" : "h-2", "w-full overflow-hidden rounded-full bg-gray-100", className)}
-    >
-      <div
-        className="h-full rounded-full bg-blue-600 transition-[width] duration-500"
-        style={{ width: `${clamped}%` }}
-      />
-    </div>
+      sx={{ height: size === "thick" ? 16 : 8, borderRadius: 9999 }}
+      className={cn("w-full", className)}
+    />
   );
 }

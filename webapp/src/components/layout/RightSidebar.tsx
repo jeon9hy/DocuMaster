@@ -18,7 +18,7 @@ export function RightSidebar() {
       <Panel
         title={`작업물 (${workspace.artifacts.length})`}
         action={
-          <Button size="sm" variant="ghost" onClick={() => setView("artifacts")} className="h-7 text-blue-600">
+          <Button size="sm" variant="ghost" onClick={() => setView("artifacts")} className="h-7 text-primary">
             전체 보기
           </Button>
         }

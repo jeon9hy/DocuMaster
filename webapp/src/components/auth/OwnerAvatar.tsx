@@ -22,7 +22,7 @@ export function OwnerAvatar({
   const frame = cn("shrink-0 overflow-hidden rounded-full", SIZE[size]);
   if (src) return <img src={src} alt="" className={cn(frame, "object-cover")} />;
   return (
-    <span className={cn(frame, "flex items-center justify-center bg-blue-100 font-semibold text-blue-700")}>
+    <span className={cn(frame, "flex items-center justify-center bg-primary/12 font-semibold text-primary-strong")}>
       {profile.nickname.slice(0, 1)}
     </span>
   );

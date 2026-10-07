@@ -14,8 +14,8 @@ export function ViewHeader({ title, description, action, inset = false }: ViewHe
   return (
     <header className={cn("mb-5 flex flex-wrap items-end justify-between gap-3", inset && "px-2")}>
       <div>
-        <h1 className="text-2xl font-bold tracking-[-0.023em] text-gray-900">{title}</h1>
-        {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+        <h1 className="text-2xl font-bold tracking-[-0.023em] text-label">{title}</h1>
+        {description && <p className="mt-1 text-sm text-label-alternative">{description}</p>}
       </div>
       {action}
     </header>

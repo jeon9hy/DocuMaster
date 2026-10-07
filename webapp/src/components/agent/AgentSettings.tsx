@@ -11,7 +11,7 @@ import { Select } from "../ui/Select";
 import { AgentAvatar } from "./AgentAvatar";
 
 /** 추론 강도를 넘기지 않을 때(기본값) select에 쓰는 값 */
-const TOOL_DEFAULT = "";
+const TOOL_DEFAULT = "default";
 const ORDER: ReasoningLevel[] = ["low", "medium", "high", "xhigh", "max", "ultra"];
 
 interface AgentSettingsRowProps {
@@ -63,11 +63,11 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
       <div className="mb-2 flex items-center gap-2.5">
         <AgentAvatar agentId={setting.agentId} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-gray-900">
+          <p className="truncate text-sm font-semibold text-label">
             {profile.name}
-            <span className="ml-2 text-xs font-normal text-gray-500">{profile.role}</span>
+            <span className="ml-2 text-xs font-normal text-label-alternative">{profile.role}</span>
           </p>
-          <p className="truncate text-xs text-gray-500">{PROVIDERS[config.provider].label}</p>
+          <p className="truncate text-xs text-label-alternative">{PROVIDERS[config.provider].label}</p>
         </div>
       </div>
       {usage?.available && (
@@ -81,43 +81,36 @@ const AgentSettingsRow = memo(function AgentSettingsRow({ setting, editable, onC
           className="flex-[3]"
           value={config.modelId}
           disabled={disabled || saving}
-          onChange={(event) => save(() => onChange(changeModel(event.target.value)))}
-        >
-          {setting.modelIds.map((modelId) => (
-            <option key={modelId} value={modelId}>
-              {setting.modelLabels?.[modelId] ?? getModelLabel({ ...config, modelId })}
-            </option>
-          ))}
-        </Select>
+          options={setting.modelIds.map((modelId) => ({
+            value: modelId,
+            label: setting.modelLabels?.[modelId] ?? getModelLabel({ ...config, modelId }),
+          }))}
+          onChange={(value) => save(() => onChange(changeModel(value)))}
+        />
         <Select
           label={`${profile.name} 추론 강도`}
           className="flex-[2]"
           value={config.reasoningLevel ?? TOOL_DEFAULT}
           disabled={disabled || saving || levels.length <= 1}
-          onChange={(event) =>
+          options={levels.map((level) => ({ value: level ?? TOOL_DEFAULT, label: reasoningLabel(level) }))}
+          onChange={(value) =>
             save(() =>
               onChange({
                 ...config,
-                reasoningLevel: event.target.value === TOOL_DEFAULT ? null : (event.target.value as ReasoningLevel),
+                reasoningLevel: value === TOOL_DEFAULT ? null : (value as ReasoningLevel),
               }),
             )
           }
-        >
-          {levels.map((level) => (
-            <option key={level ?? TOOL_DEFAULT} value={level ?? TOOL_DEFAULT}>
-              {reasoningLabel(level)}
-            </option>
-          ))}
-        </Select>
+        />
       </div>
       {/* 마지막 변경만 오른쪽에. 박스 끝에 딱 붙으면 밖으로 나가 보여 살짝 안쪽(pr-2)에 둔다 */}
       {setting.updatedAt && (
-        <p className="mt-1.5 pr-2 text-right text-[11px] text-gray-400">
+        <p className="mt-1.5 pr-2 text-right text-[11px] text-label-alternative">
           Owner 설정 · 마지막 변경 {formatDateTime(setting.updatedAt)}
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-1 text-xs text-red-600">
+        <p role="alert" className="mt-1 text-xs text-negative-fg">
           {error}
         </p>
       )}
@@ -134,7 +127,7 @@ interface AgentSettingsListProps {
 
 export function AgentSettingsList({ settings, editable, onChange, usageByProvider }: AgentSettingsListProps) {
   return (
-    <ul className="divide-y divide-gray-100">
+    <ul className="divide-y divide-line-alt">
       {settings.map((setting) => (
         <AgentSettingsRow
           key={setting.agentId}

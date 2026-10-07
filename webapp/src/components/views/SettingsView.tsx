@@ -21,7 +21,7 @@ const loadHealth = () => workspaceService.getHealth();
 function PanelTitle({ icon: Icon, children }: { icon: typeof Bot; children: string }) {
   return (
     <span className="flex items-center gap-1.5">
-      <Icon className="size-4 text-gray-400" aria-hidden />
+      <Icon className="size-4 text-label-assistive" aria-hidden />
       {children}
     </span>
   );
@@ -46,11 +46,11 @@ function ModelSettingsPanel() {
 
   return (
     <Panel title={<PanelTitle icon={Bot}>모델 설정</PanelTitle>}>
-      <p className="mx-2 mb-1 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+      <p className="mx-2 mb-1 rounded-lg bg-primary/8 px-3 py-2 text-xs text-primary-heavy">
         변경사항은 다음 실행부터 적용됩니다. 진행 중인 실행은 시작할 때의 설정을 그대로 씁니다.
       </p>
       {!isOwner && (
-        <p className="mx-2 mb-1 rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600">
+        <p className="mx-2 mb-1 rounded-lg bg-fill px-3 py-2 text-xs text-label-alternative">
           🔒 모델 설정은 Owner 로그인 후 변경할 수 있습니다.
         </p>
       )}
@@ -73,7 +73,7 @@ function AppInfoPanel() {
   const { state } = useServiceData(loadHealth);
   const health = state.status === "success" ? state.data : null;
   return (
-    <Panel title={<PanelTitle icon={Info}>앱 설정</PanelTitle>} bodyClassName="space-y-2 px-4 pb-4 text-[13px] text-gray-600">
+    <Panel title={<PanelTitle icon={Info}>앱 설정</PanelTitle>} bodyClassName="space-y-2 px-4 pb-4 text-[13px] text-label-alternative">
       <p className="flex items-center justify-between gap-3">
         <span className="shrink-0 whitespace-nowrap">연결</span>
         {serviceKind === "mock" ? (
@@ -99,7 +99,7 @@ function AppInfoPanel() {
         </p>
       )}
       {health && health.missingTools.length > 0 && (
-        <p className="text-xs text-red-600">설치되지 않은 도구: {health.missingTools.join(", ")}</p>
+        <p className="text-xs text-negative-fg">설치되지 않은 도구: {health.missingTools.join(", ")}</p>
       )}
     </Panel>
   );

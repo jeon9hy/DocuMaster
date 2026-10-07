@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { daysAgo, formatShortDate, toIsoDate } from "@/lib/library";
 import type { LibraryFilter, LibraryFilterField } from "@/types";
 import { Dropdown, DropdownItem } from "../ui/Dropdown";
+import { SearchField } from "../ui/Field";
 import { kindTone } from "./kindTone";
 
 interface LibraryFilterBarProps {
@@ -25,7 +26,7 @@ interface LibraryFilterBarProps {
 
 const CHIP = "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors";
 const DATE_INPUT =
-  "h-10 w-full min-w-0 rounded-lg border border-line bg-white px-3 text-sm text-gray-800 [color-scheme:light] hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none";
+  "h-10 w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-sm text-label-neutral [color-scheme:light] hover:border-line focus:border-primary focus:ring-2 focus:ring-primary/16 focus:outline-none";
 
 /** 드롭다운으로 필터 종류(제목·날짜·유형)를 고르고, 고른 종류에 맞는 입력을 보여 준다. 세 조건은 함께 적용된다. */
 export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange, kindCounts }: LibraryFilterBarProps) {
@@ -33,7 +34,7 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
   const update = (patch: Partial<LibraryFilter>) => onFilterChange({ ...filter, ...patch });
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-3 shadow-sm shadow-blue-900/[0.03]">
+    <section className="rounded-2xl border border-line bg-surface p-3 shadow-sm shadow-primary-heavy/[0.03]">
       <div className="flex flex-col gap-2.5 @lg:flex-row @lg:items-start">
         <Dropdown
           trigger={({ open, toggle }) => (
@@ -44,8 +45,8 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
               aria-expanded={open}
               aria-label={`필터 종류: ${current.label}`}
               className={cn(
-                "flex h-10 w-full items-center gap-2 rounded-lg border bg-blue-50/60 px-3 text-sm font-semibold text-blue-700 transition-colors @lg:w-28",
-                open ? "border-blue-400" : "border-blue-100 hover:border-blue-300",
+                "flex h-10 w-full items-center gap-2 rounded-lg border bg-primary/4 px-3 text-sm font-semibold text-primary-strong transition-colors @lg:w-28",
+                open ? "border-primary" : "border-primary/16 hover:border-primary/43",
               )}
             >
               <current.icon className="size-4" aria-hidden />
@@ -75,31 +76,14 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
 
         <div className="min-w-0 flex-1">
           {field === "title" && (
-            <div className="relative">
-              <current.icon
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400"
-                aria-hidden
-              />
-              <input
-                type="search"
-                autoFocus
-                value={filter.title}
-                onChange={(event) => update({ title: event.target.value })}
-                placeholder="제목이나 요청 내용으로 찾기"
-                aria-label="제목 검색"
-                className="h-10 w-full rounded-lg border border-line bg-white pr-9 pl-9 text-sm text-gray-800 placeholder:text-gray-400 hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none [&::-webkit-search-cancel-button]:hidden"
-              />
-              {filter.title && (
-                <button
-                  type="button"
-                  onClick={() => update({ title: "" })}
-                  aria-label="검색어 지우기"
-                  className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="size-3.5" aria-hidden />
-                </button>
-              )}
-            </div>
+            <SearchField
+              autoFocus
+              value={filter.title}
+              onChange={(event) => update({ title: event.target.value })}
+              onClear={() => update({ title: "" })}
+              placeholder="제목이나 요청 내용으로 찾기"
+              aria-label="제목 검색"
+            />
           )}
 
           {field === "date" && (
@@ -113,7 +97,7 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
                   aria-label="시작 날짜"
                   className={DATE_INPUT}
                 />
-                <span className="shrink-0 text-sm text-gray-400">~</span>
+                <span className="shrink-0 text-sm text-label-alternative">~</span>
                 <input
                   type="date"
                   value={filter.dateTo}
@@ -137,8 +121,8 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
                       className={cn(
                         CHIP,
                         active
-                          ? "border-blue-500 bg-blue-600 text-white"
-                          : "border-line bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700",
+                          ? "border-primary bg-primary text-white"
+                          : "border-line bg-surface text-label-alternative hover:border-primary/43 hover:text-primary-strong",
                       )}
                     >
                       {preset.label}
@@ -169,12 +153,12 @@ export function LibraryFilterBar({ field, onFieldChange, filter, onFilterChange,
                     className={cn(
                       CHIP,
                       "disabled:cursor-not-allowed disabled:opacity-40",
-                      active ? tone.chipActive : "border-line bg-white text-gray-600 hover:border-gray-300",
+                      active ? tone.chipActive : "border-line bg-surface text-label-alternative hover:border-line",
                     )}
                   >
                     <span className={cn("size-2 rounded-full", tone.dot)} aria-hidden />
                     {kind.label}
-                    <span className={cn("text-xs", active ? "opacity-80" : "text-gray-400")}>{count}</span>
+                    <span className={cn("text-xs", active ? "opacity-80" : "text-label-alternative")}>{count}</span>
                   </button>
                 );
               })}
@@ -215,7 +199,7 @@ function ActiveFilters({
       {chips.map((chip) => (
         <span
           key={chip.id}
-          className="inline-flex h-7 items-center gap-1 rounded-full bg-blue-50 pr-1 pl-1 text-xs font-medium text-blue-700"
+          className="inline-flex h-7 items-center gap-1 rounded-full bg-primary/8 pr-1 pl-1 text-xs font-medium text-primary-strong"
         >
           <button
             type="button"
@@ -228,7 +212,7 @@ function ActiveFilters({
             type="button"
             onClick={() => onFilterChange({ ...filter, ...chip.clear })}
             aria-label={`${chip.label} 조건 지우기`}
-            className="flex size-5 items-center justify-center rounded-full hover:bg-blue-100"
+            className="flex size-5 items-center justify-center rounded-full hover:bg-primary/12"
           >
             <X className="size-3" aria-hidden />
           </button>
@@ -238,7 +222,7 @@ function ActiveFilters({
         <button
           type="button"
           onClick={() => onFilterChange(EMPTY_LIBRARY_FILTER)}
-          className="ml-1 text-xs font-medium text-gray-500 hover:text-gray-800"
+          className="ml-1 text-xs font-medium text-label-alternative hover:text-label-neutral"
         >
           모두 지우기
         </button>

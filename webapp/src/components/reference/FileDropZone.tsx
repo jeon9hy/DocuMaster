@@ -55,15 +55,15 @@ export function FileDropZone({ files, onChange, disabled = false, className }: F
         onDrop={onDrop}
         className={cn(
           "flex flex-col items-center gap-2 rounded-xl border border-dashed px-4 py-6 text-center transition-colors",
-          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-50",
-          dragging ? "border-blue-500 bg-blue-50/60" : "border-gray-300",
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-fill-alt",
+          dragging ? "border-primary bg-primary/4" : "border-line",
         )}
       >
-        <Upload className={cn("size-5", dragging ? "text-blue-600" : "text-gray-400")} aria-hidden />
-        <span className="text-sm text-gray-700">
+        <Upload className={cn("size-5", dragging ? "text-primary" : "text-label-assistive")} aria-hidden />
+        <span className="text-sm text-label-neutral">
           {dragging ? "여기에 놓으세요" : "파일을 끌어다 놓거나 눌러서 고르세요"}
         </span>
-        <span className="text-xs text-gray-400">{REFERENCE_FILE_HINT}</span>
+        <span className="text-xs text-label-alternative">{REFERENCE_FILE_HINT}</span>
         <input
           type="file"
           multiple
@@ -81,14 +81,14 @@ export function FileDropZone({ files, onChange, disabled = false, className }: F
         <ul className="scrollbar-thin max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-line p-1">
           {files.map((file) => (
             <li key={fileKey(file)} className="flex items-center gap-2 rounded-md px-2 py-1 text-[13px]">
-              <span className="min-w-0 flex-1 truncate text-gray-800">{file.name}</span>
-              <span className="shrink-0 text-xs text-gray-500">{formatBytes(file.size)}</span>
+              <span className="min-w-0 flex-1 truncate text-label-neutral">{file.name}</span>
+              <span className="shrink-0 text-xs text-label-alternative">{formatBytes(file.size)}</span>
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(files.filter((item) => item !== file))}
                 aria-label={`${file.name} 빼기`}
-                className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40"
+                className="rounded p-0.5 text-label-assistive hover:bg-fill hover:text-label-alternative disabled:opacity-40"
               >
                 <X className="size-3.5" aria-hidden />
               </button>

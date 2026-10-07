@@ -23,7 +23,7 @@ export function TopHeader({ onOpenLeft, onOpenRight }: TopHeaderProps) {
 
   // md 미만: 아이콘 줄과 프로젝트 선택 줄을 나눈다 — 한 줄에 두면 이름이 「A…」로 잘린다
   return (
-    <header className="shrink-0 border-b border-line bg-white">
+    <header className="shrink-0 border-b border-line bg-surface">
       <div className="flex h-14 items-center gap-3 px-3 md:h-16 md:px-5">
         <IconButton icon={Menu} label="메뉴 열기" onClick={onOpenLeft} className="lg:hidden" />
         <BrandLogo onHome={() => setView("home")} />
@@ -37,11 +37,11 @@ export function TopHeader({ onOpenLeft, onOpenRight }: TopHeaderProps) {
           onClick={() => setView("chat")}
           disabled={!workspace}
           title="대화창으로 이동"
-          className="mx-auto hidden w-full max-w-sm items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-gray-50 disabled:pointer-events-none md:flex"
+          className="mx-auto hidden w-full max-w-sm items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-fill-alt disabled:pointer-events-none md:flex"
         >
-          <span className="shrink-0 text-xs text-gray-500">전체 진행률</span>
+          <span className="shrink-0 text-xs text-label-alternative">전체 진행률</span>
           <ProgressBar value={progress} label="전체 진행률" />
-          <span className="w-10 shrink-0 text-right text-sm font-semibold text-gray-900">{progress}%</span>
+          <span className="w-10 shrink-0 text-right text-sm font-semibold text-label">{progress}%</span>
         </button>
         {workspace && (
           <span className="shrink-0">

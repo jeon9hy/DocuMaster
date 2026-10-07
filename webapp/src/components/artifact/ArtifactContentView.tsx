@@ -35,7 +35,7 @@ export function ArtifactContentView({
             src={content.src.includes("#") ? content.src : `${content.src}#view=FitH`}
             title={content.title}
             className={cn(
-              "w-full rounded-lg border border-line bg-white",
+              "w-full rounded-lg border border-line bg-surface",
               fill ? "h-[75vh] @3xl:h-full" : large ? "h-[75vh]" : "h-72",
             )}
           />
@@ -45,15 +45,15 @@ export function ArtifactContentView({
       return (
         <div
           className={cn(
-            "mx-auto flex aspect-[1/1.414] flex-col rounded-lg border border-line bg-white p-5 shadow-sm",
+            "mx-auto flex aspect-[1/1.414] flex-col rounded-lg border border-line bg-surface p-5 shadow-sm",
             large ? "max-w-md" : "max-w-full",
           )}
         >
-          <div className="h-1 w-10 rounded-full bg-blue-600" />
-          <p className="mt-4 text-lg font-bold text-gray-900">{content.title}</p>
-          <p className="mt-1 text-xs text-gray-500">{content.subtitle}</p>
-          <div className="mt-5 flex-1 rounded-md bg-gradient-to-br from-slate-100 to-blue-50" />
-          <p className="mt-3 flex items-center gap-1 text-[11px] text-gray-400">
+          <div className="h-1 w-10 rounded-full bg-primary" />
+          <p className="mt-4 text-lg font-bold text-label">{content.title}</p>
+          <p className="mt-1 text-xs text-label-alternative">{content.subtitle}</p>
+          <div className="mt-5 flex-1 rounded-md bg-gradient-to-br from-fill to-primary/8" />
+          <p className="mt-3 flex items-center gap-1 text-[11px] text-label-alternative">
             <FileText className="size-3" aria-hidden />
             PDF · {content.pageCount}쪽
           </p>
@@ -62,15 +62,15 @@ export function ArtifactContentView({
 
     case "file":
       return (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-6 text-center">
-          <p className="text-sm font-medium text-gray-800">{content.fileName}</p>
-          <p className="text-xs text-gray-500">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface px-4 py-6 text-center">
+          <p className="text-sm font-medium text-label-neutral">{content.fileName}</p>
+          <p className="text-xs text-label-alternative">
             {formatBytes(content.sizeBytes)} · 브라우저에서 미리 볼 수 없는 형식입니다.
           </p>
           <a
             href={content.downloadUrl}
             download
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[13px] font-medium text-white hover:bg-blue-700"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-white hover:bg-primary-strong"
           >
             <Download className="size-4" aria-hidden />
             내려받기

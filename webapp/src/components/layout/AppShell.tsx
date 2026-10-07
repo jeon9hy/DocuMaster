@@ -91,12 +91,12 @@ export function AppShell() {
     <div className="flex h-dvh flex-col">
       <TopHeader onOpenLeft={openLeft} onOpenRight={openRight} />
       <div className="flex min-h-0 flex-1">
-        <aside className="scrollbar-thin hidden w-[260px] shrink-0 overflow-y-auto border-r border-line bg-canvas lg:block">
+        <aside className="scrollbar-thin hidden w-[260px] shrink-0 overflow-y-auto border-r border-line bg-surface-alt lg:block">
           <LeftSidebar />
         </aside>
-        <main className="flex min-w-0 flex-1 flex-col bg-white">{main}</main>
+        <main className="flex min-w-0 flex-1 flex-col bg-surface">{main}</main>
         {workspace && (
-          <aside className="scrollbar-thin hidden w-[340px] shrink-0 overflow-y-auto border-l border-line bg-canvas xl:block">
+          <aside className="scrollbar-thin hidden w-[340px] shrink-0 overflow-y-auto border-l border-line bg-surface-alt xl:block">
             <RightSidebar />
           </aside>
         )}

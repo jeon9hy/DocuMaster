@@ -100,7 +100,7 @@ src/
 ├─ lib/                 순수 함수: applyWorkflowEvent · eventToFeedItem · progress · stageContext · models …
 ├─ hooks/               useArtifactContent · useStickToBottom · useDismiss
 └─ components/
-   ├─ ui/               Badge · Button · Modal · Drawer · Dropdown · Select · Panel · ProgressBar · States (Button·IconButton·Badge·Modal·SegmentedControl은 Montage 래퍼)
+   ├─ ui/               Badge · Button · Modal · Drawer · Dropdown · Select · Field(TextField·TextArea·SearchField) · Panel · ProgressBar · States — Drawer·Panel 외에는 Montage 래퍼
    ├─ layout/           AppShell · TopHeader · LeftSidebar · RightSidebar · MobileTabBar · BrandLogo
    ├─ workflow/         WorkflowStepper · StageDetail · WorkflowSummary · StageStatusIcon
    ├─ chat/             ActivityFeed · AgentMessage · SystemEvent · ArtifactCard · UserMessage · PromptInput
@@ -117,7 +117,7 @@ public/
 
 | 하고 싶은 일 | 고칠 곳 |
 | --- | --- |
-| 색 바꾸기 | `src/app/globals.css`의 `@theme` (Tailwind 색 스케일을 Montage 원자 색으로 덮어씀: blue = 원티드 블루 #0066FF, gray = coolNeutral) |
+| 색 바꾸기 | `src/app/globals.css`의 `@theme` — Montage 시멘틱 색(`--semantic-*`)을 용도 이름으로 노출(`text-label-alternative` · `bg-fill` · `border-line` · `bg-primary` · `bg-negative/8` …). 용도 지침: montage.wanted.co.kr 「Foundations → Colors → Semantic」 |
 | 버튼·배지·모달 모양 | `src/components/ui/` — Montage 컴포넌트를 앱 API로 감싼 곳. 화면 코드는 `@wanteddev/wds`를 직접 쓰지 않음 |
 | 로고를 원본 PNG로 | `public/brand/`에 파일 → `constants/brand.ts` 경로 |
 | 캐릭터 실제 이미지 | `public/avatars/`에 파일 → `constants/agents.ts`의 `avatarSrc` |

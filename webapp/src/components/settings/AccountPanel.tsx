@@ -21,7 +21,7 @@ function PinChangeForm({ managedByEnv }: { managedByEnv: boolean }) {
 
   if (managedByEnv) {
     return (
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-label-alternative">
         PIN이 환경변수(DOCUMASTER_OWNER_PIN_HASH)로 설정되어 있어 여기서 바꿀 수 없습니다.
       </p>
     );
@@ -48,12 +48,12 @@ function PinChangeForm({ managedByEnv }: { managedByEnv: boolean }) {
         <PinInput label="새 PIN 확인" value={confirm} onChange={setConfirm} autoComplete="new-password" />
       </div>
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-negative-fg">
           {error}
         </p>
       )}
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-gray-500">바꾸면 모든 브라우저에서 로그아웃됩니다.</p>
+        <p className="text-xs text-label-alternative">바꾸면 모든 브라우저에서 로그아웃됩니다.</p>
         <Button
           type="submit"
           size="sm"
@@ -77,14 +77,14 @@ export function AccountPanel() {
     <Panel
       title={
         <span className="flex items-center gap-1.5">
-          <UserRound className="size-4 text-gray-400" aria-hidden />
+          <UserRound className="size-4 text-label-assistive" aria-hidden />
           계정
         </span>
       }
       bodyClassName="space-y-5 px-4 pb-4"
     >
       {!profile ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-label-alternative">
           🔒 로그인하면 프로필과 PIN을 관리할 수 있습니다.
           <LoginButton size="sm" />
         </div>
@@ -93,8 +93,8 @@ export function AccountPanel() {
           <div className="flex items-center gap-3">
             <OwnerAvatar profile={profile} size="lg" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900">{profile.nickname}</p>
-              <p className="text-xs text-gray-500">
+              <p className="truncate text-sm font-semibold text-label">{profile.nickname}</p>
+              <p className="text-xs text-label-alternative">
                 Owner{profile.updatedAt && ` · 마지막 변경 ${formatDateTime(profile.updatedAt)}`}
               </p>
             </div>
@@ -103,7 +103,7 @@ export function AccountPanel() {
             </Button>
           </div>
           <div className="border-t border-line pt-4">
-            <h3 className="mb-3 text-[13px] font-semibold text-gray-800">PIN 변경</h3>
+            <h3 className="mb-3 text-[13px] font-semibold text-label-neutral">PIN 변경</h3>
             <PinChangeForm managedByEnv={session?.pinManagedByEnv ?? false} />
           </div>
           {editing && <ProfileEditModal profile={profile} onClose={() => setEditing(false)} />}

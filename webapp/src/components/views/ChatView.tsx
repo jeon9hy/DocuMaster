@@ -17,7 +17,7 @@ export function ChatView() {
     <div className="flex min-h-0 flex-1 flex-col">
       <WorkflowStepper stageStatus={workspace.stageStatus} openStageId={openStageId} />
       {connection === "reconnecting" && (
-        <p role="status" className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-xs text-amber-800">
+        <p role="status" className="flex items-center gap-2 border-b border-caution/28 bg-caution/8 px-4 py-1.5 text-xs text-caution-strong">
           <WifiOff className="size-3.5 shrink-0" aria-hidden />
           백엔드와 연결이 끊겨 다시 연결하는 중입니다. 연결되면 놓친 이벤트를 이어서 받습니다.
         </p>

@@ -104,7 +104,7 @@ export function PromptInput({
 
   if (readOnly) {
     return (
-      <div className="border-t border-line bg-white px-3 py-3 text-center text-xs text-gray-500 md:px-5">
+      <div className="border-t border-line bg-surface px-3 py-3 text-center text-xs text-label-alternative md:px-5">
         기존 CLI 작업을 읽기 전용으로 연 프로젝트입니다. 이어서 작업하려면 터미널의 Claude Code에서 진행하세요.
       </div>
     );
@@ -112,8 +112,8 @@ export function PromptInput({
 
   if (!isOwner) {
     return (
-      <div className="flex flex-wrap items-center justify-center gap-3 border-t border-line bg-white px-3 py-3 text-sm text-gray-600 md:px-5">
-        <Lock className="size-4 shrink-0 text-gray-400" aria-hidden />
+      <div className="flex flex-wrap items-center justify-center gap-3 border-t border-line bg-surface px-3 py-3 text-sm text-label-alternative md:px-5">
+        <Lock className="size-4 shrink-0 text-label-assistive" aria-hidden />
         로그인하면 에이전트에게 작업을 지시할 수 있습니다.
         <LoginButton size="sm" />
       </div>
@@ -125,8 +125,8 @@ export function PromptInput({
   const done = isComplete && !resumeRevise;
 
   return (
-    <div className="border-t border-line bg-white px-3 py-3 md:px-5">
-      <div className="mx-auto flex max-w-[860px] flex-col gap-2 rounded-xl border border-line bg-white p-2 focus-within:border-blue-400">
+    <div className="border-t border-line bg-surface px-3 py-3 md:px-5">
+      <div className="mx-auto flex max-w-[860px] flex-col gap-2 rounded-xl border border-line bg-surface p-2 focus-within:border-primary">
         <div className="flex min-w-0 items-start gap-2">
           <textarea
             ref={textareaRef}
@@ -136,7 +136,7 @@ export function PromptInput({
             onKeyDown={handleKeyDown}
             placeholder="작업 지시를 입력하세요"
             aria-label="작업 지시"
-            className="field-sizing-content max-h-40 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none"
+            className="field-sizing-content max-h-40 min-h-9 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-label-neutral placeholder:text-label-alternative focus:outline-none"
           />
           <Dropdown
             align="right"
@@ -154,7 +154,7 @@ export function PromptInput({
                 >
                   <AgentAvatar agentId={id} size="xs" />
                   <span className="font-medium">{getAgentProfile(id).name}</span>
-                  <span className="text-xs text-gray-500">{getAgentProfile(id).role}</span>
+                  <span className="text-xs text-label-alternative">{getAgentProfile(id).role}</span>
                 </DropdownItem>
               ))
             }
@@ -212,15 +212,15 @@ export function PromptInput({
         </div>
       </div>
       {queued && (
-        <p className="mx-auto flex max-w-[860px] items-center gap-1.5 px-1 pt-1.5 text-xs text-gray-600">
-          <CalendarClock className="size-3.5 shrink-0 text-blue-500" aria-hidden />
+        <p className="mx-auto flex max-w-[860px] items-center gap-1.5 px-1 pt-1.5 text-xs text-label-alternative">
+          <CalendarClock className="size-3.5 shrink-0 text-primary" aria-hidden />
           실행 예약됨 — 지금 실행 중인 다른 프로젝트가 완료·오류로 끝나면 자동으로 시작합니다.
         </p>
       )}
       {offerQueue && !queued && (
         <div
           role="status"
-          className="mx-auto mt-1.5 flex max-w-[860px] flex-wrap items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800"
+          className="mx-auto mt-1.5 flex max-w-[860px] flex-wrap items-center gap-2 rounded-lg bg-primary/8 px-3 py-2 text-xs text-primary-heavy"
         >
           <span className="min-w-0 flex-1">다른 프로젝트가 실행 중입니다. 한 번에 하나만 실행합니다.</span>
           <Button size="sm" variant="primary" icon={CalendarClock} onClick={handleQueue}>
@@ -229,7 +229,7 @@ export function PromptInput({
         </div>
       )}
       {error && (
-        <p role="alert" className="mx-auto max-w-[860px] px-1 pt-1.5 text-xs text-red-600">
+        <p role="alert" className="mx-auto max-w-[860px] px-1 pt-1.5 text-xs text-negative-fg">
           {error}
         </p>
       )}

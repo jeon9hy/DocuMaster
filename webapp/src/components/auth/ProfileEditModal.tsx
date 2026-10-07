@@ -5,6 +5,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { useAppActions } from "@/state/WorkspaceProvider";
 import type { OwnerProfile } from "@/types";
 import { Button } from "../ui/Button";
+import { TextField } from "../ui/Field";
 import { Modal } from "../ui/Modal";
 import { OwnerAvatar } from "./OwnerAvatar";
 
@@ -76,7 +77,7 @@ export function ProfileEditModal({ profile, onClose }: { profile: OwnerProfile; 
                 사진 삭제
               </Button>
             )}
-            <p className="w-full text-xs text-gray-500">PNG·JPG·WEBP, 5MB 이하. 정사각형으로 잘라 보여 줍니다.</p>
+            <p className="w-full text-xs text-label-alternative">PNG·JPG·WEBP, 5MB 이하. 정사각형으로 잘라 보여 줍니다.</p>
           </div>
           <input
             ref={fileRef}
@@ -87,16 +88,11 @@ export function ProfileEditModal({ profile, onClose }: { profile: OwnerProfile; 
           />
         </div>
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-gray-700">닉네임</span>
-          <input
-            value={nickname}
-            maxLength={30}
-            onChange={(event) => setNickname(event.target.value)}
-            className="h-10 w-full rounded-lg border border-line px-3 text-sm focus:border-blue-500 focus:outline-none"
-          />
+          <span className="mb-1.5 block text-[13px] font-medium text-label-neutral">닉네임</span>
+          <TextField value={nickname} maxLength={30} onChange={(event) => setNickname(event.target.value)} />
         </label>
         {error && (
-          <p role="alert" className="text-xs text-red-600">
+          <p role="alert" className="text-xs text-negative-fg">
             {error}
           </p>
         )}

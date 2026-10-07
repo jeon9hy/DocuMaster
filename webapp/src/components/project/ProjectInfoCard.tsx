@@ -19,11 +19,11 @@ export function ProjectInfoCard({ project, doc }: ProjectInfoCardProps) {
   const Icon = mode === "presentation" ? Presentation : mode === "auto" ? Sparkles : FileText;
 
   return (
-    <section className="mb-4 flex items-start gap-4 rounded-2xl border border-line bg-white p-5 shadow-sm shadow-blue-900/[0.03]">
+    <section className="mb-4 flex items-start gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm shadow-primary-heavy/[0.03]">
       <span
         className={cn(
           "flex size-12 shrink-0 items-center justify-center rounded-xl",
-          tone ? tone.tile : "bg-gray-100 text-gray-500",
+          tone ? tone.tile : "bg-fill text-label-alternative",
         )}
       >
         <Icon className="size-6" aria-hidden />
@@ -36,18 +36,18 @@ export function ProjectInfoCard({ project, doc }: ProjectInfoCardProps) {
               {documentKindLabel(doc.kind)}
             </span>
           )}
-          <span className="rounded-md bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600">
+          <span className="rounded-md bg-fill px-1.5 py-0.5 font-medium text-label-alternative">
             {PROJECT_MODE_LABEL[mode]}
           </span>
           {doc && (
-            <time dateTime={doc.date} className="text-gray-400">
+            <time dateTime={doc.date} className="text-label-alternative">
               {formatShortDate(doc.date)}
             </time>
           )}
         </div>
-        <h1 className="text-xl leading-snug font-semibold text-balance break-keep text-gray-900">{project.name}</h1>
+        <h1 className="text-xl leading-snug font-semibold text-balance break-keep text-label">{project.name}</h1>
         {doc?.request && (
-          <p className="line-clamp-2 text-sm text-gray-500" title={doc.request}>
+          <p className="line-clamp-2 text-sm text-label-alternative" title={doc.request}>
             요청 · {doc.request}
           </p>
         )}

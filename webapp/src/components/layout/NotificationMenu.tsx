@@ -47,15 +47,15 @@ export function NotificationMenu({ projectId, feed }: { projectId: string | null
               toggle();
             }}
           />
-          {hasAlert && <span className="absolute top-2 right-2 size-2 rounded-full bg-red-500 ring-2 ring-white" />}
+          {hasAlert && <span className="absolute top-2 right-2 size-2 rounded-full bg-negative ring-2 ring-surface" />}
         </div>
       )}
     >
       {() => (
         <>
-          <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-gray-500">최근 알림</p>
+          <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-label-alternative">최근 알림</p>
           {recent.length === 0 ? (
-            <p className="px-2.5 py-3 text-sm text-gray-500">알림이 없습니다.</p>
+            <p className="px-2.5 py-3 text-sm text-label-alternative">알림이 없습니다.</p>
           ) : (
             <ul>
               {recent.map((item) => (
@@ -63,9 +63,9 @@ export function NotificationMenu({ projectId, feed }: { projectId: string | null
                   <Badge variant={TONE_VARIANT[item.tone]} dot className="mt-0.5 px-1.5">
                     {formatTime(item.createdAt)}
                   </Badge>
-                  <span className="min-w-0 text-[13px] text-gray-700">
+                  <span className="min-w-0 text-[13px] text-label-neutral">
                     {item.title}
-                    {item.detail && <span className="block truncate text-xs text-gray-500">{item.detail}</span>}
+                    {item.detail && <span className="block truncate text-xs text-label-alternative">{item.detail}</span>}
                   </span>
                 </li>
               ))}

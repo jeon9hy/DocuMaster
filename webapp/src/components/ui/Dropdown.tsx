@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
-import { useDismiss } from "@/hooks/useDismiss";
+import { useCallback, useState, type ReactNode } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@wanteddev/wds";
 import { cn } from "@/lib/cn";
 
 interface DropdownProps {
@@ -14,36 +14,32 @@ interface DropdownProps {
   className?: string;
 }
 
-export function Dropdown({
-  trigger,
-  children,
-  align = "left",
-  placement = "bottom",
-  className,
-}: DropdownProps) {
+/**
+ * Montage Popover 위에 얹은 펼침 메뉴. 바깥 누르기·Esc 닫기·초점·위치 계산(화면 밖으로 안 나감)은 Montage가 한다.
+ * 안쪽 여백은 DropdownItem이 줄 수 있게 6px로 줄였다.
+ */
+export function Dropdown({ trigger, children, align = "left", placement = "bottom", className }: DropdownProps) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
-  const toggle = useCallback(() => setOpen((value) => !value), []);
-  useDismiss(open, close, ref);
+  const toggle = useCallback(() => setOpen(!open), [open]);
 
   return (
-    <div ref={ref} className="relative">
-      {trigger({ open, toggle })}
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            "absolute z-30 min-w-56 rounded-xl border border-line bg-white p-1.5 shadow-lg",
-            align === "left" ? "left-0" : "right-0",
-            placement === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5",
-            className,
-          )}
-        >
-          {children(close)}
-        </div>
-      )}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger>
+        <div className="relative">{trigger({ open, toggle })}</div>
+      </PopoverTrigger>
+      <PopoverContent
+        variant="custom"
+        position={`${placement}-${align === "left" ? "start" : "end"}`}
+        offset={6}
+        sx={{ padding: "6px", minWidth: 224 }}
+        className={cn("scrollbar-thin max-h-[70vh] overflow-y-auto", className)}
+        role="menu"
+      >
+        {/* Montage 팝오버 안쪽은 가로 배치라 세로로 쌓는 칸을 하나 둔다 */}
+        <div className="flex w-full min-w-0 flex-col">{children(close)}</div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -61,7 +57,7 @@ export function DropdownItem({ onSelect, active = false, children }: DropdownIte
       onClick={onSelect}
       className={cn(
         "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
-        active ? "bg-blue-50 text-blue-700" : "text-gray-700 hover:bg-gray-50",
+        active ? "bg-primary/8 text-primary-strong" : "text-label-neutral hover:bg-fill",
       )}
     >
       {children}

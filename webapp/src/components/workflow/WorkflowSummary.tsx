@@ -27,8 +27,8 @@ export function WorkflowSummary({ stageStatus, openStageId }: WorkflowSummaryPro
                 if (openStageId !== stage.id) toggleStage(stage.id);
               }}
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-gray-100",
-                status === "running" ? "bg-blue-50 font-medium text-blue-700" : "text-gray-700",
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-[13px] transition-colors hover:bg-fill",
+                status === "running" ? "bg-primary/8 font-medium text-primary-strong" : "text-label-neutral",
               )}
             >
               <StageStatusIcon status={status} index={index + 1} size="sm" />

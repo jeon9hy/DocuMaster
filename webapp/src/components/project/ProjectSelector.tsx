@@ -56,15 +56,15 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
               }}
               aria-expanded={open}
               className={cn(
-                "flex w-full items-center gap-2 rounded-lg border border-line bg-white px-3 text-left text-sm hover:bg-gray-50",
+                "flex w-full items-center gap-2 rounded-lg border border-line bg-surface px-3 text-left text-sm hover:bg-fill-alt",
                 wide ? "h-9" : "h-10",
               )}
             >
-              <Folder className="size-4 shrink-0 text-gray-500" aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-medium text-gray-800">
+              <Folder className="size-4 shrink-0 text-label-alternative" aria-hidden />
+              <span className="min-w-0 flex-1 truncate font-medium text-label-neutral">
                 {current?.name ?? "프로젝트 선택"}
               </span>
-              <ChevronDown className={cn("size-4 shrink-0 text-gray-400 transition-transform", open && "rotate-180")} />
+              <ChevronDown className={cn("size-4 shrink-0 text-label-assistive transition-transform", open && "rotate-180")} />
             </button>
           )}
         >
@@ -76,7 +76,7 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
                 const hidden = group.projects.length - visible.length;
                 return (
                   <div key={group.label}>
-                    <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-gray-500">{group.label}</p>
+                    <p className="px-2.5 pt-1 pb-1.5 text-xs font-medium text-label-alternative">{group.label}</p>
                     {visible.map((project) => (
                       <DropdownItem
                         key={project.id}
@@ -92,8 +92,8 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
                     ))}
                     {hidden > 0 && (
                       <DropdownItem onSelect={() => setShownRest((count) => count + MORE_STEP)}>
-                        <ChevronDown className="size-4 text-gray-400" aria-hidden />
-                        <span className="text-gray-500">더보기 ({hidden}개 남음)</span>
+                        <ChevronDown className="size-4 text-label-assistive" aria-hidden />
+                        <span className="text-label-alternative">더보기 ({hidden}개 남음)</span>
                       </DropdownItem>
                     )}
                   </div>
@@ -108,8 +108,8 @@ export function ProjectSelector({ wide = false }: { wide?: boolean }) {
                       setCreating(true);
                     }}
                   >
-                    <Plus className="size-4 text-blue-600" aria-hidden />
-                    <span className="text-blue-700">새 프로젝트</span>
+                    <Plus className="size-4 text-primary" aria-hidden />
+                    <span className="text-primary-strong">새 프로젝트</span>
                   </DropdownItem>
                 </>
               )}

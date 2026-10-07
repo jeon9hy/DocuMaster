@@ -24,8 +24,8 @@ export function AgentCard({ agentId, status, restingNote }: AgentCardProps) {
     <article
       title={resting ? RESTING_TOOLTIP : undefined}
       className={cn(
-        "flex h-full flex-col items-center rounded-xl border border-line bg-white p-5 text-center",
-        resting && "bg-gray-50/80",
+        "flex h-full flex-col items-center rounded-xl border border-line bg-surface p-5 text-center",
+        resting && "bg-fill-alt",
       )}
     >
       <div className={cn("relative", resting && "opacity-60 saturate-50")}>
@@ -33,22 +33,22 @@ export function AgentCard({ agentId, status, restingNote }: AgentCardProps) {
         {resting && (
           <span
             aria-hidden
-            className="animate-zzz absolute -top-2 -right-4 font-wordmark text-sm font-extrabold tracking-tight text-violet-400"
+            className="animate-zzz absolute -top-2 -right-4 font-wordmark text-sm font-extrabold tracking-tight text-accent-violet"
           >
             Zzz
           </span>
         )}
       </div>
       <div className={cn("flex w-full flex-1 flex-col items-center", resting && "opacity-70")}>
-        <div className="mt-3 w-full rounded-md border border-line py-1 text-sm font-semibold text-gray-900">
+        <div className="mt-3 w-full rounded-md border border-line py-1 text-sm font-semibold text-label">
           {profile.fullName}
         </div>
-        <p className="mt-2 text-[13px] text-gray-500">{profile.persona}</p>
+        <p className="mt-2 text-[13px] text-label-alternative">{profile.persona}</p>
         <p className={cn("mt-3 inline-flex items-center gap-1.5 text-sm font-medium", profile.accent.text)}>
           <span className={cn("size-1.5 rounded-full", profile.accent.dot)} />
           {profile.role}
         </p>
-        <p className="mt-2 flex-1 text-[13px] leading-relaxed text-gray-600">
+        <p className="mt-2 flex-1 text-[13px] leading-relaxed text-label-alternative">
           {resting && restingNote ? restingNote : profile.description}
         </p>
       </div>

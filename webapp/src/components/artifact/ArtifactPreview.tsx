@@ -70,14 +70,14 @@ export function ArtifactPreview({ projectId, artifact, tall = false }: ArtifactP
   return (
     <>
       <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        <p className="min-w-0 flex-1 truncate text-xs text-gray-500">{artifact.summary}</p>
+        <p className="min-w-0 flex-1 truncate text-xs text-label-alternative">{artifact.summary}</p>
         {downloadUrl && (
           <a
             href={downloadUrl}
             download
             aria-label="원본 내려받기"
             title="원본 내려받기"
-            className="flex size-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100"
+            className="flex size-7 items-center justify-center rounded-lg text-label-alternative hover:bg-fill"
           >
             <Download className="size-4" aria-hidden />
           </a>
@@ -93,13 +93,13 @@ export function ArtifactPreview({ projectId, artifact, tall = false }: ArtifactP
       </div>
       {tall ? (
         // 넓은 작업물 화면: 높이는 옆 목록 칸을 따라가고(내용이 줄 높이를 늘리지 않게 absolute), 좁으면 80vh까지
-        <div className="rounded-lg border border-line bg-canvas/60 p-3 @3xl:relative @3xl:min-h-96 @3xl:flex-1">
+        <div className="rounded-lg border border-line bg-surface-alt/60 p-3 @3xl:relative @3xl:min-h-96 @3xl:flex-1">
           <div className="max-h-[80vh] overflow-y-auto @3xl:absolute @3xl:inset-3 @3xl:max-h-none">
             <PreviewBody result={result} large fill />
           </div>
         </div>
       ) : (
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-line bg-canvas/60 p-3">
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-line bg-surface-alt/60 p-3">
           <PreviewBody result={result} />
         </div>
       )}

@@ -33,7 +33,7 @@ export const AGENT_PROFILES = {
     persona: "아빠 · 스파이(황혼)",
     role: "총괄 · 게이트",
     description: "요청을 읽고 문서로 만들지 발표로 만들지 정한 뒤 전체 계획을 세웁니다. 단계마다 품질 기준을 통과했는지 판정하고, 완성본의 수치와 출처를 마지막으로 직접 확인합니다.",
-    accent: { text: "text-teal-700", soft: "bg-teal-50", dot: "bg-teal-500" },
+    accent: { text: "text-accent-green", soft: "bg-accent-green/8", dot: "bg-accent-green" },
     defaultConfig: { provider: "anthropic", modelId: "claude-opus-5-5", reasoningLevel: "high" },
   },
   yor: {
@@ -42,7 +42,7 @@ export const AGENT_PROFILES = {
     persona: "엄마 · 암살자(가시공주)",
     role: "조사 · 세부기획",
     description: "팀에서 유일하게 사실을 조사해 오는 담당입니다. 자료를 찾아 정리하고, 검증 질문에 답하고, 결과물의 세부 구성과 시각 설계를 짭니다.",
-    accent: { text: "text-rose-700", soft: "bg-rose-50", dot: "bg-rose-500" },
+    accent: { text: "text-accent-red", soft: "bg-accent-red/8", dot: "bg-accent-red" },
     defaultConfig: { provider: "openai", modelId: "gpt-5.6-sol", reasoningLevel: "xhigh" },
   },
   yuri: {
@@ -51,7 +51,7 @@ export const AGENT_PROFILES = {
     persona: "친동생 · 비밀경찰",
     role: "독립 검증",
     description: "요르의 조사를 독립적으로 검증합니다. 틀릴 위험이 큰 주장을 골라 따져 묻고, 출처 원문을 직접 열어 확인합니다.",
-    accent: { text: "text-indigo-700", soft: "bg-indigo-50", dot: "bg-indigo-500" },
+    accent: { text: "text-accent-blue", soft: "bg-accent-blue/8", dot: "bg-accent-blue" },
     defaultConfig: { provider: "anthropic", modelId: "claude-sonnet-5-5", reasoningLevel: null },
   },
   anya: {
@@ -60,7 +60,7 @@ export const AGENT_PROFILES = {
     persona: "딸 · 초능력자(마음읽기)",
     role: "문서 집필",
     description: "문서 업무 전용입니다. 확정된 구성과 검증된 사실만으로 최종 문서를 쓰고 다듬습니다.",
-    accent: { text: "text-pink-700", soft: "bg-pink-50", dot: "bg-pink-400" },
+    accent: { text: "text-accent-pink", soft: "bg-accent-pink/8", dot: "bg-accent-pink" },
     defaultConfig: { provider: "anthropic", modelId: "claude-opus-5-5", reasoningLevel: null },
   },
   bond: {
@@ -69,7 +69,7 @@ export const AGENT_PROFILES = {
     persona: "반려견 · 예지력",
     role: "슬라이드 초안",
     description: "발표 업무 전용입니다. 완성된 발표 자료를 NotebookLM에 넘겨 슬라이드 초안을 만듭니다.",
-    accent: { text: "text-amber-700", soft: "bg-amber-50", dot: "bg-amber-500" },
+    accent: { text: "text-caution-strong", soft: "bg-caution/8", dot: "bg-caution" },
     defaultConfig: { provider: "google", modelId: "notebooklm", reasoningLevel: null },
   },
 } as const satisfies Record<string, AgentProfile>;

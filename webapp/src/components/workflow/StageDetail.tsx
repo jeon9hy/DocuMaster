@@ -29,20 +29,20 @@ export function StageDetail({ workspace, stageId }: StageDetailProps) {
   ];
 
   return (
-    <section className="border-b border-line bg-gray-50/70 px-4 py-3 md:px-6">
+    <section className="border-b border-line bg-fill-alt px-4 py-3 md:px-6">
       <div className="mx-auto flex max-w-[860px] items-start gap-4">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-gray-900">{stage.label}</h2>
+            <h2 className="text-sm font-semibold text-label">{stage.label}</h2>
             <StatusBadge meta={STAGE_STATUS[workspace.stageStatus[stageId]]} />
           </div>
-          <p className="text-[13px] text-gray-600">{stage.description}</p>
+          <p className="text-[13px] text-label-alternative">{stage.description}</p>
           <dl className="flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
             <div className="flex items-center gap-2">
-              <dt className="text-gray-500">담당</dt>
+              <dt className="text-label-alternative">담당</dt>
               <dd className="flex items-center gap-1.5">
                 {owners.map((id) => (
-                  <span key={id} className="flex items-center gap-1 text-gray-800">
+                  <span key={id} className="flex items-center gap-1 text-label-neutral">
                     <AgentAvatar agentId={id} size="xs" />
                     {getAgentProfile(id).name}
                   </span>
@@ -50,8 +50,8 @@ export function StageDetail({ workspace, stageId }: StageDetailProps) {
               </dd>
             </div>
             <div className="flex items-center gap-2">
-              <dt className="text-gray-500">넘겨받는 자료</dt>
-              <dd className="text-gray-800">{inputs.length > 0 ? inputs.join(", ") : "없음"}</dd>
+              <dt className="text-label-alternative">넘겨받는 자료</dt>
+              <dd className="text-label-neutral">{inputs.length > 0 ? inputs.join(", ") : "없음"}</dd>
             </div>
           </dl>
         </div>

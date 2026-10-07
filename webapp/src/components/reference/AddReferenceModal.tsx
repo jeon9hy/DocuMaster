@@ -3,10 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { DEFAULT_APPLY_POLICY } from "@/constants/references";
 import { useReferenceFileUpload } from "@/hooks/useReferenceFileUpload";
-import { cn } from "@/lib/cn";
 import { useAppActions } from "@/state/WorkspaceProvider";
 import type { NewReferenceInput, ReferenceApplyPolicy } from "@/types";
 import { Button } from "../ui/Button";
+import { TextArea, TextField } from "../ui/Field";
 import { Modal } from "../ui/Modal";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { ApplyPolicyField } from "./ApplyPolicyField";
@@ -21,8 +21,6 @@ const SOURCES: readonly { id: Source; label: string }[] = [
 ];
 
 const FORM_ID = "add-reference-form";
-const inputClass =
-  "w-full rounded-lg border border-line px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none";
 
 /** URL·텍스트 입력이 다 갖춰졌을 때만 서비스에 넘길 객체를 만든다. 모자라면 null. */
 function toInput(
@@ -94,15 +92,13 @@ function AddReferenceForm({ onDone, onBusyChange }: { onDone: () => void; onBusy
 
       {source === "url" && (
         <div className="space-y-2">
-          <input
-            className={inputClass}
+          <TextField
             type="url"
             placeholder="https://"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
           />
-          <input
-            className={inputClass}
+          <TextField
             placeholder="제목 (선택)"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
@@ -112,14 +108,14 @@ function AddReferenceForm({ onDone, onBusyChange }: { onDone: () => void; onBusy
 
       {source === "text" && (
         <div className="space-y-2">
-          <input
-            className={inputClass}
+          <TextField
             placeholder="제목"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
-          <textarea
-            className={cn(inputClass, "min-h-28 resize-y")}
+          <TextArea
+            minRows={5}
+            maxRows={12}
             placeholder="참고할 내용을 붙여 넣으세요"
             value={text}
             onChange={(event) => setText(event.target.value)}
@@ -130,11 +126,11 @@ function AddReferenceForm({ onDone, onBusyChange }: { onDone: () => void; onBusy
       <ApplyPolicyField value={applyPolicy} onChange={setApplyPolicy} />
 
       {progress && (
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-label-alternative">
           올리는 중… {progress.done}/{progress.total}
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-negative-fg">{error}</p>}
     </form>
   );
 }

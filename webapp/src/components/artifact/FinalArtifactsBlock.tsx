@@ -42,11 +42,11 @@ export function FinalArtifactsBlock({
   const [showPrevious, setShowPrevious] = useState(() => previous.some((artifact) => artifact.id === selectedId));
 
   return (
-    <section className="mb-4 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 via-white to-white p-4 shadow-sm shadow-blue-900/[0.04]">
-      <h2 className="mb-3 flex items-center gap-2 px-1 text-[15px] font-semibold text-gray-900">
-        <BadgeCheck className="size-5 text-blue-600" aria-hidden />
+    <section className="mb-4 rounded-2xl border border-primary/28 bg-gradient-to-br from-primary/8 via-surface to-surface p-4 shadow-sm shadow-primary-heavy/[0.04]">
+      <h2 className="mb-3 flex items-center gap-2 px-1 text-[15px] font-semibold text-label">
+        <BadgeCheck className="size-5 text-primary" aria-hidden />
         최종본
-        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">최종검수 통과</span>
+        <span className="rounded-full bg-primary/12 px-2 py-0.5 text-xs font-medium text-primary-strong">최종검수 통과</span>
       </h2>
 
       <ul className="flex flex-col gap-2">
@@ -56,8 +56,8 @@ export function FinalArtifactsBlock({
             <li
               key={artifact.id}
               className={cn(
-                "flex items-center gap-2 rounded-xl border bg-white pr-3 transition-colors",
-                selected ? "border-blue-400 ring-2 ring-blue-100" : "border-line hover:border-blue-300",
+                "flex items-center gap-2 rounded-xl border bg-surface pr-3 transition-colors",
+                selected ? "border-primary ring-2 ring-primary/16" : "border-line hover:border-primary/43",
               )}
             >
               <button
@@ -69,16 +69,16 @@ export function FinalArtifactsBlock({
                 <ArtifactIcon fileType={artifact.fileType} className="size-9" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-gray-900" title={artifact.name}>
+                    <span className="truncate text-sm font-medium text-label" title={artifact.name}>
                       {artifact.name}
                     </span>
                     {artifact.fileType === "pdf" && hasPrevious(artifact, previous) && (
-                      <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700">
+                      <span className="shrink-0 rounded bg-positive/8 px-1.5 py-0.5 text-[11px] font-medium text-positive-fg">
                         최신
                       </span>
                     )}
                   </span>
-                  <span className="block truncate text-xs text-gray-500">{formatTime(artifact.updatedAt)}</span>
+                  <span className="block truncate text-xs text-label-alternative">{formatTime(artifact.updatedAt)}</span>
                 </span>
               </button>
               {revisable && artifact.fileType === "pdf" && (
@@ -87,7 +87,7 @@ export function FinalArtifactsBlock({
                   onClick={() => onRevise(artifact)}
                   disabled={reviseBlockedReason !== null}
                   title={reviseBlockedReason ?? "문장·구조를 고쳐 이 PDF를 새 버전으로 바꿉니다"}
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-[13px] font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-50 disabled:text-blue-700/50"
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-white transition-colors hover:bg-primary-strong disabled:cursor-not-allowed disabled:bg-primary/8 disabled:text-primary-strong/50"
                 >
                   <PenLine className="size-3.5" aria-hidden />
                   첨삭하기
@@ -104,7 +104,7 @@ export function FinalArtifactsBlock({
             type="button"
             onClick={() => setShowPrevious((value) => !value)}
             aria-expanded={showPrevious}
-            className="flex items-center gap-1.5 py-1 text-xs font-medium text-gray-500 hover:text-blue-700"
+            className="flex items-center gap-1.5 py-1 text-xs font-medium text-label-alternative hover:text-primary-strong"
           >
             <History className="size-3.5" aria-hidden />
             이전판 {previous.length}개
@@ -120,14 +120,14 @@ export function FinalArtifactsBlock({
                     aria-current={artifact.id === selectedId}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
-                      artifact.id === selectedId ? "bg-blue-50/70" : "hover:bg-white",
+                      artifact.id === selectedId ? "bg-primary/5" : "hover:bg-surface",
                     )}
                   >
                     <ArtifactIcon fileType={artifact.fileType} className="size-7" />
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-gray-700" title={artifact.name}>
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-label-neutral" title={artifact.name}>
                       {artifact.name}
                     </span>
-                    <span className="shrink-0 text-xs text-gray-400">{formatTime(artifact.updatedAt)}</span>
+                    <span className="shrink-0 text-xs text-label-alternative">{formatTime(artifact.updatedAt)}</span>
                   </button>
                 </li>
               ))}

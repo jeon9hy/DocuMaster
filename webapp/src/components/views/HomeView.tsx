@@ -42,7 +42,7 @@ function RecentProjects() {
       {shown.length === 0 ? (
         <EmptyState icon={Folder} title="아직 프로젝트가 없습니다" className="py-6" />
       ) : (
-        <ul className="divide-y divide-gray-100">
+        <ul className="divide-y divide-line-alt">
           {shown.map((project) => {
             const open = () => {
               selectProject(project.id);
@@ -54,16 +54,16 @@ function RecentProjects() {
                 <button
                   type="button"
                   onClick={open}
-                  className="-my-1 -ml-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-gray-50"
+                  className="-my-1 -ml-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-left hover:bg-fill-alt"
                 >
-                  <Folder className="size-4 shrink-0 text-blue-600" aria-hidden />
+                  <Folder className="size-4 shrink-0 text-primary" aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-gray-900">{project.name}</span>
+                      <span className="truncate text-sm font-semibold text-label">{project.name}</span>
                       <Badge>{PROJECT_MODE_LABEL[project.mode]}</Badge>
                     </span>
                     {project.lastActivityAt && (
-                      <span className="mt-0.5 block text-xs text-gray-500">
+                      <span className="mt-0.5 block text-xs text-label-alternative">
                         마지막 작업 {formatRelative(project.lastActivityAt)}
                       </span>
                     )}
@@ -114,8 +114,8 @@ function RecentActivity() {
     <Panel
       title={
         <span className="flex items-center gap-1.5">
-          <Activity className="size-4 text-gray-400" aria-hidden />
-          최근 활동{workspace && <span className="font-normal text-gray-500"> · {workspace.project.name}</span>}
+          <Activity className="size-4 text-label-assistive" aria-hidden />
+          최근 활동{workspace && <span className="font-normal text-label-alternative"> · {workspace.project.name}</span>}
         </span>
       }
     >
@@ -125,10 +125,10 @@ function RecentActivity() {
         <ol className="space-y-1 px-2 pb-1">
           {items.map(({ item, text }) => (
             <li key={item.id} className="flex gap-3 text-[13px]">
-              <time className="w-16 shrink-0 text-gray-400" dateTime={item.createdAt}>
+              <time className="w-16 shrink-0 text-label-alternative" dateTime={item.createdAt}>
                 {formatTime(item.createdAt)}
               </time>
-              <span className="min-w-0 flex-1 truncate text-gray-700">{text}</span>
+              <span className="min-w-0 flex-1 truncate text-label-neutral">{text}</span>
             </li>
           ))}
         </ol>
@@ -144,21 +144,21 @@ function SystemStatus() {
     <Panel
       title={
         <span className="flex items-center gap-1.5">
-          <Server className="size-4 text-gray-400" aria-hidden />
+          <Server className="size-4 text-label-assistive" aria-hidden />
           시스템 상태
         </span>
       }
       bodyClassName="px-4 pb-4"
     >
       {serviceKind === "mock" ? (
-        <p className="text-[13px] text-gray-500">목업 모드라 도구를 확인하지 않습니다.</p>
+        <p className="text-[13px] text-label-alternative">목업 모드라 도구를 확인하지 않습니다.</p>
       ) : state.status === "loading" ? (
         <LoadingState />
       ) : !health ? (
-        <p className="text-[13px] text-red-600">로컬 백엔드에 연결할 수 없습니다.</p>
+        <p className="text-[13px] text-negative-fg">로컬 백엔드에 연결할 수 없습니다.</p>
       ) : (
         <>
-          <ul className="space-y-2 text-[13px] text-gray-700">
+          <ul className="space-y-2 text-[13px] text-label-neutral">
             {TOOLS.map((tool) => (
               <li key={tool.id} className="flex items-center justify-between gap-3">
                 <span className="whitespace-nowrap">{tool.label}</span>
@@ -174,7 +174,7 @@ function SystemStatus() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11px] leading-relaxed text-gray-400">
+          <p className="mt-3 text-[11px] leading-relaxed text-label-alternative">
             설치 여부만 확인합니다. 로그인·사용량 한도는 실행할 때 알 수 있습니다(사용량은 설정 화면).
           </p>
         </>

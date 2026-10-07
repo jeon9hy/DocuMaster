@@ -4,93 +4,54 @@
 @import "tailwindcss";
 
 /*
- * 색은 여기서만 정한다. Tailwind 색 스케일을 Montage 원자 색(@wanteddev/wds/theme.css)으로 덮어써서,
- * 컴포넌트는 평범한 `bg-blue-600`·`text-gray-500`을 쓰고 색 조정은 이 파일에서 한다.
- * blue = Montage blue(primary #0066FF), gray·slate = coolNeutral, emerald = green, amber = orange.
+ * 색은 여기서만 정한다. Montage 시멘틱 색(@wanteddev/wds/theme.css의 --semantic-*)을 용도 이름으로 노출한다 —
+ * 컴포넌트는 `text-label-alternative`·`bg-fill`·`border-line`·`bg-primary`처럼 쓰고, 원자 색(`bg-blue-600`)은 쓰지 않는다.
+ * 용도: label=글자 · fill=옅은 면 · line=경계선 · surface=배경 · primary=가장 중요한 것 · positive/caution/negative=상태 · accent-*=구분 색.
+ * 값이 투명도를 품은 토큰(label·fill·line)은 겹쳐 쓰면 짙어지니 한 겹만 쓴다.
  */
 @theme {
-  --color-canvas: #f7f7f8; /* background.normal.alternative */
-  --color-line: #e1e2e4; /* line.solid.normal */
-  --color-navy: #171719; /* label.normal */
+  --color-primary: var(--semantic-primary-normal);
+  --color-primary-strong: var(--semantic-primary-strong);
+  --color-primary-heavy: var(--semantic-primary-heavy);
 
-  --color-blue-50: #eaf2fe;
-  --color-blue-100: #c9defe;
-  --color-blue-200: #9ec5ff;
-  --color-blue-300: #69a5ff;
-  --color-blue-400: #3385ff;
-  --color-blue-500: #1a75ff;
-  --color-blue-600: #0066ff;
-  --color-blue-700: #005eeb;
-  --color-blue-800: #0054d1;
-  --color-blue-900: #003e9c;
-  --color-blue-950: #002966;
+  --color-label: var(--semantic-label-normal);
+  --color-label-strong: var(--semantic-label-strong);
+  --color-label-neutral: var(--semantic-label-neutral);
+  --color-label-alternative: var(--semantic-label-alternative);
+  --color-label-assistive: var(--semantic-label-assistive);
+  --color-label-disable: var(--semantic-label-disable);
 
-  --color-gray-50: #f7f7f8;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #eaebec;
-  --color-gray-300: #dbdcdf;
-  --color-gray-400: #aeb0b6;
-  --color-gray-500: #878a93;
-  --color-gray-600: #70737c;
-  --color-gray-700: #46474c;
-  --color-gray-800: #2e2f33;
-  --color-gray-900: #171719;
-  --color-gray-950: #0f0f10;
+  --color-fill: var(--semantic-fill-normal);
+  --color-fill-strong: var(--semantic-fill-strong);
+  --color-fill-alt: var(--semantic-fill-alternative);
 
-  --color-slate-50: #f7f7f8;
-  --color-slate-100: #f4f4f5;
-  --color-slate-200: #eaebec;
-  --color-slate-300: #dbdcdf;
-  --color-slate-400: #aeb0b6;
-  --color-slate-500: #878a93;
-  --color-slate-600: #70737c;
-  --color-slate-700: #46474c;
-  --color-slate-800: #2e2f33;
-  --color-slate-900: #171719;
+  --color-surface: var(--semantic-background-normal-normal);
+  --color-surface-alt: var(--semantic-background-normal-alternative);
 
-  --color-emerald-50: #f2fff6;
-  --color-emerald-100: #d9ffe6;
-  --color-emerald-200: #acfcc7;
-  --color-emerald-300: #7df5a5;
-  --color-emerald-400: #49e57d;
-  --color-emerald-500: #00bf40;
-  --color-emerald-600: #009632;
-  --color-emerald-700: #006e25;
-  --color-emerald-800: #004517;
-  --color-emerald-900: #00240c;
+  --color-line: var(--semantic-line-solid-normal);
+  --color-line-neutral: var(--semantic-line-solid-neutral);
+  --color-line-alt: var(--semantic-line-solid-alternative);
+  --color-line-primary: var(--semantic-line-primary-normal);
 
-  --color-amber-50: #fef4e6;
-  --color-amber-100: #fee6c6;
-  --color-amber-200: #ffd49c;
-  --color-amber-300: #ffc06e;
-  --color-amber-400: #ffa938;
-  --color-amber-500: #ff9200;
-  --color-amber-600: #d17600;
-  --color-amber-700: #9c5800;
-  --color-amber-800: #663a00;
-  --color-amber-900: #361e00;
+  --color-positive: var(--semantic-status-positive);
+  --color-positive-fg: var(--semantic-accent-foreground-green);
+  --color-caution: var(--semantic-status-cautionary);
+  --color-caution-fg: var(--semantic-accent-foreground-orange);
+  --color-caution-strong: var(--atomic-orange-30);
+  --color-negative: var(--semantic-status-negative);
+  --color-negative-fg: var(--semantic-accent-foreground-red);
 
-  --color-red-50: #feecec;
-  --color-red-100: #fed5d5;
-  --color-red-200: #ffb5b5;
-  --color-red-300: #ff8c8c;
-  --color-red-400: #ff6363;
-  --color-red-500: #ff4242;
-  --color-red-600: #e52222;
-  --color-red-700: #b00c0c;
-  --color-red-800: #730303;
-  --color-red-900: #3b0101;
+  --color-inactive: var(--semantic-interaction-inactive);
+  --color-dimmer: var(--semantic-material-dimmer);
 
-  --color-violet-50: #f0ecfe;
-  --color-violet-100: #dbd3fe;
-  --color-violet-200: #c0b0ff;
-  --color-violet-300: #9e86fc;
-  --color-violet-400: #7d5ef7;
-  --color-violet-500: #6541f2;
-  --color-violet-600: #5b37ed;
-  --color-violet-700: #4f29e5;
-  --color-violet-800: #3a16c9;
-  --color-violet-900: #23098f;
+  --color-accent-blue: var(--semantic-accent-foreground-blue);
+  --color-accent-cyan: var(--semantic-accent-foreground-cyan);
+  --color-accent-green: var(--semantic-accent-foreground-green);
+  --color-accent-orange: var(--semantic-accent-foreground-orange);
+  --color-accent-red: var(--semantic-accent-foreground-red);
+  --color-accent-violet: var(--semantic-accent-foreground-violet);
+  --color-accent-purple: var(--semantic-accent-foreground-purple);
+  --color-accent-pink: var(--semantic-accent-foreground-pink);
 
   /* Montage 둥글기: 버튼·입력 10px, 카드·메뉴 16px */
   --radius-lg: 10px;
@@ -112,7 +73,7 @@
 /* 사이드바처럼 오래 떠 있는 스크롤 영역: 얇고 옅게 */
 @utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-300) transparent;
+  scrollbar-color: var(--semantic-line-solid-normal) transparent;
 }
 
 /* 휴식 중 에이전트 프로필의 Zzz — 가볍게 떠오르기만 한다 */
@@ -143,7 +104,7 @@
 }
 
 body {
-  background: var(--color-canvas);
-  color: var(--color-gray-900);
+  background: var(--color-surface-alt);
+  color: var(--color-label);
   font-family: var(--font-sans);
 }

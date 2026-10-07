@@ -19,7 +19,7 @@ interface AgentAvatarProps {
 export function AgentAvatar({ agentId, size = "md", className }: AgentAvatarProps) {
   const profile = getAgentProfile(agentId);
   const Portrait = PORTRAITS[agentId];
-  const frame = cn("shrink-0 overflow-hidden ring-1 ring-black/5", SIZE_CLASS[size], className);
+  const frame = cn("shrink-0 overflow-hidden ring-1 ring-label/5", SIZE_CLASS[size], className);
 
   if (profile.avatarSrc) {
     return (

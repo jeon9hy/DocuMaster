@@ -23,11 +23,11 @@ export function ArtifactCard({ projectId, artifact, onSelect }: ArtifactCardProp
   const close = useCallback(() => setOpen(false), []);
 
   return (
-    <div className="ml-[52px] flex max-w-[480px] items-center gap-3 rounded-xl border border-line bg-white px-3 py-2.5">
+    <div className="ml-[52px] flex max-w-[480px] items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5">
       <ArtifactIcon fileType={artifact.fileType} className="size-9" />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-gray-900">{artifact.name}</p>
-        <p className="truncate text-xs text-gray-500">
+        <p className="truncate text-sm font-medium text-label">{artifact.name}</p>
+        <p className="truncate text-xs text-label-alternative">
           {getAgentProfile(artifact.agentId).name} · {artifact.summary}
         </p>
       </div>

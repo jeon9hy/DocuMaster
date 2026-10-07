@@ -16,8 +16,8 @@ import { Button } from "../ui/Button";
 function Stat({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-sm font-semibold text-gray-900">{children}</dd>
+      <dt className="text-[11px] text-label-alternative">{label}</dt>
+      <dd className="mt-0.5 text-sm font-semibold text-label">{children}</dd>
     </div>
   );
 }
@@ -41,11 +41,11 @@ export function RunSummaryCard({ projectId, summary, finalArtifacts, createdAt, 
   const models = AGENT_IDS.filter((id) => summary.models?.[id] && !isRestingInMode(id, mode));
 
   return (
-    <section className="ml-[52px] max-w-[560px] rounded-xl border border-emerald-200 bg-white px-4 py-3" aria-label="실행 결과 요약">
+    <section className="ml-[52px] max-w-[560px] rounded-xl border border-positive/28 bg-surface px-4 py-3" aria-label="실행 결과 요약">
       <header className="flex items-center gap-2">
-        <CheckCircle2 className="size-4 text-emerald-500" aria-hidden />
-        <h3 className="flex-1 text-sm font-semibold text-gray-900">워크플로우 완료</h3>
-        <time className="text-[11px] text-gray-400" dateTime={createdAt}>
+        <CheckCircle2 className="size-4 text-positive-fg" aria-hidden />
+        <h3 className="flex-1 text-sm font-semibold text-label">워크플로우 완료</h3>
+        <time className="text-[11px] text-label-alternative" dateTime={createdAt}>
           {formatTime(createdAt)}
         </time>
       </header>
@@ -57,7 +57,7 @@ export function RunSummaryCard({ projectId, summary, finalArtifacts, createdAt, 
               {verdict.label}
             </Badge>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span className="text-label-alternative">—</span>
           )}
         </Stat>
         <Stat label="REMOVE · CAUTION">
@@ -70,11 +70,11 @@ export function RunSummaryCard({ projectId, summary, finalArtifacts, createdAt, 
       </dl>
 
       {models.length > 0 && (
-        <p className="mt-2.5 text-xs leading-relaxed text-gray-500">
+        <p className="mt-2.5 text-xs leading-relaxed text-label-alternative">
           {models.map((id, index) => (
             <span key={id}>
               {index > 0 && " · "}
-              <span className="text-gray-700">{getAgentProfile(id).name}</span> {getModelLabel({ modelId: summary.models![id]! })}
+              <span className="text-label-neutral">{getAgentProfile(id).name}</span> {getModelLabel({ modelId: summary.models![id]! })}
             </span>
           ))}
         </p>
@@ -84,8 +84,8 @@ export function RunSummaryCard({ projectId, summary, finalArtifacts, createdAt, 
         <ul className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
           {finalArtifacts.map((artifact) => (
             <li key={artifact.id} className="flex items-center gap-2">
-              <FileText className="size-4 shrink-0 text-gray-400" aria-hidden />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-gray-700" title={artifact.name}>
+              <FileText className="size-4 shrink-0 text-label-assistive" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-[13px] text-label-neutral" title={artifact.name}>
                 {artifact.name}
               </span>
               <Button

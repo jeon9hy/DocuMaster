@@ -36,14 +36,14 @@ export function UsageTile({ window, showBar = false }: { window: UsageWindow; sh
     <div
       className={cn(
         "rounded-lg border px-3 py-2",
-        exhausted ? "border-red-200 bg-red-50/60" : "border-line bg-gray-50/60",
+        exhausted ? "border-negative/28 bg-negative/4" : "border-line bg-fill-alt",
         window.expired && "opacity-60",
       )}
       title={window.resetsAt ? `리셋 ${new Date(window.resetsAt).toLocaleString("ko-KR")}` : undefined}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="truncate text-xs whitespace-nowrap text-gray-500">{title}</span>
-        <span className={cn("shrink-0 text-sm font-semibold whitespace-nowrap", exhausted ? "text-red-600" : "text-gray-900")}>
+        <span className="truncate text-xs whitespace-nowrap text-label-alternative">{title}</span>
+        <span className={cn("shrink-0 text-sm font-semibold whitespace-nowrap", exhausted ? "text-negative-fg" : "text-label")}>
           {value}
         </span>
       </div>

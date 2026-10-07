@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
  */
 export function MarkdownLite({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn("space-y-1.5 text-[13px] leading-relaxed text-gray-700", className)}>
+    <div className={cn("space-y-1.5 text-[13px] leading-relaxed text-label-neutral", className)}>
       {text.split("\n").map((line, index) => renderLine(line, index))}
     </div>
   );
@@ -17,14 +17,14 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
 function renderLine(line: string, key: number): ReactNode {
   if (line.startsWith("# ")) {
     return (
-      <h3 key={key} className="pt-1 text-base font-semibold text-gray-900">
+      <h3 key={key} className="pt-1 text-base font-semibold text-label">
         {renderInline(line.slice(2))}
       </h3>
     );
   }
   if (line.startsWith("## ")) {
     return (
-      <h4 key={key} className="pt-2 text-sm font-semibold text-gray-800">
+      <h4 key={key} className="pt-2 text-sm font-semibold text-label-neutral">
         {renderInline(line.slice(3))}
       </h4>
     );
@@ -33,7 +33,7 @@ function renderLine(line: string, key: number): ReactNode {
   if (listItem) {
     return (
       <p key={key} className="flex gap-2 pl-1">
-        <span className="shrink-0 text-gray-400">{listItem[1] === "-" ? "•" : listItem[1]}</span>
+        <span className="shrink-0 text-label-alternative">{listItem[1] === "-" ? "•" : listItem[1]}</span>
         <span className="min-w-0">{renderInline(listItem[2])}</span>
       </p>
     );
@@ -47,14 +47,14 @@ function renderInline(text: string): ReactNode[] {
   return text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.length > 2 && part.startsWith("`") && part.endsWith("`")) {
       return (
-        <code key={index} className="rounded bg-gray-900/[0.06] px-1 py-px font-mono text-[0.9em] break-all text-gray-800">
+        <code key={index} className="rounded bg-label/[0.06] px-1 py-px font-mono text-[0.9em] break-all text-label-neutral">
           {part.slice(1, -1)}
         </code>
       );
     }
     if (part.length > 4 && part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={index} className="font-semibold text-gray-900">
+        <strong key={index} className="font-semibold text-label">
           {part.slice(2, -2)}
         </strong>
       );

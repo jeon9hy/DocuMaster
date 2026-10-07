@@ -16,26 +16,26 @@ export function ApplyPolicyField({
   const name = useId();
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-gray-800">새 레퍼런스를 어떻게 반영할까요?</legend>
+      <legend className="mb-2 text-sm font-medium text-label-neutral">새 레퍼런스를 어떻게 반영할까요?</legend>
       <div className="space-y-1.5">
         {APPLY_POLICIES.map((policy) => (
           <label
             key={policy.id}
             className={cn(
               "flex cursor-pointer gap-2.5 rounded-lg border px-3 py-2",
-              value === policy.id ? "border-blue-300 bg-blue-50/50" : "border-line",
+              value === policy.id ? "border-primary/43 bg-primary/4" : "border-line",
             )}
           >
             <input
               type="radio"
               name={name}
-              className="mt-0.5 accent-blue-600"
+              className="mt-0.5 accent-primary"
               checked={value === policy.id}
               onChange={() => onChange(policy.id)}
             />
             <span>
-              <span className="block text-sm text-gray-800">{policy.label}</span>
-              <span className="block text-xs text-gray-500">{policy.hint}</span>
+              <span className="block text-sm text-label-neutral">{policy.label}</span>
+              <span className="block text-xs text-label-alternative">{policy.hint}</span>
             </span>
           </label>
         ))}

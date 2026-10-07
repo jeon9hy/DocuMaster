@@ -16,9 +16,9 @@ import { ViewContainer, ViewHeader } from "./ViewHeader";
 
 function StatCard({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-line bg-white p-4">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
+    <div className="rounded-xl border border-line bg-surface p-4">
+      <p className="text-xs text-label-alternative">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-label">{value}</p>
       {children}
     </div>
   );
@@ -55,9 +55,9 @@ export function DashboardView() {
         <StatCard label="레퍼런스" value={`${workspace.references.length}건`} />
       </div>
 
-      <section className="mt-6 overflow-hidden rounded-xl border border-line bg-white">
-        <h2 className="border-b border-line px-5 py-3 text-[15px] font-semibold text-gray-900">전체 계획</h2>
-        <ol className="divide-y divide-gray-100">
+      <section className="mt-6 overflow-hidden rounded-xl border border-line bg-surface">
+        <h2 className="border-b border-line px-5 py-3 text-[15px] font-semibold text-label">전체 계획</h2>
+        <ol className="divide-y divide-line-alt">
           {WORKFLOW_STAGES.map((stage, index) => {
             const status = workspace.stageStatus[stage.id];
             const outputs = workspace.artifacts.filter((artifact) => artifact.stageId === stage.id);
@@ -66,10 +66,10 @@ export function DashboardView() {
                 <div className="flex min-w-0 flex-1 gap-3">
                   <StageStatusIcon status={status} index={index + 1} />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{stage.label}</p>
-                    <p className="mt-0.5 text-[13px] text-gray-500">{stage.description}</p>
+                    <p className="text-sm font-semibold text-label">{stage.label}</p>
+                    <p className="mt-0.5 text-[13px] text-label-alternative">{stage.description}</p>
                     {outputs.length > 0 && (
-                      <p className="mt-1 truncate text-xs text-gray-400">
+                      <p className="mt-1 truncate text-xs text-label-alternative">
                         산출물: {outputs.map((artifact) => artifact.name).join(", ")}
                       </p>
                     )}
@@ -84,11 +84,11 @@ export function DashboardView() {
                           key={id}
                           agentId={id}
                           size="sm"
-                          className="ring-2 ring-white"
+                          className="ring-2 ring-surface"
                         />
                       ))}
                   </div>
-                  <span className="w-28 truncate text-xs text-gray-500">
+                  <span className="w-28 truncate text-xs text-label-alternative">
                     {stage.ownerIds
                       .filter((id) => teamIds.has(id))
                       .map((id) => getAgentProfile(id).name)

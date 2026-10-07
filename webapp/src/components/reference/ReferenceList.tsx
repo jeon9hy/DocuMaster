@@ -16,12 +16,12 @@ import type { Reference, ReferenceKind } from "@/types";
 import { EmptyState } from "../ui/States";
 
 const KIND_ICON: Record<ReferenceKind, { icon: LucideIcon; className: string }> = {
-  pdf: { icon: FileText, className: "bg-red-50 text-red-600" },
-  image: { icon: ImageIcon, className: "bg-sky-50 text-sky-600" },
-  url: { icon: Link2, className: "bg-blue-50 text-blue-600" },
-  text: { icon: Type, className: "bg-gray-100 text-gray-600" },
-  markdown: { icon: FileText, className: "bg-gray-100 text-gray-600" },
-  file: { icon: Paperclip, className: "bg-gray-100 text-gray-600" },
+  pdf: { icon: FileText, className: "bg-negative/8 text-negative-fg" },
+  image: { icon: ImageIcon, className: "bg-accent-cyan/8 text-accent-cyan" },
+  url: { icon: Link2, className: "bg-primary/8 text-primary" },
+  text: { icon: Type, className: "bg-fill text-label-alternative" },
+  markdown: { icon: FileText, className: "bg-fill text-label-alternative" },
+  file: { icon: Paperclip, className: "bg-fill text-label-alternative" },
 };
 
 const PARSE_STATUS_TEXT = { uploaded: "업로드됨", processing: "처리 중", error: "처리 오류" } as const;
@@ -45,10 +45,10 @@ function ReferenceItem({
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-gray-800">{reference.name}</span>
-        <span className="block truncate text-xs text-gray-500">
+        <span className="block truncate text-[13px] font-medium text-label-neutral">{reference.name}</span>
+        <span className="block truncate text-xs text-label-alternative">
           {reference.detail} · {formatDay(reference.addedAt)}
-          {status && <span className={status === "error" ? " text-red-600" : ""}> · {PARSE_STATUS_TEXT[status]}</span>}
+          {status && <span className={status === "error" ? " text-negative-fg" : ""}> · {PARSE_STATUS_TEXT[status]}</span>}
         </span>
       </span>
       {onRemove && (
@@ -56,7 +56,7 @@ function ReferenceItem({
           type="button"
           onClick={() => onRemove(reference.id)}
           aria-label={`${reference.name} 삭제`}
-          className="rounded p-1 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-600 focus:opacity-100"
+          className="rounded p-1 text-label-assistive opacity-0 group-hover:opacity-100 hover:bg-fill hover:text-label-alternative focus:opacity-100"
         >
           <X className="size-3.5" aria-hidden />
         </button>
@@ -90,7 +90,7 @@ export function ReferenceList({ references, limit, onRemove }: ReferenceListProp
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-1 px-2 text-xs font-medium text-blue-600 hover:underline"
+          className="mt-1 px-2 text-xs font-medium text-primary hover:underline"
         >
           {expanded ? "접기" : `+ ${hidden}개 더 보기`}
         </button>

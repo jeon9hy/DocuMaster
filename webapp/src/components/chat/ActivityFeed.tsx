@@ -46,7 +46,7 @@ const FeedRow = memo(function FeedRow({
     case "agent":
       return <AgentMessage agentId={item.agentId} toAgentId={item.toAgentId} text={item.text} createdAt={item.createdAt} />;
     case "activity":
-      return <span className="text-[13px] text-gray-600">{item.label}</span>;
+      return <span className="text-[13px] text-label-alternative">{item.label}</span>;
     case "user":
       return <UserMessage text={item.text} createdAt={item.createdAt} />;
     case "system":
@@ -91,8 +91,8 @@ const FeedRow = memo(function FeedRow({
 function DateDivider({ iso }: { iso: string }) {
   return (
     <li className="flex justify-center py-1" role="separator">
-      <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
-        <CalendarDays className="size-3.5 text-gray-400" aria-hidden />
+      <span className="flex items-center gap-1.5 rounded-full bg-fill px-3 py-1 text-xs text-label-alternative">
+        <CalendarDays className="size-3.5 text-label-assistive" aria-hidden />
         <time dateTime={iso}>{formatFullDate(iso)}</time>
       </span>
     </li>
@@ -104,12 +104,12 @@ function StageDivider({ items }: { items: FeedItem[] }) {
   const last = items[items.length - 1];
   const titles = items.map((item) => (item.kind === "system" ? item.title : "")).filter(Boolean);
   return (
-    <li className="flex items-center gap-3 text-xs text-gray-500" role="separator">
-      <span className="h-px flex-1 bg-gray-200" aria-hidden />
+    <li className="flex items-center gap-3 text-xs text-label-alternative" role="separator">
+      <span className="h-px flex-1 bg-fill-strong" aria-hidden />
       <span className="max-w-[80%] text-center">
         {titles.join(" → ")} · <time dateTime={last.createdAt}>{formatTime(last.createdAt)}</time>
       </span>
-      <span className="h-px flex-1 bg-gray-200" aria-hidden />
+      <span className="h-px flex-1 bg-fill-strong" aria-hidden />
     </li>
   );
 }
@@ -153,7 +153,7 @@ function DetailGroup({ count, children }: { count: number; children: ReactNode }
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100"
+        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-label-alternative hover:bg-fill"
       >
         <Icon className="size-3.5" aria-hidden />
         세부 활동 {count}건 {open ? "접기" : "보기"}
@@ -213,7 +213,7 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
     ) : block.kind === "dividers" ? (
       <StageDivider key={block.key} items={block.items} />
     ) : block.kind === "activities" ? (
-      <li key={block.key} className="ml-[52px] text-[13px] text-gray-500">
+      <li key={block.key} className="ml-[52px] text-[13px] text-label-alternative">
         <span className="font-medium">{getAgentProfile(block.agentId).name} · 작업 기록</span>
         <ul className="mt-1 space-y-1 border-l border-line pl-3">
           {block.items.map((item) => <li key={item.id} className="break-words">{item.kind === "activity" ? item.label : null}</li>)}
@@ -257,7 +257,7 @@ export function ActivityFeed({ projectId, feed, artifacts, pendingPromptIds }: A
           type="button"
           onClick={scrollToBottom}
           aria-label="맨 아래로"
-          className="absolute right-4 bottom-3 flex size-10 items-center justify-center rounded-full border border-line bg-white/95 text-gray-600 shadow-md transition-colors hover:bg-gray-50 md:right-6"
+          className="absolute right-4 bottom-3 flex size-10 items-center justify-center rounded-full border border-line bg-surface/95 text-label-alternative shadow-md transition-colors hover:bg-fill-alt md:right-6"
         >
           <ArrowDown className="size-5" aria-hidden />
         </button>

@@ -39,7 +39,7 @@ function FileUploadPanel() {
       action={
         <AddReferenceButton>
           {(open) => (
-            <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-7 text-blue-600">
+            <Button size="sm" variant="ghost" icon={Plus} onClick={open} className="h-7 text-primary">
               URL·텍스트
             </Button>
           )}
@@ -51,7 +51,7 @@ function FileUploadPanel() {
       {running && files.length > 0 && <ApplyPolicyField value={applyPolicy} onChange={setApplyPolicy} />}
       {(files.length > 0 || error) && (
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {error && <p className="mr-auto text-sm text-red-600">{error}</p>}
+          {error && <p className="mr-auto text-sm text-negative-fg">{error}</p>}
           {files.length > 0 && !uploading && (
             <Button size="sm" onClick={() => setFiles([])}>
               모두 비우기

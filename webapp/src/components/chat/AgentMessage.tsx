@@ -23,8 +23,8 @@ export function AgentMessage({ agentId, toAgentId, text, createdAt }: AgentMessa
       <div className="min-w-0 flex-1">
         <header className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <span className={cn("text-[15px] font-semibold", profile.accent.text)}>{profile.name}</span>
-          <span className="text-xs text-gray-500">{profile.role}</span>
-          <time className="ml-auto text-xs text-gray-400" dateTime={createdAt}>
+          <span className="text-xs text-label-alternative">{profile.role}</span>
+          <time className="ml-auto text-xs text-label-alternative" dateTime={createdAt}>
             {formatTime(createdAt)}
           </time>
         </header>
@@ -34,7 +34,7 @@ export function AgentMessage({ agentId, toAgentId, text, createdAt }: AgentMessa
             profile.accent.soft,
           )}
         >
-          <MarkdownLite text={text} className="space-y-1 text-sm text-gray-800" />
+          <MarkdownLite text={text} className="space-y-1 text-sm text-label-neutral" />
         </div>
       </div>
     </article>
